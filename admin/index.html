@@ -364,6 +364,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
         <h1>Como o site está convertendo</h1>
       </div>
       <div class="filtros" role="group" aria-label="Período">
+        <button type="button" class="mini" data-dias="1" aria-pressed="false">Hoje</button>
         <button type="button" class="mini" data-dias="7" aria-pressed="false">7 dias</button>
         <button type="button" class="mini" data-dias="30" aria-pressed="true">30 dias</button>
         <button type="button" class="mini" data-dias="90" aria-pressed="false">90 dias</button>
@@ -408,7 +409,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <p class="nota" id="notaPublico"></p>
     </section>
 
-    <section class="bloco">
+    <section class="bloco" id="blocoPorDia">
       <div class="bloco-head">
         <h2>Por dia</h2>
         <div class="legenda" aria-hidden="true">
@@ -582,7 +583,7 @@ function exemplo(d) {
   const pedido = whatsapp;
   const comecaram = Math.round(pedido / 0.46);
   const parte = (fr, base) => Math.round(base * fr);
-  const redesEx = [["Instagram", 0.46], ["TikTok", 0.24], ["Facebook", 0.18], ["WhatsApp", 0.12]];
+  const redesEx = [["Instagram", 0.4], ["TikTok", 0.2], ["Facebook", 0.15], ["Indicação", 0.12], ["WhatsApp", 0.09], ["Outros", 0.04]];
   const cidadesEx = [["Campo Grande", 0.2], ["São João de Meriti", 0.18], ["Duque de Caxias", 0.15], ["Nova Iguaçu", 0.13], ["Belford Roxo", 0.1], ["Bangu", 0.09], ["Nilópolis", 0.08], ["Mesquita", 0.07]];
   const cruzado = [];
   cidadesEx.forEach(([cidade, fc], i) => redesEx.forEach(([rede, fr], j) => {
@@ -651,7 +652,9 @@ function aplicarMetricas(d) {
   dados = d;
   desenhar(d);
   const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  $("#estado").textContent = `${dm(d.periodo.de)} a ${dm(d.periodo.ate)} · atualizado às ${hora}`;
+  $("#estado").textContent = d.periodo.dias === 1
+    ? `Hoje, ${dm(d.periodo.ate)} (desde 0h) · atualizado às ${hora}`
+    : `${dm(d.periodo.de)} a ${dm(d.periodo.ate)} · atualizado às ${hora}`;
 }
 
 /* ---------- Entrada ---------- */
@@ -792,7 +795,7 @@ function desenharDicas(d) {
     if (fortes.length >= 2) lista.push(`Quem vem de ${fortes[0].nome} converte mais (${pct(fortes[0].cv)}). Quem vem de ${fortes[fortes.length - 1].nome} converte menos (${pct(fortes[fortes.length - 1].cv)}).`);
     const responderam = (d.conheceu || []).reduce((s, x) => s + x.total, 0);
     if (responderam >= 5) lista.push(`${d.conheceu[0].nome} é por onde mais gente conheceu a Blin Car (${pct(d.conheceu[0].total / responderam)} de quem pediu orçamento). O lugar que mais pede é ${d.cidades[0].nome}.`);
-    if (!lista.length) lista.push(`A conversão está em ${pct(taxa(t.whatsapp, t.visitantes))}. Compare com o período anterior trocando os botões de 7, 30 e 90 dias.`);
+    if (!lista.length) lista.push(`A conversão está em ${pct(taxa(t.whatsapp, t.visitantes))}. Compare os períodos trocando os botões de hoje, 7, 30 e 90 dias.`);
   }
   $("#dicas").replaceChildren(...lista.slice(0, 4).map(txt => el("li", {}, txt)));
 }
@@ -841,7 +844,9 @@ function s(tag, attrs = {}) {
 
 let larguraGrafico = 0;
 function desenharGrafico() {
-  if (!dados) return;
+  // Em "Hoje" o gráfico por dia teria um ponto só: a seção fica escondida.
+  $("#blocoPorDia").hidden = !dados || dados.porDia.length < 2;
+  if (!dados || dados.porDia.length < 2) return;
   const caixa = $("#grafico");
   const serie = dados.porDia;
   const W = Math.max(280, Math.round(caixa.clientWidth || 600));

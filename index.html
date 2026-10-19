@@ -107,6 +107,10 @@ input[type=text]:focus,textarea:focus{outline:2px solid var(--gold);outline-offs
 input[aria-invalid=true]{border-color:var(--err)}
 .err{margin:0;color:var(--err);font-size:.875rem}
 .row2{display:grid;gap:18px}
+.carro3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 12px}
+.carro3 .marca{grid-column:1/-1}
+@media (min-width:520px){.carro3{grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)}.carro3 .marca{grid-column:auto}}
+.conheceu-mais{margin-top:12px}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{position:relative}
@@ -199,10 +203,22 @@ address span{color:var(--muted);font-size:.9375rem}
       <p class="err" id="nome-err" hidden>Escreva seu nome.</p>
     </div>
 
-    <div class="field">
-      <label for="carro">Carro, modelo e ano</label>
-      <input type="text" id="carro" name="carro" placeholder="Ex.: Meriva 2010 prata" aria-describedby="carro-err">
-      <p class="err" id="carro-err" hidden>Diga qual é o carro.</p>
+    <div class="carro3">
+      <div class="field marca">
+        <label for="carro">Marca e modelo do carro</label>
+        <input type="text" id="carro" name="carro" placeholder="Ex.: Chevrolet Meriva" aria-describedby="carro-err">
+        <p class="err" id="carro-err" hidden>Diga a marca e o modelo.</p>
+      </div>
+      <div class="field">
+        <label for="ano">Ano</label>
+        <input type="text" id="ano" name="ano" inputmode="numeric" maxlength="4" placeholder="Ex.: 2010" aria-describedby="ano-err">
+        <p class="err" id="ano-err" hidden>Coloque o ano com 4 números.</p>
+      </div>
+      <div class="field">
+        <label for="cor">Cor</label>
+        <input type="text" id="cor" name="cor" placeholder="Ex.: prata" aria-describedby="cor-err">
+        <p class="err" id="cor-err" hidden>Diga a cor.</p>
+      </div>
     </div>
 
     <fieldset class="field" id="servicos" aria-describedby="servicos-err">
@@ -232,6 +248,12 @@ address span{color:var(--muted);font-size:.9375rem}
         <label class="chip"><input type="radio" id="c-tiktok" name="conheceu" value="TikTok"><span>TikTok</span></label>
         <label class="chip"><input type="radio" id="c-facebook" name="conheceu" value="Facebook"><span>Facebook</span></label>
         <label class="chip"><input type="radio" id="c-whatsapp" name="conheceu" value="WhatsApp"><span>WhatsApp</span></label>
+        <label class="chip"><input type="radio" id="c-indicacao" name="conheceu" value="Indicação"><span>Indicação</span></label>
+        <label class="chip"><input type="radio" id="c-outros" name="conheceu" value="Outros"><span>Outros</span></label>
+      </div>
+      <div class="field conheceu-mais" id="conheceuMais" hidden>
+        <label for="conheceuQual" id="conheceuQualRotulo">Onde? <small>(opcional)</small></label>
+        <input type="text" id="conheceuQual" name="conheceuQual" maxlength="60" placeholder="Ex.: Google, passei na frente da oficina">
       </div>
       <p class="err" id="conheceu-err" hidden>Marque como conheceu a gente.</p>
     </fieldset>
@@ -312,7 +334,7 @@ const WHATSAPP = String(CONFIG.whatsapp || "").replace(/\D/g, "");
 
 const ABERTURA = "Olá, Blin Car! Vim pelo site e quero fazer um orçamento.";
 const FECHO = "Vou mandar as fotos do carro aqui na conversa.";
-const VAZIO = { Nome: "seu nome", Carro: "modelo e ano", "Serviço": "o que o carro precisa", "De onde é": "bairro e cidade", "Conheceu por": "como conheceu a gente" };
+const VAZIO = { Nome: "seu nome", Carro: "marca e modelo", Ano: "ano do carro", Cor: "cor do carro", "Serviço": "o que o carro precisa", "De onde é": "bairro e cidade", "Conheceu por": "como conheceu a gente" };
 
 // Métricas anônimas: cada visita e clique vira uma linha na planilha (config.js > metricas).
 // Quem entrou no painel dos administradores neste aparelho não é contado.
@@ -398,16 +420,20 @@ function dados() {
   return {
     nome: v("nome"),
     carro: v("carro"),
+    ano: v("ano"),
+    cor: v("cor"),
     servicos: [...form.querySelectorAll('input[name="servico"]:checked')].map(i => i.value),
     cidade: v("cidade"),
     conheceu: form.querySelector('input[name="conheceu"]:checked')?.value || "",
+    conheceuQual: v("conheceuQual"),
     quando: form.querySelector('input[name="quando"]:checked')?.value || "",
     detalhes: v("detalhes")
   };
 }
 
 function linhas(d) {
-  const l = [["Nome", d.nome], ["Carro", d.carro], ["Serviço", d.servicos.join(", ")], ["De onde é", d.cidade], ["Conheceu por", d.conheceu]];
+  const conheceu = d.conheceu && maisConheceu(d.conheceu) && d.conheceuQual ? `${d.conheceu} (${d.conheceuQual})` : d.conheceu;
+  const l = [["Nome", d.nome], ["Carro", d.carro], ["Ano", d.ano], ["Cor", d.cor], ["Serviço", d.servicos.join(", ")], ["De onde é", d.cidade], ["Conheceu por", conheceu]];
   if (d.quando) l.push(["Quando", d.quando]);
   if (d.detalhes) l.push(["Detalhes", d.detalhes]);
   return l;
@@ -419,6 +445,9 @@ function mensagem(d) {
 
 function atualizar() {
   const d = dados();
+  const mais = maisConheceu(d.conheceu);
+  $("#conheceuMais").hidden = !mais;
+  if (mais) $("#conheceuQualRotulo").firstChild.textContent = d.conheceu === "Indicação" ? "Quem indicou? " : "Onde? ";
   const corpo = linhas(d).map(([k, v]) =>
     `<b>${k}:</b> ${v ? esc(v).replace(/\n/g, "<br>") : `<i>${VAZIO[k]}</i>`}`);
   $("#previa").innerHTML = [esc(ABERTURA), "", ...corpo, "", esc(FECHO)].join("<br>") + '<span class="hora">agora</span>';
@@ -438,13 +467,19 @@ function lista(itens) {
 }
 
 const letras = s => s.replace(/[^A-Za-zÀ-ÿ]/g, "").length;
+// Ano do carro: 4 números, de 1950 até o ano que vem (modelo do ano seguinte).
+const anoOk = a => /^\d{4}$/.test(a) && Number(a) >= 1950 && Number(a) <= new Date().getFullYear() + 1;
+// "Indicação" e "Outros" abrem um campo opcional para dizer quem indicou ou onde viu.
+const maisConheceu = rede => rede === "Indicação" || rede === "Outros";
 const GRUPOS = ["servicos", "conheceu"];
 
 // [id, preenchido, nome na mensagem de erro, onde pôr o foco]
 function regras(d) {
   return [
     ["nome", letras(d.nome) >= 2, "seu nome", form.elements.nome],
-    ["carro", letras(d.carro) >= 2, "o carro", form.elements.carro],
+    ["carro", letras(d.carro) >= 2, "a marca e o modelo do carro", form.elements.carro],
+    ["ano", anoOk(d.ano), "o ano do carro", form.elements.ano],
+    ["cor", letras(d.cor) >= 3, "a cor do carro", form.elements.cor],
     ["servicos", d.servicos.length > 0, "o serviço", $("#s-geral")],
     ["cidade", letras(d.cidade) >= 3, "de onde você é", form.elements.cidade],
     ["conheceu", !!d.conheceu, "como conheceu a gente", $("#c-instagram")]
@@ -486,6 +521,11 @@ function comecar() {
   comecou = true;
   registrar("inicio");
 }
+// Ano: só números.
+form.elements.ano.addEventListener("input", () => {
+  const campo = form.elements.ano, limpo = campo.value.replace(/\D/g, "").slice(0, 4);
+  if (campo.value !== limpo) campo.value = limpo;
+});
 form.addEventListener("input", () => { comecar(); atualizar(); });
 form.addEventListener("change", () => { comecar(); atualizar(); });
 enviar.addEventListener("keydown", e => {
