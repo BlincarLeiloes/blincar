@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel · Blin Car</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0f1012">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
+<style>
+/* Layout: o mesmo topo do site; números principais numa faixa, funil e gráfico por dia em largura cheia, detalhes em duas colunas a partir de 820px */
+:root{
+  --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--grid:#25272b;--fg:#f2f0ec;--muted:#a3a2a7;
+  --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
+  --c-vis:#8b8d94;--c-wa:#1aa851;
+  --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--grid:#ecebe7;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --c-vis:#8a8c93;--c-wa:#178f45;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--grid:#ecebe7;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --c-vis:#8a8c93;--c-wa:#178f45;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--body);-webkit-text-size-adjust:100%}
+a{color:inherit}
+h1,h2{text-wrap:balance}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.bar{border-bottom:1px solid var(--line)}
+.bar-in{max-width:1120px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mark{display:grid;text-decoration:none;line-height:1}
+.mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
+.mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
+.mark .word b{color:var(--red);font-weight:800}
+.mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.bar-acoes{display:flex;align-items:center;gap:8px}
+.link{font-size:.875rem;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 4px}
+.link:hover{color:var(--fg)}
+
+.page{max-width:1120px;margin:0 auto;padding-block:28px 56px}
+.eyebrow{margin:0 0 8px;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0;font:italic 800 clamp(2rem,6.5vw,3.25rem)/.95 var(--display);font-stretch:72%;text-transform:uppercase}
+h2{margin:0;font:italic 800 1.375rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+.sub{color:var(--muted);font-size:.9375rem;margin:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:12px 18px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);font:600 1rem/1.2 var(--body);text-decoration:none;cursor:pointer}
+.btn-red{background:var(--red);color:var(--on-red)}
+.btn-line{border-color:var(--line)}
+.btn-line:hover{border-color:var(--muted)}
+.mini{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:10px;padding:8px 12px;font:600 .875rem/1 var(--body);cursor:pointer;min-height:36px}
+.mini:hover{border-color:var(--muted)}
+.mini[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button:focus-visible,a:focus-visible,input:focus-visible,svg:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Entrada */
+.entrada{max-width:460px;display:grid;gap:18px;padding-top:12px}
+.cartao{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;display:grid;gap:12px}
+.cartao label{font-weight:600;font-size:.9375rem}
+input[type=password]{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+.err{margin:0;color:var(--err);font-size:.9375rem}
+.aviso{margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:.9375rem;color:var(--muted)}
+.aviso b{color:var(--fg)}
+
+/* Painel */
+.painel{display:grid;gap:20px;transition:opacity .2s}
+.painel.carregando{opacity:.55}
+@media (prefers-reduced-motion:reduce){.painel{transition:none}}
+.topo-painel{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+.filtros{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.estado{margin:0;font-size:.875rem;color:var(--muted)}
+.selo{margin:0;padding:10px 14px;border-radius:12px;border:1px dashed var(--gold);color:var(--fg);font-size:.9375rem}
+.selo b{color:var(--gold)}
+
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:820px){.kpis{grid-template-columns:1.3fr repeat(3,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:4px;align-content:start;min-width:0}
+.kpi .rot{font-size:.8125rem;font-weight:600;color:var(--muted)}
+.kpi strong{font:600 2rem/1.1 var(--body);letter-spacing:-.01em}
+.kpi .det{font-size:.8125rem;color:var(--muted)}
+.kpi.hero{grid-column:1/-1}
+@media (min-width:820px){.kpi.hero{grid-column:auto}}
+.kpi.hero strong{font-size:3.25rem;line-height:1}
+.kpi.hero .marca{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c-wa);margin-right:6px;vertical-align:middle}
+
+.bloco{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:14px;min-width:0}
+@media (min-width:520px){.bloco{padding:22px}}
+.bloco-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 14px}
+.nota{margin:0;font-size:.8125rem;color:var(--muted)}
+.duas{display:grid;gap:20px}
+@media (min-width:820px){.duas{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.dicas{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.dicas li{padding-left:16px;position:relative;font-size:.9375rem}
+.dicas li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+/* Funil */
+.funil{display:grid;gap:4px}
+.etapa{display:grid;gap:6px}
+.etapa-top{display:flex;justify-content:space-between;gap:12px;font-size:.9375rem}
+.etapa-top b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.trilho{height:14px;border-radius:4px;background:var(--grid)}
+.trilho i{display:block;height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.perda{font-size:.8125rem;color:var(--muted);padding:4px 0 8px 2px}
+.vis{background:var(--c-vis)}.wa{background:var(--c-wa)}
+.extra{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:10px;font-size:.9375rem}
+.extra b{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Gráfico por dia */
+.legenda{display:flex;flex-wrap:wrap;gap:14px;font-size:.8125rem;color:var(--muted)}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
+.legenda i{display:inline-block;width:16px;height:2px;border-radius:2px}
+.grafico{position:relative;min-width:0;overflow:hidden}
+.grafico svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.grafico text{fill:var(--muted);font:500 11px var(--body);font-variant-numeric:tabular-nums}
+.grafico .fim{fill:var(--fg);font-weight:600}
+.dica{position:absolute;top:0;pointer-events:none;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.8125rem;min-width:132px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.dica .dia{color:var(--muted);margin-bottom:4px}
+.dica div.l{display:flex;align-items:center;gap:8px}
+.dica div.l i{width:12px;height:2px;border-radius:2px}
+.dica div.l b{font-variant-numeric:tabular-nums;min-width:2ch}
+.dica div.l span{color:var(--muted)}
+details summary{cursor:pointer;font-size:.875rem;font-weight:600;color:var(--muted)}
+.rolagem{overflow-x:auto;margin-top:10px}
+
+table{width:100%;border-collapse:collapse;font-size:.9375rem}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+th:last-child,td:last-child{padding-right:0}
+tr:last-child td{border-bottom:0}
+@media (max-width:519px){
+  table{font-size:.8125rem}
+  th{font-size:.625rem;letter-spacing:.02em}
+  th,td{padding:8px 3px}
+}
+
+.barras{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.barras li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:.9375rem}
+.barras b{font-variant-numeric:tabular-nums}
+.barras .trilho{grid-column:1/-1;height:10px;background:transparent}
+.barras .trilho i{background:var(--red)}
+.vazio{margin:0;font-size:.9375rem;color:var(--muted)}
+
+.ultimos{margin:0;padding:0;list-style:none;display:grid}
+.ultimos li{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:2px}
+.ultimos li:last-child{border-bottom:0}
+.ultimos .q{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ultimos .s{font-weight:600}
+.ultimos .o{font-size:.875rem;color:var(--muted)}
+
+.rodape{border-top:1px solid var(--line)}
+.rodape p{max-width:1120px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in gutter">
+    <a class="mark" href="../" aria-label="Blin Car, ir para o site">
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <span class="word">BLIN <b>CAR</b></span>
+      <span class="tag">Painel dos administradores</span>
+    </a>
+    <div class="bar-acoes">
+      <a class="link" href="../" target="_blank" rel="noopener">Ver o site</a>
+      <button type="button" class="mini" id="sair" hidden>Sair</button>
+    </div>
+  </div>
+</header>
+
+<main class="page gutter">
+  <section class="entrada" id="entrada">
+    <div>
+      <p class="eyebrow">Só para administradores</p>
+      <h1>Painel do site</h1>
+      <p class="sub" style="margin-top:12px">Quantas pessoas visitam o site, começam o pedido e abrem o WhatsApp, e quantos por cento disso vira conversa.</p>
+    </div>
+    <p class="aviso" id="semPlanilha" hidden><b>A planilha de métricas ainda não está ligada.</b> Siga o LEIA-ME e coloque o link dela em config.js. Enquanto isso, dá para ver o painel com dados de exemplo.</p>
+    <form class="cartao" id="login" novalidate>
+      <label for="senha">Senha do painel</label>
+      <input type="password" id="senha" name="senha" autocomplete="current-password">
+      <p class="err" id="loginErro" role="alert" hidden></p>
+      <button class="btn btn-red" type="submit" id="entrar">Entrar</button>
+      <button class="btn btn-line" type="button" id="verExemplo">Ver com dados de exemplo</button>
+    </form>
+  </section>
+
+  <section class="painel" id="painel" hidden>
+    <div class="topo-painel">
+      <div>
+        <p class="eyebrow">Site de orçamento · Blin Car</p>
+        <h1>Como o site está convertendo</h1>
+      </div>
+      <div class="filtros" role="group" aria-label="Período">
+        <button type="button" class="mini" data-dias="7" aria-pressed="false">7 dias</button>
+        <button type="button" class="mini" data-dias="30" aria-pressed="true">30 dias</button>
+        <button type="button" class="mini" data-dias="90" aria-pressed="false">90 dias</button>
+        <button type="button" class="mini" id="atualizar">Atualizar</button>
+      </div>
+    </div>
+    <p class="selo" id="seloExemplo" hidden><b>Dados de exemplo.</b> Estes números são inventados para mostrar o painel. Os reais aparecem quando a planilha estiver ligada.</p>
+    <p class="estado" id="estado" aria-live="polite"></p>
+    <p class="err" id="painelErro" role="alert" hidden></p>
+
+    <div class="kpis">
+      <div class="kpi hero">
+        <span class="rot"><span class="marca" aria-hidden="true"></span>Conversão</span>
+        <strong id="kConv">0%</strong>
+        <span class="det">dos visitantes abriram o WhatsApp</span>
+      </div>
+      <div class="kpi"><span class="rot">Visitantes</span><strong id="kVis">0</strong><span class="det" id="kVisDet"></span></div>
+      <div class="kpi"><span class="rot">Começaram o pedido</span><strong id="kCom">0</strong><span class="det" id="kComDet"></span></div>
+      <div class="kpi"><span class="rot">Abriram o WhatsApp</span><strong id="kWa">0</strong><span class="det" id="kWaDet"></span></div>
+    </div>
+
+    <section class="bloco">
+      <h2>O que os números dizem</h2>
+      <ul class="dicas" id="dicas"></ul>
+    </section>
+
+    <section class="bloco">
+      <div class="bloco-head"><h2>Funil</h2><p class="nota">Pessoas diferentes no período</p></div>
+      <div class="funil" id="funil"></div>
+      <div class="extra"><span>Chamaram direto no WhatsApp, sem preencher</span><b id="fDireto">0</b></div>
+      <div class="extra"><span>Tentativas de envio com campo faltando</span><b id="fIncompleto">0</b></div>
+      <p class="nota">"Abriram o WhatsApp" quer dizer que a pessoa tocou no botão e o WhatsApp abriu com a mensagem pronta. Se ela enviou mesmo, só dá para ver no WhatsApp: compare com as conversas novas do período.</p>
+    </section>
+
+    <section class="bloco">
+      <div class="bloco-head">
+        <h2>Por dia</h2>
+        <div class="legenda" aria-hidden="true">
+          <span><i style="background:var(--c-vis)"></i>Visitantes</span>
+          <span><i style="background:var(--c-wa)"></i>Abriram o WhatsApp</span>
+        </div>
+      </div>
+      <div class="grafico" id="grafico"></div>
+      <details>
+        <summary>Ver em tabela</summary>
+        <div class="rolagem"><table id="tabelaDias"></table></div>
+      </details>
+    </section>
+
+    <div class="duas">
+      <section class="bloco">
+        <div class="bloco-head"><h2>De onde vêm</h2></div>
+        <div class="rolagem"><table id="tabelaOrigens"></table></div>
+        <p class="nota">Para separar a bio, os stories e o status, use links com ?origem= (veja o LEIA-ME).</p>
+      </section>
+      <section class="bloco">
+        <div class="bloco-head"><h2>Celular ou computador</h2></div>
+        <div class="rolagem"><table id="tabelaAparelhos"></table></div>
+      </section>
+      <section class="bloco">
+        <div class="bloco-head"><h2>Serviços mais pedidos</h2></div>
+        <ul class="barras" id="servicos"></ul>
+        <p class="nota">Contado a cada pedido enviado. Um pedido pode marcar mais de um serviço.</p>
+      </section>
+      <section class="bloco">
+        <div class="bloco-head"><h2>Quando querem trazer o carro</h2></div>
+        <ul class="barras" id="quando"></ul>
+      </section>
+      <section class="bloco">
+        <div class="bloco-head"><h2>Outros cliques</h2></div>
+        <div class="rolagem"><table id="tabelaCliques"></table></div>
+      </section>
+      <section class="bloco">
+        <div class="bloco-head"><h2>Últimos pedidos</h2><p class="nota">Sem nome nem telefone</p></div>
+        <ul class="ultimos" id="ultimos"></ul>
+      </section>
+    </div>
+  </section>
+</main>
+
+<footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
+
+<script src="../config.js"></script>
+<script>
+const CONFIG = window.BLINCAR || {};
+const URL_METRICAS = String(CONFIG.metricas || "").trim();
+
+const $ = s => document.querySelector(s);
+const nf = new Intl.NumberFormat("pt-BR");
+const taxa = (a, b) => (b > 0 ? a / b : 0);
+const pct = v => (v * 100).toLocaleString("pt-BR", { maximumFractionDigits: v > 0 && v < 0.1 ? 1 : 0 }) + "%";
+const dm = dia => `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
+
+let senha = guardado("get", "blincar:senha") || "";
+let dias = 30;
+let exemploLigado = false;
+let dados = null;
+
+function guardado(acao, chave, valor) {
+  try {
+    if (acao === "get") return sessionStorage.getItem(chave);
+    if (acao === "set") sessionStorage.setItem(chave, valor);
+    if (acao === "del") sessionStorage.removeItem(chave);
+  } catch {}
+  return null;
+}
+
+// Monta elementos com textContent: nomes de origem e serviço vêm de fora e nunca viram HTML.
+function el(tag, props = {}, ...filhos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k === "style") e.style.cssText = v;
+    else e.setAttribute(k, v);
+  }
+  for (const f of filhos) e.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return e;
+}
+
+/* ---------- Dados ---------- */
+
+async function buscar(d) {
+  const url = `${URL_METRICAS}?acao=metricas&dias=${d}&senha=${encodeURIComponent(senha)}`;
+  const r = await fetch(url, { cache: "no-store" });
+  return r.json();
+}
+
+// Números inventados, sempre os mesmos, para mostrar o painel antes da planilha existir.
+function exemplo(d) {
+  let s = 7 + d;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  const hoje = new Date();
+  const porDia = [];
+  for (let i = d - 1; i >= 0; i--) {
+    const dt = new Date(hoje.getTime() - i * 864e5);
+    const fds = dt.getDay() === 0 ? 0.55 : dt.getDay() === 6 ? 0.8 : 1;
+    const vis = Math.round((18 + rnd() * 22) * fds);
+    const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    porDia.push({ dia: iso, visitantes: vis, whatsapp: Math.round(vis * (0.08 + rnd() * 0.1)) });
+  }
+  const visitantes = Math.round(porDia.reduce((a, x) => a + x.visitantes, 0) * 0.86);
+  const whatsapp = Math.round(porDia.reduce((a, x) => a + x.whatsapp, 0) * 0.95);
+  const pedido = Math.round(whatsapp * 0.72);
+  const comecaram = Math.round(pedido / 0.46);
+  const parte = (fr, base) => Math.round(base * fr);
+  const origens = [["Instagram (bio)", 0.46, 0.15], ["Instagram", 0.24, 0.1], ["Direto", 0.12, 0.13], ["Google", 0.1, 0.2], ["Status do WhatsApp", 0.08, 0.17]]
+    .map(([nome, fr, cv]) => ({ nome, visitantes: parte(fr, visitantes), whatsapp: Math.round(parte(fr, visitantes) * cv) }));
+  return {
+    ok: true,
+    periodo: { de: porDia[0].dia, ate: porDia[porDia.length - 1].dia, dias: d },
+    totais: {
+      visitas: Math.round(visitantes * 1.25), visitantes, comecaram, whatsapp, pedido, direto: whatsapp - pedido + Math.round(whatsapp * 0.05),
+      cliquesPedido: Math.round(pedido * 1.08), cliquesDireto: Math.round(whatsapp * 0.33), incompletos: Math.round(comecaram * 0.18)
+    },
+    porDia,
+    origens,
+    aparelhos: [{ nome: "Celular", visitantes: parte(0.87, visitantes), whatsapp: parte(0.9, whatsapp) },
+                { nome: "Computador", visitantes: parte(0.13, visitantes), whatsapp: parte(0.1, whatsapp) }],
+    servicos: [["Pintura geral", 0.42], ["Funilaria (amassado ou batida)", 0.3], ["Pintura de peça", 0.26], ["Polimento", 0.2], ["Recuperar carro de leilão", 0.12], ["Detalhamento", 0.08]]
+      .map(([nome, fr]) => ({ nome, total: Math.max(1, parte(fr, pedido)) })),
+    quando: [["O quanto antes", 0.44], ["Por enquanto só quero saber o valor", 0.34], ["Nas próximas semanas", 0.22]]
+      .map(([nome, fr]) => ({ nome, total: Math.max(1, parte(fr, pedido)) })),
+    cliques: [["Abriu o Google Maps", 0.09], ["Abriu o Instagram", 0.06], ["Copiou o endereço", 0.03], ["Copiou o número", 0.02]]
+      .map(([nome, fr]) => ({ nome, total: parte(fr, visitantes) })),
+    ultimos: [["Pintura geral", "O quanto antes", "Instagram (bio)"], ["Funilaria (amassado ou batida), Pintura de peça", "Nas próximas semanas", "Google"],
+              ["Polimento", "Por enquanto só quero saber o valor", "Instagram"], ["Pintura geral, Polimento", "O quanto antes", "Status do WhatsApp"]]
+      .map(([servicos, prazo, origem], i) => {
+        const t = new Date(hoje.getTime() - (i * 7 + 2) * 36e5);
+        const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}T${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+        return { quando: iso, servicos, prazo, origem, aparelho: "Celular" };
+      })
+  };
+}
+
+async function carregar() {
+  const painel = $("#painel");
+  painel.classList.add("carregando");
+  $("#painelErro").hidden = true;
+  try {
+    const d = exemploLigado ? exemplo(dias) : await buscar(dias);
+    if (!d || !d.ok) {
+      if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
+      throw new Error(d && d.erro);
+    }
+    dados = d;
+    desenhar(d);
+    const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    $("#estado").textContent = `${dm(d.periodo.de)} a ${dm(d.periodo.ate)} · atualizado às ${hora}`;
+  } catch (e) {
+    $("#painelErro").textContent = e && e.message === "senha_nao_configurada"
+      ? "Falta trocar a senha no código da planilha (SENHA_ADMIN) e implantar de novo."
+      : "Não consegui falar com a planilha. Confira a internet e tente Atualizar.";
+    $("#painelErro").hidden = false;
+  } finally {
+    painel.classList.remove("carregando");
+  }
+}
+
+/* ---------- Entrada ---------- */
+
+function mostrarPainel() {
+  $("#entrada").hidden = true;
+  $("#painel").hidden = false;
+  $("#sair").hidden = false;
+  $("#seloExemplo").hidden = !exemploLigado;
+  $("#rodapeTxt").textContent = exemploLigado
+    ? "Blin Car · Painel dos administradores · dados de exemplo"
+    : "Blin Car · Painel dos administradores · as visitas deste aparelho não entram nas métricas";
+  carregar();
+}
+
+function sair(msg) {
+  senha = "";
+  exemploLigado = false;
+  dados = null;
+  guardado("del", "blincar:senha");
+  $("#painel").hidden = true;
+  $("#sair").hidden = true;
+  $("#entrada").hidden = false;
+  $("#loginErro").hidden = !msg;
+  $("#loginErro").textContent = msg || "";
+  $("#senha").value = "";
+}
+
+$("#login").addEventListener("submit", async e => {
+  e.preventDefault();
+  const tentativa = $("#senha").value;
+  const erro = $("#loginErro");
+  if (!URL_METRICAS) {
+    erro.textContent = "A planilha ainda não está ligada. Use os dados de exemplo por enquanto.";
+    erro.hidden = false;
+    return;
+  }
+  if (!tentativa) {
+    erro.textContent = "Digite a senha.";
+    erro.hidden = false;
+    return;
+  }
+  $("#entrar").disabled = true;
+  $("#entrar").textContent = "Entrando…";
+  try {
+    senha = tentativa;
+    const d = await buscar(30);
+    if (d && d.ok) {
+      guardado("set", "blincar:senha", senha);
+      try { localStorage.setItem("blincar:ignorar", "1"); } catch {}
+      exemploLigado = false;
+      erro.hidden = true;
+      mostrarPainel();
+    } else {
+      senha = "";
+      erro.textContent = d && d.erro === "senha_nao_configurada"
+        ? "Falta trocar a senha no código da planilha (SENHA_ADMIN) e implantar de novo."
+        : "Senha errada.";
+      erro.hidden = false;
+    }
+  } catch {
+    senha = "";
+    erro.textContent = "Não consegui falar com a planilha. Confira a internet e o link em config.js.";
+    erro.hidden = false;
+  } finally {
+    $("#entrar").disabled = false;
+    $("#entrar").textContent = "Entrar";
+  }
+});
+
+$("#verExemplo").addEventListener("click", () => {
+  exemploLigado = true;
+  mostrarPainel();
+});
+$("#sair").addEventListener("click", () => sair());
+$("#atualizar").addEventListener("click", carregar);
+document.querySelectorAll("[data-dias]").forEach(b => b.addEventListener("click", () => {
+  dias = Number(b.dataset.dias);
+  document.querySelectorAll("[data-dias]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  carregar();
+}));
+
+/* ---------- Desenho ---------- */
+
+function desenhar(d) {
+  const t = d.totais;
+  $("#kConv").textContent = pct(taxa(t.whatsapp, t.visitantes));
+  $("#kVis").textContent = nf.format(t.visitantes);
+  $("#kVisDet").textContent = `${nf.format(t.visitas)} visitas`;
+  $("#kCom").textContent = nf.format(t.comecaram);
+  $("#kComDet").textContent = `${pct(taxa(t.comecaram, t.visitantes))} dos visitantes`;
+  $("#kWa").textContent = nf.format(t.whatsapp);
+  $("#kWaDet").textContent = `${nf.format(t.pedido)} pelo pedido · ${nf.format(t.direto)} direto`;
+
+  desenharDicas(d);
+  desenharFunil(t);
+  desenharGrafico();
+  desenharTabelaDias(d.porDia);
+  tabelaConversao("#tabelaOrigens", "Origem", d.origens);
+  tabelaConversao("#tabelaAparelhos", "Aparelho", d.aparelhos);
+  barras("#servicos", d.servicos, "Nenhum pedido enviado neste período.");
+  barras("#quando", d.quando, "Ninguém respondeu essa pergunta neste período.");
+  tabelaSimples("#tabelaCliques", ["Clique", "Vezes"], d.cliques.map(c => [c.nome, nf.format(c.total)]), "Nenhum clique neste período.");
+  desenharUltimos(d.ultimos);
+}
+
+function desenharDicas(d) {
+  const t = d.totais;
+  const lista = [];
+  if (t.visitantes < 20) {
+    lista.push(t.visitantes === 0
+      ? "Ainda não tem visitas neste período. Coloque o link na bio do Instagram e nos stories e volte aqui depois."
+      : `Por enquanto são ${nf.format(t.visitantes)} visitantes. Com menos de 20 os percentuais ainda mudam muito: divulgue o link e volte em alguns dias.`);
+  } else {
+    const inicio = taxa(t.comecaram, t.visitantes);
+    const envio = taxa(t.pedido, t.comecaram);
+    if (inicio < 0.3) lista.push(`Só ${pct(inicio)} dos visitantes começam o pedido. Vale testar um título mais direto no topo ou deixar o botão do WhatsApp mais à vista.`);
+    if (t.comecaram >= 10 && envio < 0.6) lista.push(`${nf.format(t.comecaram - t.pedido)} pessoas começaram o pedido e não chegaram a abrir o WhatsApp (${pct(1 - envio)}). Menos campos ou campos mais claros podem ajudar.`);
+    if (t.incompletos > 0) lista.push(`Teve ${nf.format(t.incompletos)} tentativas de envio com campo faltando. Veja se nome, carro e serviço estão fáceis de achar.`);
+    const fortes = d.origens.filter(o => o.visitantes >= 10).map(o => ({ ...o, cv: taxa(o.whatsapp, o.visitantes) })).sort((a, b) => b.cv - a.cv);
+    if (fortes.length >= 2) lista.push(`Quem vem de ${fortes[0].nome} converte mais (${pct(fortes[0].cv)}). Quem vem de ${fortes[fortes.length - 1].nome} converte menos (${pct(fortes[fortes.length - 1].cv)}).`);
+    if (!lista.length) lista.push(`A conversão está em ${pct(taxa(t.whatsapp, t.visitantes))}. Compare com o período anterior trocando os botões de 7, 30 e 90 dias.`);
+  }
+  $("#dicas").replaceChildren(...lista.slice(0, 4).map(txt => el("li", {}, txt)));
+}
+
+function desenharFunil(t) {
+  const etapas = [
+    { nome: "Visitaram o site", v: t.visitantes, cor: "vis" },
+    { nome: "Começaram o pedido", v: t.comecaram, cor: "vis" },
+    { nome: "Tocaram em Enviar pelo WhatsApp", v: t.pedido, cor: "wa" }
+  ];
+  const base = Math.max(t.visitantes, 1);
+  const filhos = [];
+  etapas.forEach((e, i) => {
+    if (i > 0) {
+      const antes = etapas[i - 1].v;
+      const perdeu = Math.max(antes - e.v, 0);
+      filhos.push(el("div", { class: "perda" }, perdeu ? `${nf.format(perdeu)} pararam aqui (${pct(taxa(perdeu, antes))})` : "Ninguém parou aqui"));
+    }
+    const largura = Math.min(100, (e.v / base) * 100);
+    filhos.push(el("div", { class: "etapa" },
+      el("div", { class: "etapa-top" }, el("span", {}, e.nome), el("b", {}, `${nf.format(e.v)} · ${pct(taxa(e.v, t.visitantes))}`)),
+      el("div", { class: "trilho", role: "presentation" }, el("i", { class: e.cor, style: `width:${largura}%` }))));
+  });
+  $("#funil").replaceChildren(...filhos);
+  $("#fDireto").textContent = nf.format(t.direto);
+  $("#fIncompleto").textContent = nf.format(t.incompletos);
+}
+
+function escala(max) {
+  const bruto = Math.max(max, 1) / 4;
+  const mag = 10 ** Math.floor(Math.log10(bruto));
+  const passo = Math.max(1, [1, 2, 2.5, 5, 10].map(f => f * mag).find(p => p >= bruto));
+  return { passo, topo: passo * 4 };
+}
+
+const SVG = "http://www.w3.org/2000/svg";
+function s(tag, attrs = {}) {
+  const e = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (typeof v === "string" && v.startsWith("var(")) e.style.setProperty(k, v);
+    else e.setAttribute(k, v);
+  }
+  return e;
+}
+
+let larguraGrafico = 0;
+function desenharGrafico() {
+  if (!dados) return;
+  const caixa = $("#grafico");
+  const serie = dados.porDia;
+  const W = Math.max(280, Math.round(caixa.clientWidth || 600));
+  larguraGrafico = W;
+  const H = W < 520 ? 200 : 240;
+  const m = { t: 22, r: 12, b: 26, l: 32 };
+  const n = serie.length;
+  const { passo, topo } = escala(Math.max(...serie.map(p => p.visitantes)));
+  const x = i => m.l + (n === 1 ? (W - m.l - m.r) / 2 : (i * (W - m.l - m.r)) / (n - 1));
+  const y = v => H - m.b - (v / topo) * (H - m.t - m.b);
+
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, tabindex: "0", role: "img",
+    "aria-label": "Visitantes e pessoas que abriram o WhatsApp por dia. Use as setas para ver cada dia." });
+
+  for (let v = 0; v <= topo; v += passo) {
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)", "stroke-width": 1 }));
+    const tx = s("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" });
+    tx.textContent = nf.format(v);
+    svg.append(tx);
+  }
+  const cada = Math.max(1, Math.ceil(n / (W < 520 ? 4 : 7)));
+  serie.forEach((p, i) => {
+    if (i % cada !== 0 && i !== n - 1) return;
+    if (i !== n - 1 && n - 1 - i < cada * 0.6) return;
+    const tx = s("text", { x: x(i), y: H - 8, "text-anchor": i === 0 ? "start" : i === n - 1 ? "end" : "middle" });
+    tx.textContent = dm(p.dia);
+    svg.append(tx);
+  });
+
+  const caminho = campo => serie.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[campo]).toFixed(1)}`).join("");
+  svg.append(s("path", { d: `${caminho("visitantes")}L${x(n - 1)},${y(0)}L${x(0)},${y(0)}Z`, fill: "var(--c-vis)", "fill-opacity": 0.1 }));
+  svg.append(s("path", { d: caminho("visitantes"), fill: "none", stroke: "var(--c-vis)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+  svg.append(s("path", { d: caminho("whatsapp"), fill: "none", stroke: "var(--c-wa)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+
+  // Valor do último dia nas pontas das linhas; o do WhatsApp desce se encostar no outro.
+  const ult = serie[n - 1];
+  const yv = y(ult.visitantes), yw = y(ult.whatsapp);
+  for (const [campo, yy, cor, abaixo] of [["visitantes", yv, "var(--c-vis)", false], ["whatsapp", yw, "var(--c-wa)", Math.abs(yv - yw) < 18]]) {
+    svg.append(s("circle", { cx: x(n - 1), cy: yy, r: 4, fill: cor, stroke: "var(--surface)", "stroke-width": 2 }));
+    const tx = s("text", { x: x(n - 1) - 8, y: abaixo ? yy + 16 : yy - 8, "text-anchor": "end", class: "fim" });
+    tx.textContent = nf.format(ult[campo]);
+    svg.append(tx);
+  }
+
+  const mira = s("line", { y1: m.t - 6, y2: H - m.b, stroke: "var(--muted)", "stroke-width": 1, visibility: "hidden" });
+  const pv = s("circle", { r: 4, fill: "var(--c-vis)", stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+  const pw = s("circle", { r: 4, fill: "var(--c-wa)", stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+  const area = s("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" });
+  svg.append(mira, pv, pw, area);
+
+  const dica = el("div", { class: "dica", hidden: "" });
+  let atual = n - 1;
+  const mostrar = i => {
+    atual = Math.max(0, Math.min(n - 1, i));
+    const p = serie[atual];
+    for (const [no, attrs] of [[mira, { x1: x(atual), x2: x(atual) }], [pv, { cx: x(atual), cy: y(p.visitantes) }], [pw, { cx: x(atual), cy: y(p.whatsapp) }]]) {
+      for (const [k, v] of Object.entries(attrs)) no.setAttribute(k, v);
+      no.setAttribute("visibility", "visible");
+    }
+    const quando = new Date(p.dia + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
+    dica.replaceChildren(
+      el("div", { class: "dia" }, quando),
+      el("div", { class: "l" }, el("b", {}, nf.format(p.visitantes)), el("i", { style: "background:var(--c-vis)" }), el("span", {}, "visitantes")),
+      el("div", { class: "l" }, el("b", {}, nf.format(p.whatsapp)), el("i", { style: "background:var(--c-wa)" }), el("span", {}, "abriram o WhatsApp")));
+    dica.hidden = false;
+    const escalaTela = caixa.clientWidth / W;
+    const px = x(atual) * escalaTela;
+    dica.style.left = (px > caixa.clientWidth - 170 ? Math.max(0, px - 160) : px + 12) + "px";
+  };
+  const esconder = () => {
+    dica.hidden = true;
+    [mira, pv, pw].forEach(no => no.setAttribute("visibility", "hidden"));
+  };
+  const indice = ev => {
+    const r = svg.getBoundingClientRect();
+    const px = ((ev.clientX - r.left) / r.width) * W;
+    return n === 1 ? 0 : Math.round(((px - m.l) / (W - m.l - m.r)) * (n - 1));
+  };
+  svg.addEventListener("pointermove", ev => mostrar(indice(ev)));
+  svg.addEventListener("pointerdown", ev => mostrar(indice(ev)));
+  svg.addEventListener("pointerleave", esconder);
+  svg.addEventListener("focus", () => mostrar(atual));
+  svg.addEventListener("blur", esconder);
+  svg.addEventListener("keydown", ev => {
+    if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
+      ev.preventDefault();
+      mostrar(atual + (ev.key === "ArrowRight" ? 1 : -1));
+    }
+  });
+  caixa.replaceChildren(svg, dica);
+}
+
+new ResizeObserver(() => {
+  const w = Math.round($("#grafico").clientWidth);
+  if (dados && w && Math.abs(w - larguraGrafico) > 4) requestAnimationFrame(desenharGrafico);
+}).observe($("#grafico"));
+
+function desenharTabelaDias(porDia) {
+  tabelaSimples("#tabelaDias", ["Dia", "Visitantes", "WhatsApp", "Conversão"],
+    porDia.slice().reverse().map(p => [dm(p.dia), nf.format(p.visitantes), nf.format(p.whatsapp), pct(taxa(p.whatsapp, p.visitantes))]), "");
+}
+
+function tabelaConversao(sel, rotulo, linhas) {
+  tabelaSimples(sel, [rotulo, "Visitantes", "WhatsApp", "Conversão"],
+    linhas.map(o => [o.nome, nf.format(o.visitantes), nf.format(o.whatsapp), pct(taxa(o.whatsapp, o.visitantes))]),
+    "Nenhuma visita neste período.");
+}
+
+function tabelaSimples(sel, cab, linhas, vazio) {
+  const t = $(sel);
+  if (!linhas.length) {
+    t.replaceChildren(el("tbody", {}, el("tr", {}, el("td", { class: "vazio" }, vazio))));
+    return;
+  }
+  t.replaceChildren(
+    el("thead", {}, el("tr", {}, ...cab.map(c => el("th", { scope: "col" }, c)))),
+    el("tbody", {}, ...linhas.map(l => el("tr", {}, ...l.map(c => el("td", {}, c))))));
+}
+
+function barras(sel, itens, vazio) {
+  const alvo = $(sel);
+  if (!itens.length) {
+    alvo.replaceChildren(el("li", {}, el("p", { class: "vazio" }, vazio)));
+    return;
+  }
+  const max = Math.max(...itens.map(i => i.total), 1);
+  alvo.replaceChildren(...itens.slice(0, 8).map(i => el("li", {},
+    el("span", {}, i.nome), el("b", {}, nf.format(i.total)),
+    el("div", { class: "trilho", role: "presentation" }, el("i", { style: `width:${(i.total / max) * 100}%` })))));
+}
+
+function desenharUltimos(lista) {
+  const alvo = $("#ultimos");
+  if (!lista.length) {
+    alvo.replaceChildren(el("li", {}, el("p", { class: "vazio" }, "Nenhum pedido enviado neste período.")));
+    return;
+  }
+  alvo.replaceChildren(...lista.map(u => {
+    const quando = `${u.quando.slice(8, 10)}/${u.quando.slice(5, 7)} às ${u.quando.slice(11, 16)}`;
+    return el("li", {},
+      el("span", { class: "q" }, quando),
+      el("span", { class: "s" }, u.servicos || "Serviço não marcado"),
+      el("span", { class: "o" }, [u.prazo, u.origem, u.aparelho].filter(Boolean).join(" · ")));
+  }));
+}
+
+/* ---------- Início ---------- */
+
+if (!URL_METRICAS) {
+  $("#semPlanilha").hidden = false;
+  $("#senha").disabled = true;
+  $("#entrar").disabled = true;
+} else if (senha) {
+  mostrarPainel();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Blin Car · Pintura e funilaria em São João de Meriti</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Peça seu orçamento de pintura, funilaria, polimento e detalhamento na Blin Car, em Vilar dos Teles, São João de Meriti - RJ.">
+<meta property="og:title" content="Blin Car · Orçamento pelo WhatsApp">
+<meta property="og:description" content="Pintura, funilaria, polimento e detalhamento em Vilar dos Teles, São João de Meriti - RJ.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0f1012">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
+<style>
+/* Layout: celular em uma coluna (hero, pedido, informações); a partir de 920px o pedido fica à direita e o resto à esquerda */
+:root{
+  --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--fg:#f2f0ec;--muted:#a3a2a7;
+  --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
+  --wa:#25d366;--wa-ink:#062a17;
+  --chat-top:#202c33;--chat-bg:#0b141a;--bubble:#005c4b;--bubble-fg:#e9edef;
+  --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --chat:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --wa:#25d366;--wa-ink:#062a17;
+  --chat-top:#f0f2f5;--chat-bg:#efeae2;--bubble:#d9fdd3;--bubble-fg:#111b21;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --wa:#25d366;--wa-ink:#062a17;
+  --chat-top:#f0f2f5;--chat-bg:#efeae2;--bubble:#d9fdd3;--bubble-fg:#111b21;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--body);-webkit-text-size-adjust:100%}
+a{color:inherit}
+h1,h2{text-wrap:balance}
+small{font-size:.8125rem;color:var(--muted);font-weight:400}
+
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Topo */
+.bar{border-bottom:1px solid var(--line)}
+.bar-in{max-width:1120px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mark{display:grid;text-decoration:none;line-height:1}
+.mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
+.mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
+.mark .word b{color:var(--red);font-weight:800}
+.mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.ig{font-size:.875rem;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 0}
+.ig:hover{color:var(--fg)}
+
+/* Página */
+.page{max-width:1120px;margin:0 auto;padding-block:28px 48px;display:grid;gap:32px;grid-template-areas:"hero" "pedido" "info"}
+.hero{grid-area:hero;min-width:0}
+.pedido{grid-area:pedido;min-width:0}
+.info{grid-area:info;min-width:0;display:grid;gap:32px}
+@media (min-width:920px){
+  .page{grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-areas:"hero pedido" "info pedido";column-gap:56px;row-gap:40px;align-items:start;padding-block:48px 64px}
+  .so-celular{display:none!important}
+}
+
+.eyebrow{margin:0 0 12px;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0;font:italic 800 clamp(2.5rem,9vw,4.25rem)/.92 var(--display);font-stretch:72%;text-transform:uppercase;letter-spacing:-.005em}
+h1 span{color:var(--red);display:block}
+.lede{margin:16px 0 0;max-width:34em;font-size:1.0625rem;color:var(--muted)}
+.lede strong{color:var(--fg);font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:12px 18px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);font:600 1rem/1.2 var(--body);text-decoration:none;cursor:pointer;text-align:center}
+.btn svg{width:20px;height:20px;flex:none}
+.btn-red{background:var(--red);color:var(--on-red)}
+.btn-wa{background:var(--wa);color:var(--wa-ink)}
+.btn-line{border-color:var(--line)}
+.btn-line:hover{border-color:var(--muted)}
+.btn-sm{min-height:40px;padding:8px 14px;font-size:.9375rem;border-radius:10px}
+.btn:focus-visible,.ig:focus-visible,.mark:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+/* Pedido */
+.pedido{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:grid;gap:18px}
+@media (min-width:520px){.pedido{padding:28px}}
+.pedido-head h2{margin:0;font:italic 800 1.75rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+.pedido-head p{margin:6px 0 0;color:var(--muted);font-size:.9375rem}
+.field{display:grid;gap:6px;min-width:0;margin:0;padding:0;border:0}
+.field>label,.field>legend{font-weight:600;font-size:.9375rem;padding:0}
+.field>legend{margin-bottom:8px}
+input[type=text],textarea{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+textarea{resize:vertical;min-height:84px}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.8}
+input[type=text]:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+input[aria-invalid=true]{border-color:var(--err)}
+.err{margin:0;color:var(--err);font-size:.875rem}
+.row2{display:grid;gap:18px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:inline-block;padding:9px 14px;border:1px solid var(--line);border-radius:999px;font-size:.9375rem;font-weight:500;background:var(--bg);user-select:none}
+.chip input:checked+span{background:var(--red);border-color:var(--red);color:var(--on-red)}
+.chip input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+.invalid .chip span{border-color:var(--err)}
+
+/* Prévia no estilo do WhatsApp */
+.chat{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.chat-top{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--chat-top);color:var(--bubble-fg)}
+.chat-top b{display:block;font:600 .9375rem/1.2 var(--chat)}
+.chat-top small{display:block;font:400 .75rem/1.2 var(--chat);color:inherit;opacity:.7}
+.ava{width:34px;height:34px;border-radius:50%;background:var(--red);color:var(--on-red);display:grid;place-items:center;font:italic 800 .875rem/1 var(--display);font-stretch:75%;flex:none}
+.chat-body{background:var(--chat-bg);padding:14px 12px;display:flex;justify-content:flex-end}
+.bubble{position:relative;max-width:94%;min-width:0;background:var(--bubble);color:var(--bubble-fg);border-radius:10px 2px 10px 10px;padding:8px 10px 20px;font:400 .9rem/1.42 var(--chat);overflow-wrap:anywhere}
+.bubble i{opacity:.55}
+.bubble .hora{position:absolute;right:9px;bottom:4px;font-size:.6875rem;opacity:.65}
+
+.erros{margin:0;padding:10px 12px;border:1px solid var(--err);border-radius:10px;color:var(--err);font-size:.9375rem}
+.enviar{width:100%;min-height:54px;font-size:1.0625rem}
+.depois{margin:0;font-size:.9375rem;color:var(--muted)}
+.depois b{color:var(--fg)}
+
+/* Informações */
+.bloco h2{margin:0 0 14px;font:italic 800 1.375rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+.passos{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:p}
+.passos li{display:grid;grid-template-columns:36px 1fr;column-gap:12px;counter-increment:p}
+.passos li::before{content:counter(p);grid-row:span 2;font:italic 800 2rem/1 var(--display);font-stretch:75%;color:var(--red)}
+.passos b{font-weight:600}
+.passos span{color:var(--muted);font-size:.9375rem}
+
+.fotos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:520px) and (max-width:919px){.fotos{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.fotos li{display:grid;gap:6px;justify-items:start;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:.9375rem;font-weight:500}
+.fotos svg{width:36px;height:30px;color:var(--gold)}
+.nota{margin:10px 0 0;font-size:.875rem;color:var(--muted)}
+
+address{font-style:normal;font-size:1.0625rem;line-height:1.45}
+address span{color:var(--muted);font-size:.9375rem}
+.contatos{margin:18px 0 0;display:grid;gap:0;border-top:1px solid var(--line)}
+.contatos div{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.contatos dt{font-size:.75rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.contatos dd{margin:0;display:flex;align-items:center;gap:10px;font-weight:600;font-variant-numeric:tabular-nums}
+.contatos dd a{text-decoration:none}
+.contatos dd a:hover{text-decoration:underline}
+.mini{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:5px 9px;font:600 .8125rem/1 var(--body);cursor:pointer}
+.mini:hover{color:var(--fg)}
+.mini:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.rodape{border-top:1px solid var(--line)}
+.rodape p{max-width:1120px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+.rodape p+p{padding-top:0}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in gutter">
+    <a class="mark" href="#topo" aria-label="Blin Car, estética automotiva">
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <span class="word">BLIN <b>CAR</b></span>
+      <span class="tag">Estética automotiva</span>
+    </a>
+    <a class="ig" href="https://www.instagram.com/blincar_leiloes/" target="_blank" rel="noopener" data-metrica="instagram">@blincar_leiloes</a>
+  </div>
+</header>
+
+<main class="page gutter" id="topo">
+  <section class="hero">
+    <p class="eyebrow">Vilar dos Teles · São João de Meriti - RJ</p>
+    <h1>Peça seu orçamento <span>pelo WhatsApp</span></h1>
+    <p class="lede">Pintura, funilaria, polimento e detalhamento. Preencha o pedido e a mensagem abre pronta no nosso WhatsApp. <strong>Lá você manda as fotos do carro.</strong></p>
+    <div class="actions">
+      <a class="btn btn-red so-celular" href="#pedido">Preencher o pedido</a>
+      <a class="btn btn-line" id="waDireto" href="https://wa.me/" target="_blank" rel="noopener">Chamar direto no WhatsApp</a>
+    </div>
+  </section>
+
+  <form class="pedido" id="pedido" novalidate>
+    <div class="pedido-head">
+      <h2>Pedido de orçamento</h2>
+      <p>Leva menos de um minuto.</p>
+    </div>
+
+    <div class="field">
+      <label for="nome">Seu nome</label>
+      <input type="text" id="nome" name="nome" autocomplete="name" placeholder="Ex.: Luis Felipe" aria-describedby="nome-err">
+      <p class="err" id="nome-err" hidden>Escreva seu nome.</p>
+    </div>
+
+    <div class="field">
+      <label for="carro">Carro, modelo e ano</label>
+      <input type="text" id="carro" name="carro" placeholder="Ex.: Meriva 2010 prata" aria-describedby="carro-err">
+      <p class="err" id="carro-err" hidden>Diga qual é o carro.</p>
+    </div>
+
+    <fieldset class="field" id="servicos" aria-describedby="servicos-err">
+      <legend>O que o carro precisa <small>(pode marcar mais de um)</small></legend>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="s-geral" name="servico" value="Pintura geral"><span>Pintura geral</span></label>
+        <label class="chip"><input type="checkbox" id="s-peca" name="servico" value="Pintura de peça"><span>Pintura de peça</span></label>
+        <label class="chip"><input type="checkbox" id="s-funilaria" name="servico" value="Funilaria (amassado ou batida)"><span>Funilaria</span></label>
+        <label class="chip"><input type="checkbox" id="s-polimento" name="servico" value="Polimento"><span>Polimento</span></label>
+        <label class="chip"><input type="checkbox" id="s-detalhamento" name="servico" value="Detalhamento"><span>Detalhamento</span></label>
+        <label class="chip"><input type="checkbox" id="s-leilao" name="servico" value="Recuperar carro de leilão"><span>Carro de leilão</span></label>
+        <label class="chip"><input type="checkbox" id="s-outro" name="servico" value="Outro serviço"><span>Outro</span></label>
+      </div>
+      <p class="err" id="servicos-err" hidden>Marque pelo menos um serviço.</p>
+    </fieldset>
+
+    <div class="field">
+      <label for="bairro">Bairro ou cidade <small>(opcional)</small></label>
+      <input type="text" id="bairro" name="bairro" autocomplete="address-level2" placeholder="Ex.: Vilar dos Teles">
+    </div>
+
+    <fieldset class="field">
+      <legend>Quando quer trazer o carro <small>(opcional)</small></legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" id="q-ja" name="quando" value="O quanto antes"><span>O quanto antes</span></label>
+        <label class="chip"><input type="radio" id="q-semanas" name="quando" value="Nas próximas semanas"><span>Nas próximas semanas</span></label>
+        <label class="chip"><input type="radio" id="q-valor" name="quando" value="Por enquanto só quero saber o valor"><span>Só quero saber o valor</span></label>
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label for="detalhes">Conte o que aconteceu <small>(opcional)</small></label>
+      <textarea id="detalhes" name="detalhes" rows="3" placeholder="Ex.: arranhão na porta, para-choque amassado, verniz descascando no teto"></textarea>
+    </div>
+
+    <div class="chat">
+      <div class="chat-top"><span class="ava" aria-hidden="true">BC</span><span><b>Blin Car</b><small>Prévia da sua mensagem</small></span></div>
+      <div class="chat-body"><div class="bubble" id="previa" aria-live="polite"></div></div>
+    </div>
+
+    <p class="erros" id="erros" role="alert" hidden></p>
+    <a class="btn btn-wa enviar" id="enviar" href="https://wa.me/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8.5 9.5c.3 2.6 3.4 5.7 6 6"/></svg>
+      Enviar pelo WhatsApp
+    </a>
+    <p class="depois" id="depois" hidden>O WhatsApp abre com a mensagem pronta. Toque em enviar lá e mande as fotos.<span class="se-numero"> Se não abrir, chame no <b class="numero"></b>.</span></p>
+  </form>
+
+  <aside class="info">
+    <section class="bloco">
+      <h2>Como funciona</h2>
+      <ol class="passos">
+        <li><b>Envie o pedido</b><span>Pelo WhatsApp, com as fotos do carro.</span></li>
+        <li><b>Receba o orçamento</b><span>A gente avalia as fotos e responde por lá.</span></li>
+        <li><b>Agende a entrada</b><span>Combinamos o dia de trazer o carro.</span></li>
+        <li><b>Retire o carro pronto</b><span>Na oficina, em Vilar dos Teles.</span></li>
+      </ol>
+    </section>
+
+    <section class="bloco">
+      <h2>Fotos que agilizam o orçamento</h2>
+      <ul class="fotos">
+        <li><svg viewBox="0 0 36 30" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M9 6h18l3 8H6z"/><rect x="4" y="14" width="28" height="9" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="18.5" r="1.8" fill="currentColor"/><circle cx="26" cy="18.5" r="1.8" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M7 23v3M29 23v3"/></svg>Frente</li>
+        <li><svg viewBox="0 0 36 30" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 21v-5l5-1 5-6h10l6 6 4 1v5z"/><circle cx="10" cy="22" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="26" cy="22" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Lateral inteira</li>
+        <li><svg viewBox="0 0 36 30" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M10 6h16l3 8H7z"/><rect x="4" y="14" width="28" height="9" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="7" y="17" width="5" height="3" rx="1" fill="currentColor"/><rect x="24" y="17" width="5" height="3" rx="1" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M7 23v3M29 23v3"/></svg>Traseira</li>
+        <li><svg viewBox="0 0 36 30" aria-hidden="true"><circle cx="15" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M21 19l7 7M11 11l3 3 2-4 3 5"/></svg>O dano de perto</li>
+      </ul>
+      <p class="nota">Fotografe de dia ou num lugar claro. Reflexo forte esconde amassado e risco.</p>
+    </section>
+
+    <section class="bloco">
+      <h2>Onde estamos</h2>
+      <address id="endereco">Rua da Separação, Lt 17, Qd 23<br>Vilar dos Teles, São João de Meriti - RJ<br><span>Próximo ao 21º BPM</span></address>
+      <div class="actions">
+        <a class="btn btn-line btn-sm" href="https://www.google.com/maps/search/?api=1&amp;query=Rua%20da%20Separa%C3%A7%C3%A3o%2C%20Vilar%20dos%20Teles%2C%20S%C3%A3o%20Jo%C3%A3o%20de%20Meriti%20-%20RJ" target="_blank" rel="noopener" data-metrica="maps">Abrir no Google Maps</a>
+        <button type="button" class="btn btn-line btn-sm" data-copy="endereco">Copiar endereço</button>
+      </div>
+      <dl class="contatos">
+        <div class="se-numero"><dt>WhatsApp</dt><dd><span class="numero" id="numero"></span><button type="button" class="mini" data-copy="numero">Copiar</button></dd></div>
+        <div><dt>Instagram</dt><dd><a href="https://www.instagram.com/blincar_leiloes/" target="_blank" rel="noopener" data-metrica="instagram">@blincar_leiloes</a></dd></div>
+      </dl>
+    </section>
+  </aside>
+</main>
+
+<footer class="rodape">
+  <p class="gutter">Blin Car · Estética automotiva · São João de Meriti - RJ</p>
+  <p class="gutter">Contamos visitas e cliques sem guardar nome nem telefone, só para melhorar o atendimento.</p>
+</footer>
+
+<script src="config.js"></script>
+<script>
+const CONFIG = window.BLINCAR || {};
+// Sem número no config.js, o WhatsApp abre com a mensagem pronta e a pessoa escolhe o contato.
+const WHATSAPP = String(CONFIG.whatsapp || "").replace(/\D/g, "");
+
+const ABERTURA = "Olá, Blin Car! Vim pelo site e quero fazer um orçamento.";
+const FECHO = "Vou mandar as fotos do carro aqui na conversa.";
+const VAZIO = { Nome: "seu nome", Carro: "modelo e ano", "Serviço": "o que o carro precisa" };
+
+// Métricas anônimas: cada visita e clique vira uma linha na planilha (config.js > metricas).
+// Quem entrou no painel dos administradores neste aparelho não é contado.
+function area(nome) {
+  try { return window[nome]; } catch { return null; }
+}
+function lembrar(nome, chave, gerar) {
+  const a = area(nome);
+  try {
+    let v = a.getItem(chave);
+    if (!v) { v = gerar(); a.setItem(chave, v); }
+    return v;
+  } catch {
+    return gerar();
+  }
+}
+const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const NOMES_ORIGEM = { bio: "Instagram (bio)", stories: "Instagram (stories)", story: "Instagram (stories)", status: "Status do WhatsApp", qr: "QR code", google: "Google" };
+
+function descobrirOrigem() {
+  const p = new URLSearchParams(location.search);
+  const o = (p.get("origem") || p.get("utm_source") || "").trim().toLowerCase();
+  if (o) return NOMES_ORIGEM[o] || o.charAt(0).toUpperCase() + o.slice(1, 40);
+  const ua = navigator.userAgent, ref = document.referrer;
+  if (/Instagram/i.test(ua) || /instagram\./i.test(ref)) return "Instagram";
+  if (/FBAN|FBAV/i.test(ua) || /facebook\.|fb\.com/i.test(ref)) return "Facebook";
+  if (/WhatsApp/i.test(ua) || /whatsapp\./i.test(ref)) return "WhatsApp";
+  if (/google\./i.test(ref)) return "Google";
+  if (ref) {
+    try {
+      const host = new URL(ref).hostname.replace(/^www\./, "");
+      if (host !== location.hostname) return host;
+    } catch {}
+  }
+  return "Direto";
+}
+
+const RASTRO = {
+  url: String(CONFIG.metricas || ""),
+  ignorar: lembrar("localStorage", "blincar:ignorar", () => "0") === "1",
+  visitante: lembrar("localStorage", "blincar:visitante", novoId),
+  sessao: lembrar("sessionStorage", "blincar:sessao", novoId),
+  origem: lembrar("sessionStorage", "blincar:origem", descobrirOrigem),
+  aparelho: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? "Celular" : "Computador"
+};
+
+function registrar(evento, extra = {}) {
+  if (!RASTRO.url || RASTRO.ignorar) return;
+  const { visitante, sessao, origem, aparelho } = RASTRO;
+  const corpo = JSON.stringify({ evento, visitante, sessao, origem, aparelho, ...extra });
+  try {
+    if (navigator.sendBeacon && navigator.sendBeacon(RASTRO.url, new Blob([corpo], { type: "text/plain;charset=UTF-8" }))) return;
+  } catch {}
+  try {
+    fetch(RASTRO.url, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: corpo }).catch(() => {});
+  } catch {}
+}
+
+function registrarVisita() {
+  if (lembrar("sessionStorage", "blincar:visitou", () => "nao") === "sim") return;
+  try { sessionStorage.setItem("blincar:visitou", "sim"); } catch {}
+  registrar("visita");
+}
+
+const $ = s => document.querySelector(s);
+const form = $("#pedido");
+const enviar = $("#enviar");
+const erros = $("#erros");
+let tentou = false;
+
+const waLink = texto => `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function numeroBonito(n) {
+  const d = n.replace(/^55/, "");
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return n;
+}
+
+function dados() {
+  const v = id => form.elements[id].value.trim();
+  return {
+    nome: v("nome"),
+    carro: v("carro"),
+    servicos: [...form.querySelectorAll('input[name="servico"]:checked')].map(i => i.value),
+    bairro: v("bairro"),
+    quando: form.querySelector('input[name="quando"]:checked')?.value || "",
+    detalhes: v("detalhes")
+  };
+}
+
+function linhas(d) {
+  const l = [["Nome", d.nome], ["Carro", d.carro], ["Serviço", d.servicos.join(", ")]];
+  if (d.bairro) l.push(["Bairro/cidade", d.bairro]);
+  if (d.quando) l.push(["Quando", d.quando]);
+  if (d.detalhes) l.push(["Detalhes", d.detalhes]);
+  return l;
+}
+
+function mensagem(d) {
+  return [ABERTURA, "", ...linhas(d).map(([k, v]) => `*${k}:* ${v}`), "", FECHO].join("\n");
+}
+
+function atualizar() {
+  const d = dados();
+  const corpo = linhas(d).map(([k, v]) =>
+    `<b>${k}:</b> ${v ? esc(v).replace(/\n/g, "<br>") : `<i>${VAZIO[k]}</i>`}`);
+  $("#previa").innerHTML = [esc(ABERTURA), "", ...corpo, "", esc(FECHO)].join("<br>") + '<span class="hora">agora</span>';
+  enviar.href = waLink(mensagem(d));
+  if (tentou) validar();
+}
+
+function lista(itens) {
+  return itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}` : itens[0];
+}
+
+function validar() {
+  const d = dados();
+  const regras = [
+    ["nome", !!d.nome, "seu nome", form.elements.nome],
+    ["carro", !!d.carro, "o carro", form.elements.carro],
+    ["servicos", d.servicos.length > 0, "o serviço", $("#s-geral")]
+  ];
+  const faltam = regras.filter(r => !r[1]);
+  for (const [id, ok] of regras) {
+    $(`#${id}-err`).hidden = ok;
+    if (id === "servicos") $("#servicos").classList.toggle("invalid", !ok);
+    else form.elements[id].setAttribute("aria-invalid", String(!ok));
+  }
+  erros.hidden = faltam.length === 0;
+  erros.textContent = faltam.length ? `Falta preencher ${lista(faltam.map(r => r[2]))}.` : "";
+  return faltam;
+}
+
+enviar.addEventListener("click", e => {
+  tentou = true;
+  atualizar();
+  const faltam = validar();
+  if (faltam.length) {
+    e.preventDefault();
+    registrar("incompleto", { detalhe: faltam.map(r => r[0]).join(",") });
+    faltam[0][3].focus();
+    return;
+  }
+  const d = dados();
+  registrar("whatsapp_pedido", { servicos: d.servicos.join(", "), quando: d.quando });
+  $("#depois").hidden = false;
+});
+
+let comecou = false;
+function comecar() {
+  if (comecou) return;
+  comecou = true;
+  registrar("inicio");
+}
+form.addEventListener("input", () => { comecar(); atualizar(); });
+form.addEventListener("change", () => { comecar(); atualizar(); });
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  tentou = true;
+  const faltam = validar();
+  (faltam.length ? faltam[0][3] : enviar).focus();
+});
+
+function selecionar(el) {
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  const s = getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+document.querySelectorAll("[data-copy]").forEach(btn => {
+  btn.dataset.rotulo = btn.textContent;
+  btn.addEventListener("click", () => {
+    registrar("clique", { detalhe: "copiar_" + btn.dataset.copy });
+    const alvo = document.getElementById(btn.dataset.copy);
+    const texto = alvo.innerText.replace(/\s*\n\s*/g, ", ");
+    const fim = msg => {
+      btn.textContent = msg;
+      clearTimeout(btn._t);
+      btn._t = setTimeout(() => { btn.textContent = btn.dataset.rotulo; }, 1800);
+    };
+    const falhou = () => { selecionar(alvo); fim("Selecionado"); };
+    try {
+      navigator.clipboard.writeText(texto).then(() => fim("Copiado"), falhou);
+    } catch {
+      falhou();
+    }
+  });
+});
+
+document.querySelectorAll(".numero").forEach(el => { el.textContent = numeroBonito(WHATSAPP); });
+document.querySelectorAll(".se-numero").forEach(el => { el.hidden = !WHATSAPP; });
+$("#waDireto").href = waLink("Olá, Blin Car! Vim pelo site e quero falar com vocês.");
+$("#waDireto").addEventListener("click", () => registrar("whatsapp_direto"));
+document.querySelectorAll("[data-metrica]").forEach(a =>
+  a.addEventListener("click", () => registrar("clique", { detalhe: a.dataset.metrica })));
+atualizar();
+registrarVisita();
+</script>
+</body>
+</html>
