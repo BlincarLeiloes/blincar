@@ -1602,7 +1602,7 @@ function desenharRegras(d) {
   });
   itens.push("Para mudar um dia (fechar, mudar as vagas ou criar uma promoção com preço), abra o dia e toque em \"Editar serviços e vagas\". O site dos clientes muda na hora.");
   itens.push("No painel dá para agendar em qualquer dia e serviço, mesmo passando do limite. O site dos clientes respeita as vagas e mostra \"Vagas esgotadas\" quando lota.");
-  itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site, o cliente tem ${r.prazoSiteMinutos} minutos para pagar. Agendado aqui, até 23h59 do dia.`);
+  itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site, o cliente tem ${r.prazoSiteMinutos} minutos para pagar; se não pagar, a reserva sai da agenda e da planilha sozinha. Agendado aqui, até 23h59 do dia.`);
   itens.push(`O sinal é descontado do serviço. Se o cliente não vier, toque em "Não veio": o sinal vira crédito para remarcar pelo site, até ${r.remarcacoes} vezes.`);
   itens.push(`No dia do carro, às 8h, o cliente recebe um e-mail lembrando. ${r.avisoDias} dias antes, vocês recebem um e-mail (e aparece aqui) para ligar e confirmar.`);
   itens.push(d.mp
@@ -2021,7 +2021,7 @@ function criarDemo() {
       "Retoque": { dias: { 1: 3, 3: 2 } },
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
-    sinal: 50, avisoDias: 2, remarcacoes: 3, prazoSiteMinutos: 60, antecedenciaDias: 1, janelaDias: 120
+    sinal: 50, avisoDias: 2, remarcacoes: 3, prazoSiteMinutos: 5, antecedenciaDias: 1, janelaDias: 120
   };
   const hoje = hojeAqui();
   const especiais = {};
@@ -2052,6 +2052,9 @@ function criarDemo() {
       link: pago ? "" : linkFalso(id), presenca: false, origem: "Painel", remarcacao: 0, forma: pago ? "Pix" : "", ...extra };
   };
   const site = { origem: "Site", email: "" };
+  // Reserva do site esperando o Pix: tem 5 minutos para pagar.
+  const em5 = new Date(Date.now() + 5 * 60000);
+  const daqui5 = `${hoje} ${pad2(em5.getHours())}:${pad2(em5.getMinutes())}`;
   const seg = proximo("Retoque"), qua = proximo("Retoque", 0, somaDias(seg, 1));
   // Uma quinta aberta com retoque em promoção, para mostrar a edição de dia.
   let quinta = somaDias(hoje, 1);
@@ -2059,7 +2062,7 @@ function criarDemo() {
   especiais[quinta] = [{ servico: "Retoque", vagas: 2, preco: 200 }];
   const lista = [
     novo(seg, "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, { ...site, email: "carlos@exemplo.com", obs: "Arranhão na porta traseira", presenca: true }),
-    novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com", prazo: `${hoje} 23:59` }),
+    novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com", prazo: daqui5 }),
     novo(qua, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
     novo(qua, "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true, { ...site, email: "paula@exemplo.com" }),
     novo(proximo("Pintura geral"), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, { ...site, email: "rafael@exemplo.com" }),

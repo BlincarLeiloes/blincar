@@ -183,6 +183,7 @@ details.mais li::before{content:"";position:absolute;left:0;top:.6em;width:5px;h
 .resultado{max-width:640px;border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:24px;display:grid;gap:16px}
 .resultado h2{margin:0;font:italic 800 1.75rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
 .resultado .lede{margin:0}
+.relogio{color:var(--fg);font-variant-numeric:tabular-nums}
 .selo{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--ok-bg);color:var(--ok-fg)}
 .selo svg{width:30px;height:30px}
 .selo.espera{background:var(--gold-bg);color:var(--gold)}
@@ -715,7 +716,7 @@ function desenharResumo() {
   dd("#rCarro", E.cadastro ? `${E.cadastro.carro} · ${E.cadastro.placa}` : "", "");
   const sinal = E.dados ? E.dados.sinal : 50;
   const remarcacoes = E.dados ? E.dados.remarcacoes : 3;
-  const prazo = E.dados ? E.dados.prazoMinutos : 60;
+  const prazo = E.dados ? E.dados.prazoMinutos : 5;
   const pag = $("#rPagamento");
   if (E.credito) {
     pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
@@ -730,7 +731,7 @@ function desenharResumo() {
   const regras = E.credito
     ? [`O crédito de ${reais(E.credito.valor)} vale como sinal deste agendamento. Não precisa pagar de novo.`]
     : [`O sinal de ${reais(sinal)} garante a sua vaga e é descontado do valor do serviço.`,
-      `Depois de tocar em agendar, você tem ${prazo} minutos para pagar o Pix. Sem o pagamento, a vaga fica livre para outra pessoa.`];
+      `Depois de tocar em agendar, você tem ${prazo} minutos para pagar o Pix. Se não pagar a tempo, a reserva é cancelada e você precisa agendar de novo.`];
   regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${remarcacoes} vezes).`);
   regras.push("O endereço e a confirmação chegam no seu e-mail. No dia, você recebe um lembrete.");
   $("#regras").replaceChildren(...regras.map(t => el("li", {}, t)));
@@ -831,7 +832,11 @@ function recomecar() {
   }
 }
 
+// Contagem regressiva do Pix na tela "Ainda não recebemos o pagamento".
+let contagem = 0;
+
 function mostrarResultado(a, tipo, extra) {
+  clearInterval(contagem);
   etapa(3);
   const caixa = $("#vResultado");
   const detalhes = a && a.data ? el("dl", { class: "detalhes" },
@@ -855,22 +860,43 @@ function mostrarResultado(a, tipo, extra) {
     const pagar = a.link ? el("a", { class: "btn btn-red", href: a.link }, "Voltar para o pagamento") : "";
     const conferir = el("button", { type: "button", class: "btn btn-line" }, "Já paguei, conferir de novo");
     conferir.addEventListener("click", () => acompanhar(a.id, 1));
-    const hora = a.prazo ? a.prazo.slice(11, 16).replace(":", "h") : "";
+    // O prazo vem no horário de Brasília ("aaaa-mm-dd hh:mm") e vale até o fim daquele minuto.
+    const fim = a.prazo && extra !== "conferindo" ? Date.parse(a.prazo.replace(" ", "T") + ":59-03:00") : 0;
+    const relogio = el("b", { class: "relogio" });
+    if (fim) {
+      const tique = () => {
+        const s = Math.max(0, Math.ceil((fim - Date.now()) / 1000));
+        relogio.textContent = `${Math.floor(s / 60)}:${pad2(s % 60)}`;
+        if (!s) {
+          clearInterval(contagem);
+          acompanhar(a.id, 1);
+        }
+      };
+      tique();
+      contagem = setInterval(tique, 1000);
+    }
     filhos = [selo("espera"),
       el("h2", {}, extra === "conferindo" ? "Confirmando o pagamento…" : "Ainda não recebemos o pagamento"),
-      el("p", { class: "lede" }, extra === "conferindo"
-        ? "Isso leva alguns segundos depois do Pix. Pode deixar esta página aberta."
-        : `A vaga só fica garantida depois do Pix.${hora ? ` Você tem até as ${hora} de hoje para pagar.` : ""}`),
+      extra === "conferindo"
+        ? el("p", { class: "lede" }, "Isso leva alguns segundos depois do Pix. Pode deixar esta página aberta.")
+        : fim
+          ? el("p", { class: "lede" }, "A vaga só fica garantida depois do Pix. Faltam ", relogio,
+            " para pagar. Se o tempo acabar, a reserva é cancelada e você precisa agendar de novo.")
+          : el("p", { class: "lede" }, "A vaga só fica garantida depois do Pix."),
       detalhes,
       extra === "conferindo" ? "" : el("div", { class: "acoes" }, pagar, conferir)];
   } else if (tipo === "credito") {
+    const textos = {
+      atrasado: ["O pagamento chegou depois do prazo", "O Pix caiu depois do tempo para pagar, e a reserva já tinha sido cancelada."],
+      desmarcado: ["Essa reserva já tinha sido cancelada", "O Pix caiu numa reserva que não estava mais valendo."]
+    }[a.motivo] || ["O dia lotou enquanto você pagava", "Outra pessoa pagou a última vaga um pouco antes."];
     filhos = [selo("espera"),
-      el("h2", {}, "O dia lotou enquanto você pagava"),
-      el("p", { class: "lede" }, "Outra pessoa pagou a última vaga um pouco antes. O seu dinheiro não se perdeu: o sinal virou crédito. Escolha outra data, sem pagar de novo."),
+      el("h2", {}, textos[0]),
+      el("p", { class: "lede" }, textos[1] + " O seu dinheiro não se perdeu: o sinal virou crédito. Escolha a data de novo, sem pagar."),
       el("div", { class: "acoes" }, botaoNovo())];
   } else if (tipo === "vencido" || tipo === "sem_vaga" || tipo === "desmarcado") {
     const textos = {
-      vencido: ["O prazo para pagar acabou", "A reserva não foi paga a tempo e a vaga ficou livre. Escolha a data de novo."],
+      vencido: ["O tempo para pagar acabou", "O Pix não foi pago a tempo, então a reserva foi cancelada. Faça o agendamento de novo."],
       sem_vaga: ["Outra pessoa garantiu a vaga antes", "Esse dia lotou antes do seu pagamento. Escolha outra data."],
       desmarcado: ["Essa reserva foi trocada", "Você escolheu outra data depois desta. Se quiser, agende de novo."]
     }[tipo];
