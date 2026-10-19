@@ -1405,12 +1405,14 @@ function desenharResumoMes(d) {
   $("#agContagem").textContent = `${nomeMes(d.mes)}: ${plural(abertos, "dia aberto", "dias abertos")} no site dos clientes.` +
     (extras.length ? ` No mês: ${juntar(extras)}.` : "");
   const tile = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
+  // Quantas vagas ainda dá para marcar no mês (de hoje em diante) e quantas já estão marcadas (sinal pago).
   const tileServico = nome => {
     const lista = d.dias.map(x => ({ data: x.data, o: vagaDe(x, nome) })).filter(x => x.o);
-    const vagas = soma(lista, x => x.o.vagas);
-    const pagas = soma(lista, x => Math.min(x.o.ocupadas, x.o.vagas));
-    const livres = soma(lista.filter(x => x.data >= d.hoje), x => x.o.livres);
-    return tile(nome, `${pagas} de ${vagas}`, `vagas pagas no mês · ${livres} livres de hoje em diante`);
+    const marcadas = soma(lista, x => x.o.ocupadas);
+    const futuro = lista.filter(x => x.data >= d.hoje);
+    const livres = soma(futuro, x => x.o.livres);
+    if (lista.length && !futuro.length) return tile(nome, plural(marcadas, "marcada", "marcadas"), "mês encerrado");
+    return tile(nome, livres ? `Restam ${livres}` : "Lotado", `${plural(marcadas, "já marcada", "já marcadas")} no mês`);
   };
   const pagos = d.agendamentos.filter(a => a.sit === "confirmado");
   const esperando = d.agendamentos.filter(a => a.sit === "aguardando");
