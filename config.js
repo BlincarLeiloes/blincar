@@ -4,5 +4,5 @@ window.BLINCAR = {
   whatsapp: "",
 
   // Link do App da Web da planilha de métricas (termina em /exec). Veja o LEIA-ME.
-  metricas: ""
+  metricas: "https://script.google.com/macros/s/AKfycby431gJ3Uet4Krf8HMeZ_V771yP7UC1csTVZR8N8WKPzimXmRPdo8K8zKlnJHpjuD7OTQ/exec"
 };
