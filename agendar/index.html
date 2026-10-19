@@ -11,7 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
 <style>
-/* Layout: uma coluna estreita em qualquer tela; três etapas (dados, data, resultado), uma de cada vez */
+/* Layout (como o agendamento da Assis): conteúdo à esquerda e resumo à direita a partir de 900px;
+   na etapa da data, calendário e disponibilidade do dia lado a lado a partir de 640px. No celular, tudo em uma coluna. */
 :root{
   --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--fg:#f2f0ec;--muted:#a3a2a7;
   --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
@@ -37,11 +38,11 @@
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--body);-webkit-text-size-adjust:100%}
 a{color:inherit}
-h1,h2{text-wrap:balance}
+h1,h2,h3{text-wrap:balance}
 .gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 .bar{border-bottom:1px solid var(--line)}
-.bar-in{max-width:680px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar-in{max-width:1120px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .mark{display:grid;text-decoration:none;line-height:1}
 .mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
 .mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
@@ -50,92 +51,128 @@ h1,h2{text-wrap:balance}
 .ajuda{font-size:.875rem;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 0}
 .ajuda:hover{color:var(--fg)}
 
-.page{max-width:680px;margin:0 auto;padding-block:28px 56px;display:grid;gap:22px}
-.eyebrow{margin:0 0 10px;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-h1{margin:0;font:italic 800 clamp(2.25rem,9vw,3.5rem)/.92 var(--display);font-stretch:72%;text-transform:uppercase}
-h1 span{color:var(--red);display:block}
-.lede{margin:12px 0 0;color:var(--muted);font-size:1.0625rem}
+.page{max-width:1120px;margin:0 auto;padding-block:32px 56px;display:grid;gap:26px}
+h1{margin:0;font:italic 800 clamp(2.25rem,8vw,3.5rem)/.92 var(--display);font-stretch:72%;text-transform:uppercase}
+.lede{margin:12px 0 0;color:var(--muted);font-size:1.0625rem;max-width:40em}
 
-.etapas{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;counter-reset:e}
+.etapas{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;counter-reset:e;max-width:720px}
 .etapas li{counter-increment:e;display:flex;align-items:center;gap:8px;padding:10px 0 8px;border-top:3px solid var(--line);font-size:.875rem;font-weight:600;color:var(--muted);min-width:0}
 .etapas li::before{content:counter(e);font:italic 800 1.25rem/1 var(--display);font-stretch:75%}
 .etapas li[aria-current="step"]{border-top-color:var(--red);color:var(--fg)}
 .etapas li.feita{border-top-color:var(--fg);color:var(--fg)}
 
-.cartao{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:grid;gap:18px;min-width:0}
-@media (min-width:520px){.cartao{padding:28px}}
-.cartao h2{margin:0;font:italic 800 1.625rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
-.cartao-head p{margin:6px 0 0;color:var(--muted);font-size:.9375rem}
-.campos{display:grid;gap:16px}
+/* Duas colunas: conteúdo + resumo */
+.duas{display:grid;gap:22px;align-items:start}
+@media (min-width:900px){.duas{grid-template-columns:minmax(0,1fr) 320px;gap:40px}}
+.titulo-sec{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding-bottom:12px;border-bottom:1px solid var(--line);margin:0 0 18px}
+.titulo-sec h2{margin:0;font:600 1.375rem/1.2 var(--body)}
+.titulo-sec span{font-size:.875rem;color:var(--muted)}
+.bloco{min-width:0}
+.bloco + .bloco{margin-top:28px}
+
+.resumo{border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:20px;display:grid;gap:14px;min-width:0}
+@media (min-width:900px){.resumo{position:sticky;top:16px}}
+.resumo h2{margin:0;padding-bottom:12px;border-bottom:1px solid var(--line);font:600 1.1875rem/1.2 var(--body)}
+.resumo dl{margin:0;display:grid;gap:10px}
+.resumo dl div{display:grid;gap:1px}
+.resumo dt{font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.resumo dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.resumo dd.vazio{color:var(--muted);font-weight:400}
+.pagamento{display:grid;gap:6px;padding-top:12px;border-top:1px solid var(--line)}
+.pagamento h3{margin:0;font-size:.9375rem;font-weight:600}
+.linha-val{display:flex;justify-content:space-between;gap:12px;font-size:.9375rem}
+.linha-val b{font-variant-numeric:tabular-nums}
+.linha-val.total{font-size:1.0625rem;font-weight:700}
+.linha-val s{color:var(--muted)}
+.resumo .nota{margin:0}
+details.mais summary{cursor:pointer;font-size:.875rem;font-weight:600;color:var(--muted);list-style-position:inside}
+details.mais summary:hover{color:var(--fg)}
+details.mais ul{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:.875rem}
+details.mais li{padding-left:14px;position:relative}
+details.mais li::before{content:"";position:absolute;left:0;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--gold)}
+
+/* Formulário */
+.campos{display:grid;gap:18px}
 @media (min-width:560px){.campos{grid-template-columns:repeat(2,minmax(0,1fr))}.campos .largo{grid-column:1/-1}}
-.field{display:grid;gap:6px;min-width:0}
-.field label{font-weight:600;font-size:.9375rem}
-.field input{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+.field{display:grid;gap:6px;min-width:0;align-content:start}
+.field > label,.field > .rot{font-size:.8125rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.field input,.field select{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:48px}
 .field input::placeholder{color:var(--muted);opacity:.8}
-.field input:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
-.field input[aria-invalid="true"]{border-color:var(--err)}
+.field input:focus,.field select:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.field [aria-invalid="true"]{border-color:var(--err)}
+.nasc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) minmax(0,1.2fr);gap:10px}
+.nasc label{display:grid;gap:4px;font-size:.8125rem;color:var(--muted)}
 .err{margin:0;color:var(--err);font-size:.875rem}
 .nota{margin:0;font-size:.875rem;color:var(--muted)}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 20px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);font:600 1.0625rem/1.2 var(--body);text-decoration:none;cursor:pointer;text-align:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:12px 20px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);font:600 1.0625rem/1.2 var(--body);text-decoration:none;cursor:pointer;text-align:center}
 .btn-red{background:var(--red);color:var(--on-red)}
 .btn-line{border-color:var(--line)}
 .btn-line:hover{border-color:var(--muted)}
+.btn-fg{background:var(--fg);color:var(--bg)}
 .btn-wa{background:var(--wa);color:var(--wa-ink)}
-.btn[disabled],.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.btn[disabled],.btn[aria-disabled="true"]{background:var(--line);color:var(--muted);border-color:var(--line);cursor:not-allowed}
 .largura{width:100%}
-.btn:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.btn:focus-visible,a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--fg);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 
-.ola{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.ola{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;margin-bottom:14px}
 .ola p{margin:0}
-.faixa{margin:0;padding:12px 14px;border-radius:12px;font-size:.9375rem}
+.faixa{margin:0 0 14px;padding:12px 14px;border-radius:12px;font-size:.9375rem}
 .faixa.credito{background:var(--gold-bg);border:1px solid var(--gold)}
 .faixa.credito b{color:var(--gold)}
 .faixa.info{border:1px solid var(--line);color:var(--muted)}
 .faixa.info b{color:var(--fg)}
 
-.servicos{border:0;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.servicos legend{font-weight:600;font-size:.9375rem;margin-bottom:10px;padding:0}
+/* Serviço */
+.servicos{border:0;margin:0 0 14px;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.servicos legend{font-size:.8125rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding:0}
 .opcao{position:relative;display:block}
 .opcao input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
-.opcao span{display:grid;gap:2px;height:100%;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.opcao span{display:grid;gap:2px;height:100%;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 .opcao b{font-size:1.0625rem}
 .opcao small{color:var(--muted);font-size:.8125rem}
 .opcao input:checked+span{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
 .opcao input:checked+span small{color:var(--fg)}
 .opcao input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
 
-.cal{display:grid;gap:10px}
+/* Calendário + disponibilidade do dia */
+.cal-disp{display:grid;gap:22px}
+@media (min-width:640px){.cal-disp{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}}
+.cal{display:grid;gap:8px;max-width:400px}
 .cal-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.cal-topo strong{font-weight:700;font-size:1.0625rem}
-.seta{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--fg);font:600 1.25rem/1 var(--body);cursor:pointer}
-.seta[disabled]{opacity:.3;cursor:default}
+.cal-topo strong{font-weight:600;font-size:1.0625rem}
+.seta{width:44px;height:44px;border-radius:10px;border:0;background:transparent;color:var(--fg);font:500 1.5rem/1 var(--body);cursor:pointer}
+.seta:hover{background:var(--surface)}
+.seta[disabled]{opacity:.25;cursor:default;background:transparent}
 .grade{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-.grade .cab{text-align:center;font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-bottom:4px}
-.d{min-height:46px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--muted);font:500 .9375rem/1 var(--body);font-variant-numeric:tabular-nums;display:grid;place-items:center;gap:2px;padding:4px 0;opacity:.45}
+.grade .cab{text-align:center;font-size:.875rem;color:var(--muted);padding:6px 0 10px}
+.d{aspect-ratio:1;max-height:52px;border-radius:6px;border:0;background:transparent;color:var(--muted);font:400 1rem/1 var(--body);font-variant-numeric:tabular-nums;display:grid;place-content:center;justify-items:center;gap:4px;padding:0;opacity:.4}
 .d.livre,.d.esgotado{opacity:1;cursor:pointer}
-.d.livre{color:var(--fg);font-weight:700;border-color:var(--line);background:var(--bg)}
+.d.livre{color:var(--fg);font-weight:600}
 .d.livre::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--red)}
-.d.livre:hover{border-color:var(--muted)}
-.d.livre[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--on-red)}
+.d.esgotado{color:var(--muted);text-decoration:line-through}
+.d.esgotado::after{content:"";width:5px;height:5px}
+.d.livre:hover,.d.esgotado:hover{background:var(--surface)}
+.d[aria-pressed="true"],.d.livre[aria-pressed="true"]:hover{background:var(--red);color:var(--on-red)}
 .d.livre[aria-pressed="true"]::after{background:var(--on-red)}
-.d.esgotado{text-decoration:line-through;color:var(--muted)}
-@media (min-width:520px){.d{min-height:54px}.grade{gap:6px}}
+.d.esgotado[aria-pressed="true"],.d.esgotado[aria-pressed="true"]:hover{background:var(--line);color:var(--fg)}
+#cal{margin-top:30px}
 .legenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8125rem;color:var(--muted)}
 .legenda span{display:inline-flex;align-items:center;gap:6px}
-.legenda i{width:8px;height:8px;border-radius:50%;background:var(--red)}
-.legenda s{font-weight:600}
+.legenda i{width:6px;height:6px;border-radius:50%;background:var(--red)}
+.disp{display:grid;gap:14px;align-content:start}
+.disp p{margin:0}
+.disp .dia{font-size:1.0625rem}
+.disp .estado{font-weight:600}
+.disp .estado.ok{color:var(--ok-fg)}
+.disp .estado.ruim{color:var(--err)}
 .msg{margin:0;padding:10px 12px;border-radius:10px;border:1px solid var(--err);color:var(--err);font-size:.9375rem;font-weight:600}
 
-.escolha{display:grid;gap:4px;padding:14px 16px;border-radius:14px;border:1px solid var(--red)}
-.escolha span{font-size:.8125rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.escolha b{font-size:1.125rem}
-.regras{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:.9375rem}
-.regras li{padding-left:16px;position:relative}
-.regras li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--gold)}
-
-.resultado{text-align:left}
+/* Resultado */
+.resultado{max-width:640px;border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:24px;display:grid;gap:16px}
+.resultado h2{margin:0;font:italic 800 1.75rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+.resultado .lede{margin:0}
 .selo{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--ok-bg);color:var(--ok-fg)}
 .selo svg{width:30px;height:30px}
 .selo.espera{background:var(--gold-bg);color:var(--gold)}
@@ -148,7 +185,7 @@ h1 span{color:var(--red);display:block}
 address{font-style:normal}
 
 .rodape{border-top:1px solid var(--line)}
-.rodape p{max-width:680px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+.rodape p{max-width:1120px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
 .carregando{opacity:.6;pointer-events:none}
 </style>
 </head>
@@ -167,92 +204,136 @@ address{font-style:normal}
 
 <main class="page gutter">
   <section>
-    <p class="eyebrow">Vilar dos Teles · São João de Meriti - RJ</p>
-    <h1>Agende o seu carro <span>na Blin Car</span></h1>
-    <p class="lede" id="lede">Faça o cadastro, escolha o serviço e o dia, e garanta a vaga com o sinal pelo Pix.</p>
+    <h1>Agende seu serviço</h1>
+    <p class="lede">Confira a disponibilidade e agende a data que for melhor para você. A vaga é garantida com o sinal pelo Pix.</p>
   </section>
 
   <ol class="etapas" aria-label="Etapas do agendamento">
     <li id="e1" aria-current="step">Seus dados</li>
-    <li id="e2">Data</li>
+    <li id="e2">Serviço e data</li>
     <li id="e3">Pagamento</li>
   </ol>
 
   <p class="msg" id="semApi" hidden>O agendamento on-line está fora do ar. Chame a gente no WhatsApp para agendar.</p>
 
   <!-- Etapa 1: cadastro -->
-  <form class="cartao" id="vDados" novalidate>
-    <div class="cartao-head">
-      <h2>Seus dados</h2>
-      <p>Usamos o e-mail para confirmar o agendamento. Se você já agendou antes, use o mesmo e-mail e celular.</p>
-    </div>
-    <div class="campos">
-      <div class="field largo">
-        <label for="nome">Nome completo</label>
-        <input type="text" id="nome" autocomplete="name" placeholder="Ex.: Luis Felipe da Silva" aria-describedby="nome-err">
-        <p class="err" id="nome-err" hidden>Escreva seu nome.</p>
+  <div class="duas" id="vDados">
+    <form class="bloco" id="fDados" novalidate>
+      <div class="titulo-sec"><h2>Seus dados</h2></div>
+      <p class="nota" style="margin-bottom:18px">Preencha para fazer o seu cadastro. Se você já agendou antes, use o mesmo e-mail e celular.</p>
+      <div class="campos">
+        <div class="field">
+          <label for="nome">Nome completo</label>
+          <input type="text" id="nome" autocomplete="name" aria-describedby="nome-err">
+          <p class="err" id="nome-err" hidden>Escreva seu nome completo.</p>
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" autocomplete="email" inputmode="email" placeholder="voce@email.com" aria-describedby="email-err">
+          <p class="err" id="email-err" hidden>Confira o e-mail.</p>
+        </div>
+        <div class="field">
+          <label for="telefone">Celular (WhatsApp)</label>
+          <input type="tel" id="telefone" autocomplete="tel-national" inputmode="tel" placeholder="(21) 99999-9999" aria-describedby="telefone-err">
+          <p class="err" id="telefone-err" hidden>Coloque o celular com DDD.</p>
+        </div>
+        <fieldset class="field" style="border:0;margin:0;padding:0" aria-describedby="nascimento-err">
+          <legend class="rot" style="padding:0;margin-bottom:6px">Data de nascimento</legend>
+          <div class="nasc">
+            <label>Dia<input type="text" id="nDia" inputmode="numeric" maxlength="2" autocomplete="bday-day"></label>
+            <label>Mês<select id="nMes" autocomplete="bday-month">
+              <option value=""></option>
+              <option value="01">janeiro</option><option value="02">fevereiro</option><option value="03">março</option>
+              <option value="04">abril</option><option value="05">maio</option><option value="06">junho</option>
+              <option value="07">julho</option><option value="08">agosto</option><option value="09">setembro</option>
+              <option value="10">outubro</option><option value="11">novembro</option><option value="12">dezembro</option>
+            </select></label>
+            <label>Ano<input type="text" id="nAno" inputmode="numeric" maxlength="4" autocomplete="bday-year"></label>
+          </div>
+          <p class="err" id="nascimento-err" hidden>Confira a data de nascimento.</p>
+        </fieldset>
+        <div class="field">
+          <label for="carro">Modelo do carro</label>
+          <input type="text" id="carro" placeholder="Ex.: Onix 2019 prata" aria-describedby="carro-err">
+          <p class="err" id="carro-err" hidden>Diga qual é o carro.</p>
+        </div>
+        <div class="field">
+          <label for="placa">Placa</label>
+          <input type="text" id="placa" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABC1D23" maxlength="8" aria-describedby="placa-err">
+          <p class="err" id="placa-err" hidden>Confira a placa (ex.: ABC1D23 ou ABC-1234).</p>
+        </div>
       </div>
-      <div class="field">
-        <label for="telefone">Celular (WhatsApp)</label>
-        <input type="tel" id="telefone" autocomplete="tel-national" inputmode="tel" placeholder="(21) 99999-9999" aria-describedby="telefone-err">
-        <p class="err" id="telefone-err" hidden>Coloque o celular com DDD.</p>
+      <p class="msg" id="dadosErro" role="alert" hidden style="margin-top:18px"></p>
+      <button class="btn btn-red largura" type="submit" id="continuar" style="margin-top:22px">Continuar</button>
+    </form>
+    <aside class="resumo" aria-label="Informações do agendamento">
+      <h2>Informações do agendamento</h2>
+      <dl>
+        <div><dt>Onde</dt><dd>Blin Car · Vilar dos Teles, São João de Meriti - RJ</dd></div>
+        <div><dt>Serviços</dt><dd id="r1Servicos">Retoque e pintura geral</dd></div>
+      </dl>
+      <div class="pagamento">
+        <h3>Informações de pagamento</h3>
+        <div class="linha-val"><span>Sinal pelo Pix</span><b class="valSinal">R$ 50,00</b></div>
+        <p class="nota">O sinal garante a vaga e é descontado do valor do serviço. Se não puder vir, ele vira crédito para remarcar.</p>
       </div>
-      <div class="field">
-        <label for="email">E-mail</label>
-        <input type="email" id="email" autocomplete="email" inputmode="email" placeholder="voce@email.com" aria-describedby="email-err">
-        <p class="err" id="email-err" hidden>Confira o e-mail.</p>
-      </div>
-      <div class="field largo">
-        <label for="carro">Modelo do carro</label>
-        <input type="text" id="carro" placeholder="Ex.: Onix 2019 prata" aria-describedby="carro-err">
-        <p class="err" id="carro-err" hidden>Diga qual é o carro.</p>
-      </div>
-    </div>
-    <p class="msg" id="dadosErro" role="alert" hidden></p>
-    <button class="btn btn-red largura" type="submit" id="continuar">Continuar</button>
-    <p class="nota">Seus dados ficam só com a Blin Car e são usados para o seu agendamento.</p>
-  </form>
+      <p class="nota">Seus dados ficam só com a Blin Car e são usados para o seu agendamento.</p>
+    </aside>
+  </div>
 
   <!-- Etapa 2: serviço e data -->
-  <section class="cartao" id="vData" hidden aria-labelledby="tData">
-    <div class="ola">
-      <p id="ola"></p>
-      <button type="button" class="linkbtn" id="trocarDados">Alterar meus dados</button>
-    </div>
-    <p class="faixa credito" id="faixaCredito" hidden></p>
-    <p class="faixa info" id="faixaAgendado" hidden></p>
-    <div class="cartao-head">
-      <h2 id="tData">Serviço e data</h2>
-    </div>
-    <fieldset class="servicos" id="servicos">
-      <legend>Qual serviço?</legend>
-    </fieldset>
-    <button type="button" class="btn btn-line largura" id="verificar">Verificar datas disponíveis</button>
-    <p class="msg" id="dataErro" role="alert" hidden></p>
-
-    <div class="cal" id="cal" hidden>
-      <div class="cal-topo">
-        <button type="button" class="seta" id="mesAntes" aria-label="Mês anterior">‹</button>
-        <strong id="mesNome" aria-live="polite"></strong>
-        <button type="button" class="seta" id="mesDepois" aria-label="Próximo mês">›</button>
+  <div class="duas" id="vData" hidden>
+    <div class="bloco" id="vDataPrincipal">
+      <div class="ola">
+        <p id="ola"></p>
+        <button type="button" class="linkbtn" id="trocarDados">Alterar meus dados</button>
       </div>
-      <div class="grade" id="grade"></div>
-      <p class="legenda"><span><i aria-hidden="true"></i>dia disponível</span><span><s>12</s> vagas esgotadas</span></p>
-      <p class="msg" id="esgotado" role="status" hidden>Vagas esgotadas nesse dia. Escolha outra data.</p>
+      <p class="faixa credito" id="faixaCredito" hidden></p>
+      <p class="faixa info" id="faixaAgendado" hidden></p>
+
+      <div class="titulo-sec"><h2>Escolha o serviço</h2></div>
+      <fieldset class="servicos" id="servicos">
+        <legend>Qual serviço você quer?</legend>
+      </fieldset>
+      <button type="button" class="btn btn-fg largura" id="verificar">Verificar datas disponíveis</button>
+      <p class="msg" id="dataErro" role="alert" hidden style="margin-top:14px"></p>
+
+      <section class="bloco" id="cal" hidden aria-labelledby="tCal">
+        <div class="titulo-sec"><h2 id="tCal">Selecione uma data</h2><span>Horário de Brasília</span></div>
+        <div class="cal-disp">
+          <div class="cal">
+            <div class="cal-topo">
+              <button type="button" class="seta" id="mesAntes" aria-label="Mês anterior">‹</button>
+              <strong id="mesNome" aria-live="polite"></strong>
+              <button type="button" class="seta" id="mesDepois" aria-label="Próximo mês">›</button>
+            </div>
+            <div class="grade" id="grade"></div>
+            <p class="legenda"><span><i aria-hidden="true"></i>dia disponível</span><span><s>12</s> vagas esgotadas</span></p>
+          </div>
+          <div class="disp" id="disp" aria-live="polite"></div>
+        </div>
+      </section>
     </div>
 
-    <div id="fechar" hidden>
-      <div class="escolha">
-        <span>Sua escolha</span>
-        <b id="escolhaTxt"></b>
-      </div>
-      <ul class="regras" id="regras" style="margin-top:16px"></ul>
-      <button type="button" class="btn btn-red largura" id="agendar" style="margin-top:18px"></button>
-    </div>
-  </section>
+    <aside class="resumo" id="resumo" aria-label="Detalhes do serviço">
+      <h2>Detalhes do serviço</h2>
+      <dl>
+        <div><dt>Serviço</dt><dd id="rServico" class="vazio">Escolha o serviço</dd></div>
+        <div><dt>Dia</dt><dd id="rDia" class="vazio">Escolha uma data</dd></div>
+        <div><dt>Carro</dt><dd id="rCarro"></dd></div>
+      </dl>
+      <details class="mais">
+        <summary>Mostrar detalhes</summary>
+        <ul id="regras"></ul>
+      </details>
+      <div class="pagamento" id="rPagamento"></div>
+      <p class="nota">Ao agendar, você recebe a confirmação e os avisos no seu e-mail.</p>
+      <button type="button" class="btn btn-red largura" id="agendar" aria-disabled="true">Agendar</button>
+    </aside>
+  </div>
 
   <!-- Etapa 3: resultado do pagamento ou da remarcação -->
-  <section class="cartao resultado" id="vResultado" hidden aria-live="polite"></section>
+  <section class="resultado" id="vResultado" hidden aria-live="polite"></section>
 </main>
 
 <footer class="rodape"><p class="gutter">Blin Car · Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM</p></footer>
@@ -279,7 +360,7 @@ function el(tag, props = {}, ...filhos) {
 
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
-const SEMANA_CURTA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const SEMANA_CURTA = ["dom.", "seg.", "ter.", "qua.", "qui.", "sex.", "sáb."];
 const pad2 = n => String(n).padStart(2, "0");
 const reais = v => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const emMs = d => { const p = d.split("-").map(Number); return Date.UTC(p[0], p[1] - 1, p[2]); };
@@ -289,18 +370,26 @@ const diasNoMes = m => { const p = m.split("-").map(Number); return new Date(Dat
 const somaMes = (m, n) => { const p = m.split("-").map(Number); return new Date(Date.UTC(p[0], p[1] - 1 + n, 1)).toISOString().slice(0, 7); };
 const feira = d => { const s = SEMANA[diaSemana(d)]; return /^(segunda|terça|quarta|quinta|sexta)$/.test(s) ? s + "-feira" : s; };
 const dataLonga = d => `${feira(d)}, ${Number(d.slice(8, 10))} de ${MESES[Number(d.slice(5, 7)) - 1]}`;
-const nomeMes = m => `${MESES[Number(m.slice(5, 7)) - 1].replace(/^./, c => c.toUpperCase())} de ${m.slice(0, 4)}`;
+const nomeMes = m => `${MESES[Number(m.slice(5, 7)) - 1].replace(/^./, c => c.toUpperCase())} ${m.slice(0, 4)}`;
 const primeiroNome = n => String(n || "").trim().split(" ")[0];
 const letras = s => String(s || "").replace(/[^A-Za-zÀ-ÿ]/g, "").length;
 const digitos = s => String(s || "").replace(/\D/g, "");
 const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim());
+const suave = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
 const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", mes: "", verificado: false };
 
+// Nome, celular, e-mail, carro e placa ficam lembrados neste aparelho; o nascimento, só até fechar a aba.
 function lembrar(acao, valor) {
   try {
-    if (acao === "ler") return JSON.parse(localStorage.getItem("blincar:cadastro") || "null");
-    localStorage.setItem("blincar:cadastro", JSON.stringify(valor));
+    if (acao === "ler") {
+      const base = JSON.parse(localStorage.getItem("blincar:cadastro") || "null");
+      const extra = JSON.parse(sessionStorage.getItem("blincar:cadastro-extra") || "null");
+      return base ? { ...base, ...(extra || {}) } : null;
+    }
+    const { nascimento, ...base } = valor;
+    localStorage.setItem("blincar:cadastro", JSON.stringify(base));
+    sessionStorage.setItem("blincar:cadastro-extra", JSON.stringify({ nascimento }));
   } catch {}
   return null;
 }
@@ -335,40 +424,67 @@ function etapa(n) {
 
 /* ---------- Etapa 1: cadastro ---------- */
 
-const CAMPOS = ["nome", "telefone", "email", "carro"];
+const CAMPOS = ["nome", "email", "telefone", "nascimento", "carro", "placa"];
+
+function lerNascimento() {
+  const dia = digitos($("#nDia").value), mes = $("#nMes").value, ano = digitos($("#nAno").value);
+  if (!dia || !mes || ano.length !== 4) return "";
+  return `${ano}-${mes}-${pad2(dia)}`;
+}
+
+function nascimentoOk(v) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const p = v.split("-").map(Number);
+  const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+  const hoje = new Date();
+  return d.getUTCDate() === p[2] && d.getUTCMonth() === p[1] - 1 && p[0] >= 1900 && d <= hoje;
+}
 
 function lerCampos() {
   return {
     nome: $("#nome").value.trim().replace(/\s+/g, " "),
-    telefone: $("#telefone").value.trim(),
     email: $("#email").value.trim().toLowerCase(),
-    carro: $("#carro").value.trim()
+    telefone: $("#telefone").value.trim(),
+    nascimento: lerNascimento(),
+    carro: $("#carro").value.trim(),
+    placa: $("#placa").value.trim().toUpperCase()
   };
 }
 
 function conferirCampos(c) {
+  const tel = digitos(c.telefone).replace(/^55(?=\d{10,11}$)/, "");
   const ruins = {
     nome: letras(c.nome) < 2,
-    telefone: digitos(c.telefone).length < 10 || digitos(c.telefone).replace(/^55(?=\d{10,11}$)/, "").length > 11,
     email: !emailOk(c.email),
-    carro: c.carro.replace(/\s/g, "").length < 2
+    telefone: tel.length < 10 || tel.length > 11,
+    nascimento: !nascimentoOk(c.nascimento),
+    carro: c.carro.replace(/\s/g, "").length < 2,
+    placa: !/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(c.placa.replace(/[^A-Z0-9]/g, ""))
   };
   CAMPOS.forEach(k => {
-    $("#" + k).setAttribute("aria-invalid", String(ruins[k]));
     $(`#${k}-err`).hidden = !ruins[k];
+    const alvos = k === "nascimento" ? ["#nDia", "#nMes", "#nAno"] : ["#" + k];
+    alvos.forEach(s => $(s).setAttribute("aria-invalid", String(ruins[k])));
   });
   return CAMPOS.filter(k => ruins[k]);
 }
 
-CAMPOS.forEach(k => $("#" + k).addEventListener("input", () => {
-  if ($("#" + k).getAttribute("aria-invalid") === "true") conferirCampos(lerCampos());
+// Placa sempre em maiúsculas enquanto a pessoa digita.
+$("#placa").addEventListener("input", () => {
+  const campo = $("#placa"), pos = campo.selectionStart;
+  campo.value = campo.value.toUpperCase();
+  campo.setSelectionRange(pos, pos);
+});
+
+["nome", "email", "telefone", "nDia", "nMes", "nAno", "carro", "placa"].forEach(id => $("#" + id).addEventListener("input", () => {
+  if ($("#" + id).getAttribute("aria-invalid") === "true") conferirCampos(lerCampos());
 }));
 
-$("#vDados").addEventListener("submit", async e => {
+$("#fDados").addEventListener("submit", async e => {
   e.preventDefault();
   const c = lerCampos();
   const ruins = conferirCampos(c);
-  if (ruins.length) return $("#" + ruins[0]).focus();
+  if (ruins.length) return (ruins[0] === "nascimento" ? $("#nDia") : $("#" + ruins[0])).focus();
   mostrar($("#dadosErro"), "");
   const botao = $("#continuar");
   botao.disabled = true;
@@ -394,7 +510,7 @@ $("#vDados").addEventListener("submit", async e => {
 async function abrirData() {
   etapa(2);
   E.data = "";
-  $("#ola").textContent = `Olá, ${primeiroNome(E.cadastro.nome)}! ${E.cadastro.carro} · ${E.cadastro.email}`;
+  $("#ola").textContent = `Olá, ${primeiroNome(E.cadastro.nome)}! ${E.cadastro.email}`;
   const fc = $("#faixaCredito");
   fc.hidden = !E.credito;
   if (E.credito) {
@@ -404,12 +520,13 @@ async function abrirData() {
   const fa = $("#faixaAgendado");
   fa.hidden = !E.agendado;
   if (E.agendado) fa.replaceChildren("Você já tem ", el("b", {}, `${E.agendado.servico.toLowerCase()} em ${dataLonga(E.agendado.data)}`), ". Pode agendar outro carro ou outro serviço aqui.");
+  desenharResumo();
   window.scrollTo({ top: 0 });
   await carregarAgenda();
 }
 
 async function carregarAgenda() {
-  const caixa = $("#vData");
+  const caixa = $("#vDataPrincipal");
   caixa.classList.add("carregando");
   mostrar($("#dataErro"), "");
   try {
@@ -418,7 +535,7 @@ async function carregarAgenda() {
     E.dados = d;
     desenharServicos();
     if (E.verificado) desenharCalendario(false);
-    desenharEscolha();
+    desenharResumo();
     return true;
   } catch {
     mostrar($("#dataErro"), MSG_REDE);
@@ -449,7 +566,7 @@ function desenharServicos() {
       E.data = "";
       mostrar($("#dataErro"), "");
       if (E.verificado) desenharCalendario(true);
-      desenharEscolha();
+      desenharResumo();
     });
     return el("label", { class: "opcao", for: "sv" + i }, input,
       el("span", {}, el("b", {}, s.nome), el("small", {}, s.preco ? `${reais(s.preco)} · ${diasDoServico(s.nome)}` : diasDoServico(s.nome))));
@@ -462,13 +579,19 @@ function estadoDe(data) {
   return o.livre ? "livre" : "esgotado";
 }
 
+const ofertaDe = data => (E.dados.dias[data] || []).find(x => x.servico === E.servico) || {};
+
+// Primeiro dia livre depois de "depois" (ou o primeiro de todos).
+function proximaLivre(depois = "") {
+  return Object.keys(E.dados.dias).sort().find(d => d > depois && estadoDe(d) === "livre") || "";
+}
+
 // "pular": vai para o mês do primeiro dia disponível (ao verificar ou trocar de serviço).
 function desenharCalendario(pular) {
   $("#cal").hidden = false;
-  $("#esgotado").hidden = true;
   const datas = Object.keys(E.dados.dias).filter(d => estadoDe(d)).sort();
-  const livres = datas.filter(d => estadoDe(d) === "livre");
-  if (pular || !E.mes) E.mes = (livres[0] || datas[0] || E.dados.de).slice(0, 7);
+  const livre = proximaLivre();
+  if (pular || !E.mes) E.mes = (livre || datas[0] || E.dados.de).slice(0, 7);
   const primeiroMes = E.dados.de.slice(0, 7), ultimoMes = E.dados.ate.slice(0, 7);
   if (E.mes < primeiroMes) E.mes = primeiroMes;
   if (E.mes > ultimoMes) E.mes = ultimoMes;
@@ -481,18 +604,65 @@ function desenharCalendario(pular) {
   for (let i = 0; i < diasNoMes(E.mes); i++) {
     const data = somaDias(ini, i);
     const est = estadoDe(data);
-    const rotulo = `${dataLonga(data)}${est === "livre" ? ", disponível" : est === "esgotado" ? ", vagas esgotadas" : ", sem agendamento"}`;
+    const rotulo = `${dataLonga(data)}${est === "livre" ? ", disponível" : est === "esgotado" ? ", vagas esgotadas" : ", indisponível"}`;
     const b = el("button", { type: "button", class: "d " + est, "data-data": data, "aria-label": rotulo }, String(i + 1));
-    if (!est) b.setAttribute("aria-disabled", "true");
-    if (est === "livre") b.setAttribute("aria-pressed", String(data === E.data));
+    if (est) b.setAttribute("aria-pressed", String(data === E.data));
+    else b.setAttribute("aria-disabled", "true");
     filhos.push(b);
   }
   $("#grade").replaceChildren(...filhos);
-  if (!livres.length) {
-    mostrar($("#dataErro"), datas.length
-      ? `As datas de ${E.servico.toLowerCase()} estão esgotadas por enquanto. Chame a gente no WhatsApp.`
-      : `Não há datas abertas para ${E.servico.toLowerCase()} nos próximos meses. Chame a gente no WhatsApp.`);
+  desenharDisponibilidade();
+}
+
+// Painel ao lado do calendário: "Disponibilidade para quarta-feira, 21 de outubro".
+function desenharDisponibilidade() {
+  const caixa = $("#disp");
+  const botaoProxima = (texto = "Próxima disponibilidade", classe = "btn btn-fg") => {
+    const alvo = proximaLivre(E.data);
+    const b = el("button", { type: "button", class: classe, id: "proxima" }, texto);
+    if (!alvo) b.disabled = true;
+    b.addEventListener("click", () => escolher(alvo, true));
+    return b;
+  };
+  if (!Object.keys(E.dados.dias).some(d => estadoDe(d) === "livre")) {
+    caixa.replaceChildren(
+      el("p", { class: "estado ruim" }, `As datas de ${E.servico.toLowerCase()} estão esgotadas por enquanto.`),
+      el("p", { class: "nota" }, "Chame a gente no WhatsApp para ver outra possibilidade."));
+    return;
   }
+  if (!E.data) {
+    caixa.replaceChildren(
+      el("p", { class: "dia" }, "Escolha um dia no calendário."),
+      el("p", { class: "nota" }, "Os dias com bolinha estão disponíveis. Ou veja direto a próxima data livre:"),
+      botaoProxima());
+    return;
+  }
+  const est = estadoDe(E.data);
+  const o = ofertaDe(E.data);
+  if (est === "livre") {
+    const outra = proximaLivre(E.data);
+    caixa.replaceChildren(
+      el("p", { class: "dia" }, `Disponibilidade para ${dataLonga(E.data)}`),
+      el("p", { class: "estado ok", tabindex: "-1" }, `Disponível para ${E.servico.toLowerCase()}${o.preco ? ` · ${reais(o.preco)}` : ""}`),
+      el("p", { class: "nota" }, "Para garantir esta data, toque em agendar no resumo."),
+      outra ? botaoProxima("Ver a próxima data", "btn btn-line") : "");
+    return;
+  }
+  caixa.replaceChildren(
+    el("p", { class: "dia" }, `Disponibilidade para ${dataLonga(E.data)}`),
+    el("p", { class: "estado ruim", id: "esgotado", tabindex: "-1" }, "Vagas esgotadas nesse dia."),
+    el("p", { class: "nota" }, "Escolha outra data ou veja a próxima disponível."),
+    botaoProxima());
+}
+
+function escolher(data, irAoMes) {
+  if (!data) return;
+  E.data = data;
+  if (irAoMes) E.mes = data.slice(0, 7);
+  desenharCalendario(false);
+  desenharResumo();
+  const b = document.querySelector(`.d[data-data="${data}"]`);
+  if (b) b.focus();
 }
 
 $("#verificar").addEventListener("click", async () => {
@@ -505,51 +675,73 @@ $("#verificar").addEventListener("click", async () => {
   E.verificado = true;
   if (await carregarAgenda()) {
     desenharCalendario(true);
-    $("#cal").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    $("#cal").scrollIntoView({ behavior: suave(), block: "start" });
   }
 });
 
 $("#grade").addEventListener("click", e => {
   const b = e.target.closest("[data-data]");
-  if (!b) return;
-  const est = estadoDe(b.dataset.data);
-  if (est === "esgotado") {
-    $("#esgotado").hidden = false;
-    return;
+  if (!b || !estadoDe(b.dataset.data)) return;
+  escolher(b.dataset.data, false);
+  if (estadoDe(b.dataset.data) === "livre" && matchMedia("(max-width: 899px)").matches) {
+    $("#resumo").scrollIntoView({ behavior: suave(), block: "nearest" });
   }
-  if (est !== "livre") return;
-  $("#esgotado").hidden = true;
-  E.data = b.dataset.data;
-  desenharCalendario(false);
-  desenharEscolha();
-  $("#fechar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
 });
 
 $("#mesAntes").addEventListener("click", () => { E.mes = somaMes(E.mes, -1); desenharCalendario(false); });
 $("#mesDepois").addEventListener("click", () => { E.mes = somaMes(E.mes, 1); desenharCalendario(false); });
 $("#trocarDados").addEventListener("click", () => { etapa(1); $("#nome").focus(); });
 
-function desenharEscolha() {
-  const caixa = $("#fechar");
-  caixa.hidden = !E.data;
-  if (!E.data) return;
-  const o = (E.dados.dias[E.data] || []).find(x => x.servico === E.servico) || {};
-  $("#escolhaTxt").textContent = `${E.servico} · ${dataLonga(E.data)}${o.preco ? ` · ${reais(o.preco)}` : ""}`;
-  const r = E.dados;
+// Resumo da direita: serviço, dia, valores e o botão de agendar (só libera com um dia disponível escolhido).
+function desenharResumo() {
+  const pronto = !!(E.servico && E.data && E.dados && estadoDe(E.data) === "livre");
+  const dd = (sel, valor, vazio) => {
+    $(sel).textContent = valor || vazio;
+    $(sel).classList.toggle("vazio", !valor);
+  };
+  const o = E.dados && E.data ? ofertaDe(E.data) : {};
+  dd("#rServico", E.servico ? `${E.servico}${o.preco ? ` · ${reais(o.preco)}` : ""}` : "", "Escolha o serviço");
+  dd("#rDia", pronto ? dataLonga(E.data) : "", "Escolha uma data");
+  dd("#rCarro", E.cadastro ? `${E.cadastro.carro} · ${E.cadastro.placa}` : "", "");
+  const sinal = E.dados ? E.dados.sinal : 50;
+  const remarcacoes = E.dados ? E.dados.remarcacoes : 3;
+  const prazo = E.dados ? E.dados.prazoMinutos : 60;
+  const pag = $("#rPagamento");
+  if (E.credito) {
+    pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
+      el("div", { class: "linha-val" }, el("span", {}, "Sinal"), el("b", {}, reais(E.credito.valor))),
+      el("div", { class: "linha-val" }, el("span", {}, "Seu crédito"), el("b", {}, "− " + reais(E.credito.valor))),
+      el("div", { class: "linha-val total" }, el("span", {}, "A pagar agora"), el("b", {}, reais(0))));
+  } else {
+    pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
+      el("div", { class: "linha-val total" }, el("span", {}, "Sinal pelo Pix"), el("b", {}, reais(sinal))),
+      el("p", { class: "nota" }, "Descontado do valor do serviço."));
+  }
   const regras = E.credito
-    ? [`O crédito de ${reais(E.credito.valor)} vale como sinal deste agendamento. Não precisa pagar de novo.`,
-      "O sinal é descontado do valor do serviço."]
-    : [`O sinal de ${reais(r.sinal)} garante a sua vaga e é descontado do valor do serviço.`,
-      `Você tem ${r.prazoMinutos} minutos para pagar pelo Pix. Sem o pagamento, a vaga fica livre para outra pessoa.`];
-  regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${r.remarcacoes} vezes).`);
+    ? [`O crédito de ${reais(E.credito.valor)} vale como sinal deste agendamento. Não precisa pagar de novo.`]
+    : [`O sinal de ${reais(sinal)} garante a sua vaga e é descontado do valor do serviço.`,
+      `Depois de tocar em agendar, você tem ${prazo} minutos para pagar o Pix. Sem o pagamento, a vaga fica livre para outra pessoa.`];
+  regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${remarcacoes} vezes).`);
+  regras.push("O endereço e a confirmação chegam no seu e-mail. No dia, você recebe um lembrete.");
   $("#regras").replaceChildren(...regras.map(t => el("li", {}, t)));
-  $("#agendar").textContent = E.credito ? "Remarcar com meu crédito" : `Agendar e pagar o sinal de ${reais(r.sinal)}`;
+  const botao = $("#agendar");
+  if (botao.dataset.enviando) return;
+  botao.textContent = E.credito ? "Remarcar com meu crédito" : `Agendar e pagar ${reais(sinal)}`;
+  if (pronto) botao.removeAttribute("aria-disabled");
+  else botao.setAttribute("aria-disabled", "true");
 }
 
 $("#agendar").addEventListener("click", async () => {
   const botao = $("#agendar");
-  if (botao.getAttribute("aria-disabled") === "true" || !E.data) return;
-  const texto = botao.textContent;
+  if (botao.getAttribute("aria-disabled") === "true") {
+    if (!E.servico) mostrar($("#dataErro"), "Escolha o serviço e toque em Verificar datas disponíveis.");
+    else if (!E.verificado) mostrar($("#dataErro"), "Toque em Verificar datas disponíveis e escolha um dia.");
+    else mostrar($("#dataErro"), "Escolha um dia disponível no calendário.");
+    $("#dataErro").scrollIntoView({ behavior: suave(), block: "center" });
+    return;
+  }
+  mostrar($("#dataErro"), "");
+  botao.dataset.enviando = "1";
   botao.setAttribute("aria-disabled", "true");
   botao.textContent = E.credito ? "Remarcando…" : "Abrindo o pagamento…";
   let indo = false;
@@ -565,24 +757,22 @@ $("#agendar").addEventListener("click", async () => {
       return mostrarResultado(r.agendamento, "remarcado");
     }
     if (r && (r.erro === "esgotado" || r.erro === "indisponivel")) {
-      E.data = "";
+      delete botao.dataset.enviando;
       await carregarAgenda();
       desenharCalendario(false);
-      $("#esgotado").hidden = false;
-      $("#esgotado").focus();
-      return;
+      const estado = document.querySelector("#disp .estado");
+      return estado && estado.focus();
     }
     mostrar($("#dataErro"), (r && r.mensagem) || MSG_REDE);
   } catch {
     mostrar($("#dataErro"), MSG_REDE);
   } finally {
     if (!indo) {
-      botao.removeAttribute("aria-disabled");
-      botao.textContent = texto;
+      delete botao.dataset.enviando;
+      desenharResumo();
     }
   }
 });
-$("#esgotado").setAttribute("tabindex", "-1");
 
 /* ---------- Etapa 3: resultado ---------- */
 
@@ -608,18 +798,26 @@ function botaoNovo(texto = "Escolher outra data") {
   return b;
 }
 
+function preencher(c) {
+  ["nome", "email", "telefone", "carro", "placa"].forEach(k => { $("#" + k).value = c[k] || ""; });
+  if (c.nascimento && /^\d{4}-\d{2}-\d{2}$/.test(c.nascimento)) {
+    $("#nAno").value = c.nascimento.slice(0, 4);
+    $("#nMes").value = c.nascimento.slice(5, 7);
+    $("#nDia").value = String(Number(c.nascimento.slice(8, 10)));
+  }
+}
+
 // Volta ao começo, com os dados lembrados neste aparelho (o crédito, se houver, aparece de novo).
 function recomecar() {
   try { history.replaceState(null, "", location.pathname); } catch {}
   E.data = "";
   E.verificado = false;
   $("#cal").hidden = true;
-  $("#fechar").hidden = true;
   etapa(1);
   const c = lembrar("ler");
   if (c) {
-    CAMPOS.forEach(k => { $("#" + k).value = c[k] || ""; });
-    $("#vDados").requestSubmit();
+    preencher(c);
+    if (c.nascimento) $("#fDados").requestSubmit();
   }
 }
 
@@ -629,7 +827,7 @@ function mostrarResultado(a, tipo, extra) {
   const detalhes = a && a.data ? el("dl", { class: "detalhes" },
     el("div", {}, el("dt", {}, "Serviço"), el("dd", {}, a.servico)),
     el("div", {}, el("dt", {}, "Dia"), el("dd", {}, dataLonga(a.data))),
-    a.carro ? el("div", {}, el("dt", {}, "Carro"), el("dd", {}, a.carro)) : "") : "";
+    a.carro ? el("div", {}, el("dt", {}, "Carro"), el("dd", {}, a.placa ? `${a.carro} · ${a.placa}` : a.carro)) : "") : "";
   const onde = el("address", {}, "Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM");
   const mapa = el("a", { class: "btn btn-line", href: MAPS, target: "_blank", rel: "noopener" }, "Abrir no Google Maps");
   const ajuda = texto => { const l = zap(texto); return l ? el("a", { class: "btn btn-wa", href: l, target: "_blank", rel: "noopener" }, "Falar no WhatsApp") : ""; };
@@ -706,13 +904,22 @@ if (WHATSAPP) {
   $("#ajuda").hidden = false;
 }
 const salvo = lembrar("ler");
-if (salvo) CAMPOS.forEach(k => { $("#" + k).value = salvo[k] || ""; });
+if (salvo) preencher(salvo);
 const volta = new URLSearchParams(location.search).get("ag");
 if (!API) {
   $("#semApi").hidden = false;
   $("#continuar").disabled = true;
 } else if (volta) {
   acompanhar(volta);
+} else {
+  // Já busca a agenda enquanto a pessoa preenche: o resumo mostra o sinal e os serviços de verdade.
+  api("cliente_agenda").then(d => {
+    if (!d || !d.ok || E.dados) return;
+    E.dados = d;
+    document.querySelectorAll(".valSinal").forEach(x => { x.textContent = reais(d.sinal); });
+    const nomes = d.servicos.map(s => s.nome.toLowerCase());
+    $("#r1Servicos").textContent = (nomes.length > 1 ? `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}` : nomes[0] || "").replace(/^./, c => c.toUpperCase());
+  }).catch(() => {});
 }
 </script>
 </body>

@@ -1524,9 +1524,10 @@ function itemAgendamento(a, comData) {
   if (a.remarcacao) etiquetas.push(`remarcação ${a.remarcacao} de ${max}`);
   const info = el("div", { class: "ag-info" },
     comData ? el("span", { class: "ag-dia" }, dataLonga(a.data)) : "",
-    el("span", {}, `${a.servico} · ${a.carro}`),
+    el("span", {}, `${a.servico} · ${a.carro}${a.placa ? ` · placa ${a.placa}` : ""}`),
     el("span", {}, a.telefone, zap ? " · " : "", zap ? el("a", { href: zap, target: "_blank", rel: "noopener" }, "abrir WhatsApp") : ""),
     a.email ? el("span", {}, a.email) : "",
+    a.nascimento ? el("span", {}, `Nascimento: ${a.nascimento}`) : "",
     etiquetas.length ? el("span", {}, maiuscula(etiquetas.join(" · "))) : "",
     a.sit === "confirmado" ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
     a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
@@ -1614,7 +1615,7 @@ function mostrarDica(b) {
   dica.replaceChildren(
     el("b", {}, dataLonga(data)),
     el("span", { class: "sub-dica" }, resumoVagas(dia)),
-    ...(ags.length ? ags.map(a => el("span", { class: a.sit === "aguardando" ? "pend" : "" }, `${a.cliente} · ${a.carro} · ${a.servico} (${rotulo[a.sit]})`)) : [el("span", {}, "Nenhum carro agendado.")]),
+    ...(ags.length ? ags.map(a => el("span", { class: a.sit === "aguardando" ? "pend" : "" }, `${a.cliente} · ${a.carro}${a.placa ? ` ${a.placa}` : ""} · ${a.servico} (${rotulo[a.sit]})`)) : [el("span", {}, "Nenhum carro agendado.")]),
     el("span", { class: "sub-dica" }, podeAgendar(dia, d.hoje) ? "Clique para ver, agendar ou mudar as vagas." : "Clique para ver os detalhes."));
   const wrap = $("#agCalWrap");
   const largura = Math.min(320, wrap.clientWidth);
@@ -1754,7 +1755,7 @@ function salvarDia() {
 function formulario(dia, ag) {
   const d = AG.dados;
   const novo = !ag;
-  const v = ag || { data: dia.data, servico: (dia.ofertas[0] || {}).servico || "", cliente: "", telefone: "", email: "", carro: "", sinal: d.regras.sinal, pago: false, obs: "" };
+  const v = ag || { data: dia.data, servico: (dia.ofertas[0] || {}).servico || "", cliente: "", telefone: "", email: "", carro: "", placa: "", sinal: d.regras.sinal, pago: false, obs: "" };
   const entrada = (id, attrs) => el("input", { id, name: id, ...attrs });
   const inDia = entrada("fDia", { type: "date", value: v.data, ...(novo ? { min: d.hoje } : {}) });
   const inServico = entrada("fServico", { type: "text", value: v.servico, list: "fSugestoes", autocomplete: "off", placeholder: "Ex.: Retoque" });
@@ -1789,6 +1790,7 @@ function formulario(dia, ag) {
       campo("fTelefone", "Telefone (WhatsApp)", entrada("fTelefone", { type: "tel", value: v.telefone, inputmode: "tel", placeholder: "(21) 99999-9999", autocomplete: "off" })),
       campo("fEmail", "E-mail (opcional)", entrada("fEmail", { type: "email", value: v.email || "", inputmode: "email", placeholder: "Para o cliente receber os avisos", autocomplete: "off" })),
       campo("fCarro", "Carro", entrada("fCarro", { type: "text", value: v.carro, placeholder: "Modelo, ano e cor", autocomplete: "off" })),
+      campo("fPlaca", "Placa (opcional)", entrada("fPlaca", { type: "text", value: v.placa || "", placeholder: "ABC1D23", autocapitalize: "characters", maxlength: "8", autocomplete: "off" })),
       campo("fDia", "Dia", inDia),
       campo("fServico", "Serviço", inServico),
       campo("fSinal", "Valor do sinal (R$)", entrada("fSinal", { type: "number", min: "0", step: "0.01", inputmode: "decimal", value: String(v.sinal) }))),
@@ -1820,6 +1822,7 @@ async function salvarFormulario(ag) {
     telefone: val("fTelefone"),
     email: val("fEmail"),
     carro: val("fCarro"),
+    placa: val("fPlaca").toUpperCase(),
     sinal: Number(String($("#fSinal").value).replace(",", ".")) || 0,
     pago: $("#fPago").checked,
     obs: val("fObs")
@@ -1832,6 +1835,7 @@ async function salvarFormulario(ag) {
   if (!novo.servico) falta.push("o serviço");
   if (falta.length) return mostrarErro($("#fErro"), `Falta ${juntar(falta)}.`);
   if (novo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(novo.email)) return mostrarErro($("#fErro"), "Confira o e-mail (ou deixe em branco).");
+  if (novo.placa && !/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(novo.placa.replace(/[^A-Z0-9]/g, ""))) return mostrarErro($("#fErro"), "Confira a placa (ex.: ABC1D23 ou ABC-1234) ou deixe em branco.");
   $("#fErro").hidden = true;
   const botao = $("#fSalvar");
   botao.textContent = "Salvando…";
@@ -2019,7 +2023,7 @@ function criarDemo() {
   };
   const novo = (data, servico, cliente, carro, pago, extra = {}) => {
     const id = "ex" + (++seq);
-    return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, email: "", sinal: 50, pago, obs: "",
+    return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, placa: `RIO${seq}A${pad2(seq + 10)}`, email: "", sinal: 50, pago, obs: "",
       situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : `${hoje} 23:59`,
       link: pago ? "" : linkFalso(id), presenca: false, origem: "Painel", remarcacao: 0, forma: pago ? "Pix" : "", ...extra };
   };
@@ -2048,7 +2052,7 @@ function criarDemo() {
   const confirmados = () => comSit().filter(a => a.sit === "confirmado");
   const visiveis = () => comSit().filter(a => VISIVEIS.indexOf(a.sit) !== -1);
   const ativo = id => comSit().find(a => a.id === id && ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
-  const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, email: a.email,
+  const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59` });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
@@ -2083,7 +2087,7 @@ function criarDemo() {
   }
   function salvar(dados, m) {
     const ag = { ...dados, servico: String(dados.servico || "").trim(), cliente: String(dados.cliente || "").trim(), carro: String(dados.carro || "").trim(),
-      telefone: telefone(dados.telefone), email: String(dados.email || "").trim().toLowerCase(), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago };
+      telefone: telefone(dados.telefone), email: String(dados.email || "").trim().toLowerCase(), placa: String(dados.placa || "").toUpperCase(), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago };
     if (!ag.servico) return falha("dados", "Escolha o serviço.");
     if (!ag.cliente || !ag.carro) return falha("dados", "Preencha o nome do cliente e o carro.");
     if (ag.telefone.replace(/\D/g, "").length < 10) return falha("dados", "Coloque o telefone com DDD.");
