@@ -122,6 +122,7 @@ input[aria-invalid=true]{border-color:var(--err)}
 
 .erros{margin:0;padding:10px 12px;border:1px solid var(--err);border-radius:10px;color:var(--err);font-size:.9375rem}
 .enviar{width:100%;min-height:54px;font-size:1.0625rem}
+.enviar[aria-disabled="true"]{opacity:.72}
 .depois{margin:0;font-size:.9375rem;color:var(--muted)}
 .depois b{color:var(--fg)}
 
@@ -176,7 +177,6 @@ address span{color:var(--muted);font-size:.9375rem}
     <p class="lede">Pintura, funilaria, polimento e detalhamento. Preencha o pedido e a mensagem abre pronta no nosso WhatsApp. <strong>Lá você manda as fotos do carro.</strong></p>
     <div class="actions">
       <a class="btn btn-red so-celular" href="#pedido">Preencher o pedido</a>
-      <a class="btn btn-line" id="waDireto" href="https://wa.me/" target="_blank" rel="noopener">Chamar direto no WhatsApp</a>
     </div>
   </section>
 
@@ -213,9 +213,21 @@ address span{color:var(--muted);font-size:.9375rem}
     </fieldset>
 
     <div class="field">
-      <label for="bairro">Bairro ou cidade <small>(opcional)</small></label>
-      <input type="text" id="bairro" name="bairro" autocomplete="address-level2" placeholder="Ex.: Vilar dos Teles">
+      <label for="cidade">De onde você é? <small>(bairro e cidade)</small></label>
+      <input type="text" id="cidade" name="cidade" autocomplete="address-level2" placeholder="Ex.: Campo Grande, Rio de Janeiro" aria-describedby="cidade-err">
+      <p class="err" id="cidade-err" hidden>Diga seu bairro ou cidade.</p>
     </div>
+
+    <fieldset class="field" id="conheceu" aria-describedby="conheceu-err">
+      <legend>Como conheceu a Blin Car?</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" id="c-instagram" name="conheceu" value="Instagram"><span>Instagram</span></label>
+        <label class="chip"><input type="radio" id="c-tiktok" name="conheceu" value="TikTok"><span>TikTok</span></label>
+        <label class="chip"><input type="radio" id="c-facebook" name="conheceu" value="Facebook"><span>Facebook</span></label>
+        <label class="chip"><input type="radio" id="c-whatsapp" name="conheceu" value="WhatsApp"><span>WhatsApp</span></label>
+      </div>
+      <p class="err" id="conheceu-err" hidden>Marque como conheceu a gente.</p>
+    </fieldset>
 
     <fieldset class="field">
       <legend>Quando quer trazer o carro <small>(opcional)</small></legend>
@@ -237,7 +249,7 @@ address span{color:var(--muted);font-size:.9375rem}
     </div>
 
     <p class="erros" id="erros" role="alert" hidden></p>
-    <a class="btn btn-wa enviar" id="enviar" href="https://wa.me/" target="_blank" rel="noopener">
+    <a class="btn btn-wa enviar" id="enviar" target="_blank" rel="noopener" tabindex="0" aria-disabled="true">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8.5 9.5c.3 2.6 3.4 5.7 6 6"/></svg>
       Enviar pelo WhatsApp
     </a>
@@ -274,7 +286,6 @@ address span{color:var(--muted);font-size:.9375rem}
         <button type="button" class="btn btn-line btn-sm" data-copy="endereco">Copiar endereço</button>
       </div>
       <dl class="contatos">
-        <div class="se-numero"><dt>WhatsApp</dt><dd><span class="numero" id="numero"></span><button type="button" class="mini" data-copy="numero">Copiar</button></dd></div>
         <div><dt>Instagram</dt><dd><a href="https://www.instagram.com/blincar_leiloes/" target="_blank" rel="noopener" data-metrica="instagram">@blincar_leiloes</a></dd></div>
       </dl>
     </section>
@@ -294,7 +305,7 @@ const WHATSAPP = String(CONFIG.whatsapp || "").replace(/\D/g, "");
 
 const ABERTURA = "Olá, Blin Car! Vim pelo site e quero fazer um orçamento.";
 const FECHO = "Vou mandar as fotos do carro aqui na conversa.";
-const VAZIO = { Nome: "seu nome", Carro: "modelo e ano", "Serviço": "o que o carro precisa" };
+const VAZIO = { Nome: "seu nome", Carro: "modelo e ano", "Serviço": "o que o carro precisa", "De onde é": "bairro e cidade", "Conheceu por": "como conheceu a gente" };
 
 // Métricas anônimas: cada visita e clique vira uma linha na planilha (config.js > metricas).
 // Quem entrou no painel dos administradores neste aparelho não é contado.
@@ -381,15 +392,15 @@ function dados() {
     nome: v("nome"),
     carro: v("carro"),
     servicos: [...form.querySelectorAll('input[name="servico"]:checked')].map(i => i.value),
-    bairro: v("bairro"),
+    cidade: v("cidade"),
+    conheceu: form.querySelector('input[name="conheceu"]:checked')?.value || "",
     quando: form.querySelector('input[name="quando"]:checked')?.value || "",
     detalhes: v("detalhes")
   };
 }
 
 function linhas(d) {
-  const l = [["Nome", d.nome], ["Carro", d.carro], ["Serviço", d.servicos.join(", ")]];
-  if (d.bairro) l.push(["Bairro/cidade", d.bairro]);
+  const l = [["Nome", d.nome], ["Carro", d.carro], ["Serviço", d.servicos.join(", ")], ["De onde é", d.cidade], ["Conheceu por", d.conheceu]];
   if (d.quando) l.push(["Quando", d.quando]);
   if (d.detalhes) l.push(["Detalhes", d.detalhes]);
   return l;
@@ -404,7 +415,14 @@ function atualizar() {
   const corpo = linhas(d).map(([k, v]) =>
     `<b>${k}:</b> ${v ? esc(v).replace(/\n/g, "<br>") : `<i>${VAZIO[k]}</i>`}`);
   $("#previa").innerHTML = [esc(ABERTURA), "", ...corpo, "", esc(FECHO)].join("<br>") + '<span class="hora">agora</span>';
-  enviar.href = waLink(mensagem(d));
+  // O botão só vira link com tudo preenchido: segurar o dedo ou abrir em outra aba não pula as perguntas.
+  if (faltando(d).length) {
+    enviar.removeAttribute("href");
+    enviar.setAttribute("aria-disabled", "true");
+  } else {
+    enviar.href = waLink(mensagem(d));
+    enviar.removeAttribute("aria-disabled");
+  }
   if (tentou) validar();
 }
 
@@ -412,17 +430,27 @@ function lista(itens) {
   return itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}` : itens[0];
 }
 
-function validar() {
-  const d = dados();
-  const regras = [
-    ["nome", !!d.nome, "seu nome", form.elements.nome],
-    ["carro", !!d.carro, "o carro", form.elements.carro],
-    ["servicos", d.servicos.length > 0, "o serviço", $("#s-geral")]
+const letras = s => s.replace(/[^A-Za-zÀ-ÿ]/g, "").length;
+const GRUPOS = ["servicos", "conheceu"];
+
+// [id, preenchido, nome na mensagem de erro, onde pôr o foco]
+function regras(d) {
+  return [
+    ["nome", letras(d.nome) >= 2, "seu nome", form.elements.nome],
+    ["carro", letras(d.carro) >= 2, "o carro", form.elements.carro],
+    ["servicos", d.servicos.length > 0, "o serviço", $("#s-geral")],
+    ["cidade", letras(d.cidade) >= 3, "de onde você é", form.elements.cidade],
+    ["conheceu", !!d.conheceu, "como conheceu a gente", $("#c-instagram")]
   ];
-  const faltam = regras.filter(r => !r[1]);
-  for (const [id, ok] of regras) {
+}
+const faltando = d => regras(d).filter(r => !r[1]);
+
+function validar() {
+  const todas = regras(dados());
+  const faltam = todas.filter(r => !r[1]);
+  for (const [id, ok] of todas) {
     $(`#${id}-err`).hidden = ok;
-    if (id === "servicos") $("#servicos").classList.toggle("invalid", !ok);
+    if (GRUPOS.includes(id)) $(`#${id}`).classList.toggle("invalid", !ok);
     else form.elements[id].setAttribute("aria-invalid", String(!ok));
   }
   erros.hidden = faltam.length === 0;
@@ -441,7 +469,7 @@ enviar.addEventListener("click", e => {
     return;
   }
   const d = dados();
-  registrar("whatsapp_pedido", { servicos: d.servicos.join(", "), quando: d.quando });
+  registrar("whatsapp_pedido", { servicos: d.servicos.join(", "), quando: d.quando, cidade: d.cidade, rede: d.conheceu });
   $("#depois").hidden = false;
 });
 
@@ -453,6 +481,12 @@ function comecar() {
 }
 form.addEventListener("input", () => { comecar(); atualizar(); });
 form.addEventListener("change", () => { comecar(); atualizar(); });
+enviar.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && !enviar.hasAttribute("href")) {
+    e.preventDefault();
+    enviar.click();
+  }
+});
 form.addEventListener("submit", e => {
   e.preventDefault();
   tentou = true;
@@ -490,8 +524,6 @@ document.querySelectorAll("[data-copy]").forEach(btn => {
 
 document.querySelectorAll(".numero").forEach(el => { el.textContent = numeroBonito(WHATSAPP); });
 document.querySelectorAll(".se-numero").forEach(el => { el.hidden = !WHATSAPP; });
-$("#waDireto").href = waLink("Olá, Blin Car! Vim pelo site e quero falar com vocês.");
-$("#waDireto").addEventListener("click", () => registrar("whatsapp_direto"));
 document.querySelectorAll("[data-metrica]").forEach(a =>
   a.addEventListener("click", () => registrar("clique", { detalhe: a.dataset.metrica })));
 atualizar();

@@ -15,6 +15,7 @@
   --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--grid:#25272b;--fg:#f2f0ec;--muted:#a3a2a7;
   --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
   --c-vis:#8b8d94;--c-wa:#1aa851;
+  --lotado-bg:#2b1517;--ok-bg:#12301f;--ok-fg:#5fd896;--pend-bg:#33290f;--pend-fg:#f0c45c;
   --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   color-scheme:dark;
@@ -23,12 +24,14 @@
   --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--grid:#ecebe7;--fg:#16171a;--muted:#5f5e63;
   --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
   --c-vis:#8a8c93;--c-wa:#178f45;
+  --lotado-bg:#fdecec;--ok-bg:#e3f5ea;--ok-fg:#11703a;--pend-bg:#fbf1db;--pend-fg:#7f5600;
   color-scheme:light;
 }}
 :root[data-theme="light"]{
   --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--grid:#ecebe7;--fg:#16171a;--muted:#5f5e63;
   --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
   --c-vis:#8a8c93;--c-wa:#178f45;
+  --lotado-bg:#fdecec;--ok-bg:#e3f5ea;--ok-fg:#11703a;--pend-bg:#fbf1db;--pend-fg:#7f5600;
   color-scheme:light;
 }
 *{box-sizing:border-box}
@@ -162,6 +165,120 @@ tr:last-child td{border-bottom:0}
 
 .rodape{border-top:1px solid var(--line)}
 .rodape p{max-width:1120px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+
+/* Abas */
+.abas{border-bottom:1px solid var(--line)}
+.abas-in{max-width:1120px;margin:0 auto;display:flex;gap:6px}
+.aba{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:600 1rem/1 var(--body);padding:14px 10px 11px;cursor:pointer}
+.aba:hover{color:var(--fg)}
+.aba[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--red)}
+.aba:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+
+/* Quem pediu orçamento */
+.duas-in{display:grid;gap:18px}
+@media (min-width:720px){.duas-in{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.duas-in h3{margin:0 0 4px;font-size:.9375rem}
+.duas-in > div{min-width:0}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:var(--fg);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+.linkbtn[aria-pressed="true"]{color:var(--red);font-weight:700;text-decoration-color:var(--red)}
+.filtro-ativo{margin:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.9375rem}
+
+/* Agenda */
+.mesnav{display:flex;align-items:center;gap:6px}
+.mesnav strong{min-width:8.5em;text-align:center;font-weight:600;font-size:.9375rem}
+.proximos{display:grid;gap:10px}
+@media (min-width:640px){.proximos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.prox{display:grid;gap:3px;align-content:start;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
+.prox:hover{border-color:var(--muted)}
+.prox-rot{font-size:.75rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.prox b{font-size:1.0625rem}
+.prox .sub,.dia-cab .sub,.dlg .sub{font-size:.875rem;color:var(--muted);margin:0}
+.prox-ag{font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpis-4 .kpi strong{font-size:1.625rem}
+@media (min-width:820px){.kpis.kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.cal-wrap{position:relative}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-cab{font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;padding:2px 0 4px}
+.cel{min-height:62px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);font:inherit;text-align:left;overflow:hidden}
+button.cel{cursor:pointer}
+button.cel:hover{border-color:var(--muted)}
+.cel .num{font-size:.8125rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.4}
+.cel.hoje .num{background:var(--red);color:var(--on-red);border-radius:999px;padding:0 6px}
+.cel .tipo,.cel .quem,.cel .tag{display:none}
+.cel .tipo{font-size:.6875rem;color:var(--muted);font-weight:600}
+.cel .quem{font-size:.75rem;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rodape-cel{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%}
+.pontos{display:flex;gap:3px;flex-wrap:wrap}
+.pontos i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--muted)}
+.pontos i.cheio{background:var(--fg);border-color:var(--fg)}
+.cel.lotado{background:var(--lotado-bg);border-color:var(--red)}
+.cel.lotado .pontos i.cheio{background:var(--red);border-color:var(--red)}
+.cel .tag{font-size:.625rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.04em}
+.cel.fechado{background:transparent;border-style:dashed;color:var(--muted)}
+.cel.passou{opacity:.5}
+.cal-vazio{min-height:62px}
+@media (min-width:720px){
+  .cal{gap:6px}
+  .cel{min-height:108px;padding:8px;gap:3px}
+  .cel .tipo,.cel .quem,.cel .tag{display:block}
+  .cal-vazio{min-height:108px}
+}
+.dica-cal{position:absolute;z-index:5;display:grid;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:.8125rem;pointer-events:none}
+.dica-cal .sub-dica{color:var(--muted)}
+.legenda-cal{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.legenda-cal span{display:inline-flex;align-items:center;gap:6px}
+.amostra{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);background:var(--bg)}
+.amostra.lot{background:var(--lotado-bg);border-color:var(--red)}
+.amostra.fec{background:transparent;border-style:dashed}
+.legenda-cal .pontos i{display:inline-block}
+
+.lista-dias{display:grid;gap:10px}
+.dia-bloco{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--bg)}
+.dia-bloco.lotado{border-color:var(--red)}
+.dia-bloco.passou{opacity:.6}
+.dia-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.dia-cab > div{display:grid;gap:2px}
+.tag-est{font-size:.75rem;font-weight:700;border-radius:999px;padding:3px 10px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag-est.lotado{color:var(--red);border-color:var(--red)}
+
+.ag{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;background:var(--surface);min-width:0}
+.ag-topo{display:flex;justify-content:space-between;align-items:center;gap:6px 10px;flex-wrap:wrap}
+.ag-nome{font-weight:700}
+.selo-sinal{font-size:.75rem;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.selo-sinal.sim{background:var(--ok-bg);color:var(--ok-fg)}
+.selo-sinal.nao{background:var(--pend-bg);color:var(--pend-fg)}
+.ag-info{display:grid;gap:2px;font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
+.ag-info a{color:var(--fg);font-weight:600}
+.ag-obs{margin:0;font-size:.875rem;overflow-wrap:anywhere}
+.ag-acoes{display:flex;flex-wrap:wrap;gap:6px}
+.mini.perigo{color:var(--err);border-color:var(--err)}
+.mini.perigo-cheio{background:var(--err);border-color:var(--err);color:var(--bg)}
+.confirma{display:grid;gap:8px;border:1px solid var(--err);border-radius:10px;padding:10px;font-size:.9375rem}
+.aviso-ok{margin:0;padding:10px 12px;border-radius:10px;background:var(--ok-bg);color:var(--ok-fg);font-weight:600;font-size:.9375rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalvar{opacity:.6;pointer-events:none}
+
+/* Janela do dia */
+.dlg{border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--fg);padding:0;width:min(560px,calc(100% - 24px));max-height:calc(100dvh - 32px);overflow:auto}
+.dlg::backdrop{background:rgba(0,0,0,.6)}
+@media (max-width:600px){.dlg{width:100%;max-width:100%;margin:auto 0 0;border-radius:18px 18px 0 0;max-height:92dvh;padding-bottom:env(safe-area-inset-bottom,0px)}}
+.dlg-corpo{padding:18px;display:grid;gap:12px}
+.dlg-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.dlg-topo > div{display:grid;gap:2px}
+.dlg h2{margin:0}
+.dlg h3{margin:0;font-size:1rem}
+.dlg-lista{display:grid;gap:10px}
+.ag-form{display:grid;gap:12px}
+.campos{display:grid;gap:12px}
+@media (min-width:520px){.campos{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.campo{display:grid;gap:4px;min-width:0}
+.campo label{font-size:.875rem;font-weight:600}
+.campo input,.campo select,.campo textarea{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.campo textarea{resize:vertical}
+.campo input:focus,.campo select:focus,.campo textarea:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.check{display:flex;align-items:center;gap:10px;font-weight:600;font-size:.9375rem}
+.check input{width:20px;height:20px;accent-color:var(--red)}
 </style>
 </head>
 <body>
@@ -180,12 +297,19 @@ tr:last-child td{border-bottom:0}
   </div>
 </header>
 
+<nav class="abas" id="abas" aria-label="Seções do painel" hidden>
+  <div class="abas-in gutter" role="tablist">
+    <button type="button" class="aba" role="tab" data-aba="painel" aria-controls="painel" aria-selected="true">Métricas</button>
+    <button type="button" class="aba" role="tab" data-aba="agenda" aria-controls="agenda" aria-selected="false">Agenda</button>
+  </div>
+</nav>
+
 <main class="page gutter">
   <section class="entrada" id="entrada">
     <div>
       <p class="eyebrow">Só para administradores</p>
       <h1>Painel do site</h1>
-      <p class="sub" style="margin-top:12px">Quantas pessoas visitam o site, começam o pedido e abrem o WhatsApp, e quantos por cento disso vira conversa.</p>
+      <p class="sub" style="margin-top:12px">Métricas do site (visitas, pedidos e conversão) e a agenda da oficina.</p>
     </div>
     <p class="aviso" id="semPlanilha" hidden><b>A planilha de métricas ainda não está ligada.</b> Siga o LEIA-ME e coloque o link dela em config.js. Enquanto isso, dá para ver o painel com dados de exemplo.</p>
     <form class="cartao" id="login" novalidate>
@@ -233,9 +357,19 @@ tr:last-child td{border-bottom:0}
     <section class="bloco">
       <div class="bloco-head"><h2>Funil</h2><p class="nota">Pessoas diferentes no período</p></div>
       <div class="funil" id="funil"></div>
-      <div class="extra"><span>Chamaram direto no WhatsApp, sem preencher</span><b id="fDireto">0</b></div>
+      <div class="extra" id="linhaDireto"><span>Chamaram direto no WhatsApp, sem preencher</span><b id="fDireto">0</b></div>
       <div class="extra"><span>Tentativas de envio com campo faltando</span><b id="fIncompleto">0</b></div>
       <p class="nota">"Abriram o WhatsApp" quer dizer que a pessoa tocou no botão e o WhatsApp abriu com a mensagem pronta. Se ela enviou mesmo, só dá para ver no WhatsApp: compare com as conversas novas do período.</p>
+    </section>
+
+    <section class="bloco">
+      <div class="bloco-head"><h2>Quem pediu orçamento</h2><p class="nota">Pessoas que tocaram em Enviar pelo WhatsApp</p></div>
+      <p class="filtro-ativo" id="filtroAtivo" hidden></p>
+      <div class="duas-in">
+        <div><h3>Como conheceram a Blin Car</h3><div class="rolagem"><table id="tabelaRedes"></table></div></div>
+        <div><h3>De onde são</h3><div class="rolagem"><table id="tabelaCidades"></table></div></div>
+      </div>
+      <p class="nota" id="notaPublico"></p>
     </section>
 
     <section class="bloco">
@@ -282,7 +416,56 @@ tr:last-child td{border-bottom:0}
       </section>
     </div>
   </section>
+
+  <section class="painel" id="agenda" hidden>
+    <div class="topo-painel">
+      <div>
+        <p class="eyebrow">Oficina · Blin Car</p>
+        <h1>Agenda</h1>
+      </div>
+      <div class="filtros">
+        <div class="mesnav">
+          <button type="button" class="mini" id="agAntes" aria-label="Mês anterior">‹</button>
+          <strong id="agMes" aria-live="polite"></strong>
+          <button type="button" class="mini" id="agDepois" aria-label="Próximo mês">›</button>
+        </div>
+        <button type="button" class="mini" id="agHoje">Hoje</button>
+        <div class="filtros" role="group" aria-label="Como ver a agenda">
+          <button type="button" class="mini" data-vista="mes" aria-pressed="true">Mês</button>
+          <button type="button" class="mini" data-vista="dias" aria-pressed="false">Dia a dia</button>
+        </div>
+        <button type="button" class="mini" id="agAtualizar">Atualizar</button>
+      </div>
+    </div>
+    <p class="selo" id="agExemplo" hidden><b>Agenda de exemplo.</b> Os clientes são inventados e nada vai para a planilha. Pode testar à vontade: agendar, editar e desmarcar.</p>
+    <p class="err" id="agErro" role="alert" hidden></p>
+    <div class="proximos" id="agProximos"></div>
+    <p class="estado" id="agContagem"></p>
+    <div class="kpis kpis-4" id="agResumo"></div>
+    <section class="bloco">
+      <div class="cal-wrap" id="agCalWrap">
+        <div class="cal" id="agCal"></div>
+        <div class="dica-cal" id="agDica" hidden></div>
+      </div>
+      <div class="lista-dias" id="agLista" hidden></div>
+      <p class="nota legenda-cal">
+        <span><span class="pontos" aria-hidden="true"><i class="cheio"></i><i></i></span>ocupada / livre</span>
+        <span><span class="amostra lot" aria-hidden="true"></span>lotado, não aceita mais carro</span>
+        <span><span class="amostra fec" aria-hidden="true"></span>sem agendamento</span>
+        <span>Passe o mouse ou toque no dia para ver os carros.</span>
+      </p>
+    </section>
+    <section class="bloco">
+      <h2>Regras das vagas</h2>
+      <ul class="dicas" id="agRegras"></ul>
+    </section>
+    <p class="aviso-ok toast" id="agAviso" role="status" hidden></p>
+  </section>
 </main>
+
+<dialog class="dlg" id="dlgDia" aria-labelledby="dlgTitulo">
+  <div class="dlg-corpo" id="dlgCorpo"></div>
+</dialog>
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
 
@@ -346,17 +529,29 @@ function exemplo(d) {
   }
   const visitantes = Math.round(porDia.reduce((a, x) => a + x.visitantes, 0) * 0.86);
   const whatsapp = Math.round(porDia.reduce((a, x) => a + x.whatsapp, 0) * 0.95);
-  const pedido = Math.round(whatsapp * 0.72);
+  const pedido = whatsapp;
   const comecaram = Math.round(pedido / 0.46);
   const parte = (fr, base) => Math.round(base * fr);
+  const redesEx = [["Instagram", 0.46], ["TikTok", 0.24], ["Facebook", 0.18], ["WhatsApp", 0.12]];
+  const cidadesEx = [["Campo Grande", 0.2], ["São João de Meriti", 0.18], ["Duque de Caxias", 0.15], ["Nova Iguaçu", 0.13], ["Belford Roxo", 0.1], ["Bangu", 0.09], ["Nilópolis", 0.08], ["Mesquita", 0.07]];
+  const cruzado = [];
+  cidadesEx.forEach(([cidade, fc], i) => redesEx.forEach(([rede, fr], j) => {
+    const total = Math.round(pedido * fc * fr * (0.6 + ((i * 7 + j * 3) % 9) / 10));
+    if (total > 0) cruzado.push({ cidade, rede, total });
+  }));
+  const somaPor = campo => {
+    const m = {};
+    cruzado.forEach(c => { m[c[campo]] = (m[c[campo]] || 0) + c.total; });
+    return Object.keys(m).map(nome => ({ nome, total: m[nome] })).sort((a, b) => b.total - a.total);
+  };
   const origens = [["Instagram (bio)", 0.46, 0.15], ["Instagram", 0.24, 0.1], ["Direto", 0.12, 0.13], ["Google", 0.1, 0.2], ["Status do WhatsApp", 0.08, 0.17]]
     .map(([nome, fr, cv]) => ({ nome, visitantes: parte(fr, visitantes), whatsapp: Math.round(parte(fr, visitantes) * cv) }));
   return {
     ok: true,
     periodo: { de: porDia[0].dia, ate: porDia[porDia.length - 1].dia, dias: d },
     totais: {
-      visitas: Math.round(visitantes * 1.25), visitantes, comecaram, whatsapp, pedido, direto: whatsapp - pedido + Math.round(whatsapp * 0.05),
-      cliquesPedido: Math.round(pedido * 1.08), cliquesDireto: Math.round(whatsapp * 0.33), incompletos: Math.round(comecaram * 0.18)
+      visitas: Math.round(visitantes * 1.25), visitantes, comecaram, whatsapp, pedido, direto: 0,
+      cliquesPedido: Math.round(pedido * 1.08), cliquesDireto: 0, incompletos: Math.round(comecaram * 0.18)
     },
     porDia,
     origens,
@@ -366,14 +561,17 @@ function exemplo(d) {
       .map(([nome, fr]) => ({ nome, total: Math.max(1, parte(fr, pedido)) })),
     quando: [["O quanto antes", 0.44], ["Por enquanto só quero saber o valor", 0.34], ["Nas próximas semanas", 0.22]]
       .map(([nome, fr]) => ({ nome, total: Math.max(1, parte(fr, pedido)) })),
-    cliques: [["Abriu o Google Maps", 0.09], ["Abriu o Instagram", 0.06], ["Copiou o endereço", 0.03], ["Copiou o número", 0.02]]
+    cliques: [["Abriu o Google Maps", 0.09], ["Abriu o Instagram", 0.06], ["Copiou o endereço", 0.03]]
       .map(([nome, fr]) => ({ nome, total: parte(fr, visitantes) })),
-    ultimos: [["Pintura geral", "O quanto antes", "Instagram (bio)"], ["Funilaria (amassado ou batida), Pintura de peça", "Nas próximas semanas", "Google"],
-              ["Polimento", "Por enquanto só quero saber o valor", "Instagram"], ["Pintura geral, Polimento", "O quanto antes", "Status do WhatsApp"]]
-      .map(([servicos, prazo, origem], i) => {
+    conheceu: somaPor("rede"),
+    cidades: somaPor("cidade"),
+    cruzado,
+    ultimos: [["Pintura geral", "O quanto antes", "Instagram (bio)", "Campo Grande", "Instagram"], ["Funilaria (amassado ou batida), Pintura de peça", "Nas próximas semanas", "Google", "Duque de Caxias", "Facebook"],
+              ["Polimento", "Por enquanto só quero saber o valor", "Instagram", "Bangu", "TikTok"], ["Pintura geral, Polimento", "O quanto antes", "Status do WhatsApp", "Nova Iguaçu", "WhatsApp"]]
+      .map(([servicos, prazo, origem, cidade, rede], i) => {
         const t = new Date(hoje.getTime() - (i * 7 + 2) * 36e5);
         const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}T${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-        return { quando: iso, servicos, prazo, origem, aparelho: "Celular" };
+        return { quando: iso, servicos, prazo, origem, aparelho: "Celular", cidade, rede };
       })
   };
 }
@@ -388,10 +586,7 @@ async function carregar() {
       if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
       throw new Error(d && d.erro);
     }
-    dados = d;
-    desenhar(d);
-    const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    $("#estado").textContent = `${dm(d.periodo.de)} a ${dm(d.periodo.ate)} · atualizado às ${hora}`;
+    aplicarMetricas(d);
   } catch (e) {
     $("#painelErro").textContent = e && e.message === "senha_nao_configurada"
       ? "Falta trocar a senha no código da planilha (SENHA_ADMIN) e implantar de novo."
@@ -402,25 +597,46 @@ async function carregar() {
   }
 }
 
+function aplicarMetricas(d) {
+  dados = d;
+  desenhar(d);
+  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  $("#estado").textContent = `${dm(d.periodo.de)} a ${dm(d.periodo.ate)} · atualizado às ${hora}`;
+}
+
 /* ---------- Entrada ---------- */
 
-function mostrarPainel() {
+// "jaCarregado": as métricas que vieram no login, para não buscar duas vezes.
+function mostrarPainel(jaCarregado) {
   $("#entrada").hidden = true;
-  $("#painel").hidden = false;
+  $("#abas").hidden = false;
   $("#sair").hidden = false;
   $("#seloExemplo").hidden = !exemploLigado;
+  $("#agExemplo").hidden = !exemploLigado;
   $("#rodapeTxt").textContent = exemploLigado
     ? "Blin Car · Painel dos administradores · dados de exemplo"
     : "Blin Car · Painel dos administradores · as visitas deste aparelho não entram nas métricas";
-  carregar();
+  dados = null;
+  AG.dados = null;
+  AG.demo = null;
+  filtroPublico = null;
+  if (jaCarregado && dias === 30) aplicarMetricas(jaCarregado);
+  let pedida = location.hash === "#agenda" ? "agenda" : location.hash === "#metricas" ? "painel" : "";
+  if (!pedida) try { pedida = localStorage.getItem("blincar:aba") || "painel"; } catch { pedida = "painel"; }
+  abrirAba(pedida);
 }
 
 function sair(msg) {
   senha = "";
   exemploLigado = false;
   dados = null;
+  AG.dados = null;
+  AG.demo = null;
   guardado("del", "blincar:senha");
+  if ($("#dlgDia").open) $("#dlgDia").close();
+  $("#abas").hidden = true;
   $("#painel").hidden = true;
+  $("#agenda").hidden = true;
   $("#sair").hidden = true;
   $("#entrada").hidden = false;
   $("#loginErro").hidden = !msg;
@@ -452,7 +668,7 @@ $("#login").addEventListener("submit", async e => {
       try { localStorage.setItem("blincar:ignorar", "1"); } catch {}
       exemploLigado = false;
       erro.hidden = true;
-      mostrarPainel();
+      mostrarPainel(d);
     } else {
       senha = "";
       erro.textContent = d && d.erro === "senha_nao_configurada"
@@ -492,10 +708,13 @@ function desenhar(d) {
   $("#kCom").textContent = nf.format(t.comecaram);
   $("#kComDet").textContent = `${pct(taxa(t.comecaram, t.visitantes))} dos visitantes`;
   $("#kWa").textContent = nf.format(t.whatsapp);
-  $("#kWaDet").textContent = `${nf.format(t.pedido)} pelo pedido · ${nf.format(t.direto)} direto`;
+  $("#kWaDet").textContent = t.direto
+    ? `${nf.format(t.pedido)} pelo pedido · ${nf.format(t.direto)} direto`
+    : `${pct(taxa(t.whatsapp, t.comecaram))} de quem começou o pedido`;
 
   desenharDicas(d);
   desenharFunil(t);
+  desenharPublico(d);
   desenharGrafico();
   desenharTabelaDias(d.porDia);
   tabelaConversao("#tabelaOrigens", "Origem", d.origens);
@@ -518,9 +737,11 @@ function desenharDicas(d) {
     const envio = taxa(t.pedido, t.comecaram);
     if (inicio < 0.3) lista.push(`Só ${pct(inicio)} dos visitantes começam o pedido. Vale testar um título mais direto no topo ou deixar o botão do WhatsApp mais à vista.`);
     if (t.comecaram >= 10 && envio < 0.6) lista.push(`${nf.format(t.comecaram - t.pedido)} pessoas começaram o pedido e não chegaram a abrir o WhatsApp (${pct(1 - envio)}). Menos campos ou campos mais claros podem ajudar.`);
-    if (t.incompletos > 0) lista.push(`Teve ${nf.format(t.incompletos)} tentativas de envio com campo faltando. Veja se nome, carro e serviço estão fáceis de achar.`);
+    if (t.incompletos > 0) lista.push(`Teve ${nf.format(t.incompletos)} tentativas de envio com campo faltando. Veja se as perguntas obrigatórias estão fáceis de achar.`);
     const fortes = d.origens.filter(o => o.visitantes >= 10).map(o => ({ ...o, cv: taxa(o.whatsapp, o.visitantes) })).sort((a, b) => b.cv - a.cv);
     if (fortes.length >= 2) lista.push(`Quem vem de ${fortes[0].nome} converte mais (${pct(fortes[0].cv)}). Quem vem de ${fortes[fortes.length - 1].nome} converte menos (${pct(fortes[fortes.length - 1].cv)}).`);
+    const responderam = (d.conheceu || []).reduce((s, x) => s + x.total, 0);
+    if (responderam >= 5) lista.push(`${d.conheceu[0].nome} é por onde mais gente conheceu a Blin Car (${pct(d.conheceu[0].total / responderam)} de quem pediu orçamento). O lugar que mais pede é ${d.cidades[0].nome}.`);
     if (!lista.length) lista.push(`A conversão está em ${pct(taxa(t.whatsapp, t.visitantes))}. Compare com o período anterior trocando os botões de 7, 30 e 90 dias.`);
   }
   $("#dicas").replaceChildren(...lista.slice(0, 4).map(txt => el("li", {}, txt)));
@@ -547,6 +768,7 @@ function desenharFunil(t) {
   });
   $("#funil").replaceChildren(...filhos);
   $("#fDireto").textContent = nf.format(t.direto);
+  $("#linhaDireto").hidden = !t.direto;
   $("#fIncompleto").textContent = nf.format(t.incompletos);
 }
 
@@ -712,8 +934,718 @@ function desenharUltimos(lista) {
     return el("li", {},
       el("span", { class: "q" }, quando),
       el("span", { class: "s" }, u.servicos || "Serviço não marcado"),
-      el("span", { class: "o" }, [u.prazo, u.origem, u.aparelho].filter(Boolean).join(" · ")));
+      el("span", { class: "o" }, [u.cidade && `De ${u.cidade}`, u.rede && `conheceu pelo ${u.rede}`, u.prazo, u.aparelho].filter(Boolean).join(" · ")));
   }));
+}
+
+/* ---------- Quem pediu orçamento (rede x cidade) ---------- */
+
+let filtroPublico = null;
+
+function desenharPublico(d) {
+  const nota = $("#notaPublico");
+  const fa = $("#filtroAtivo");
+  if (!d.conheceu) {
+    tabelaSimples("#tabelaRedes", [], [], "Para ver esta parte, atualize o código da planilha (LEIA-ME).");
+    tabelaSimples("#tabelaCidades", [], [], "");
+    fa.hidden = true;
+    nota.textContent = "";
+    return;
+  }
+  const f = filtroPublico;
+  const somar = (campo, filtro) => {
+    const m = {};
+    (d.cruzado || []).filter(c => c[filtro.tipo] === filtro.valor).forEach(c => { m[c[campo]] = (m[c[campo]] || 0) + c.total; });
+    return Object.keys(m).map(nome => ({ nome, total: m[nome] })).sort((a, b) => b.total - a.total);
+  };
+  const redes = f && f.tipo === "cidade" ? somar("rede", f) : d.conheceu;
+  const cidades = f && f.tipo === "rede" ? somar("cidade", f) : d.cidades;
+  const linhas = (itens, tipo) => {
+    const total = itens.reduce((t, x) => t + x.total, 0);
+    return itens.map(x => [botaoFiltro(tipo, x.nome), nf.format(x.total), pct(taxa(x.total, total))]);
+  };
+  tabelaSimples("#tabelaRedes", ["Rede", "Pessoas", "%"], linhas(redes, "rede"), "Ninguém respondeu neste período.");
+  tabelaSimples("#tabelaCidades", ["Bairro / cidade", "Pessoas", "%"], linhas(cidades.slice(0, 15), "cidade"), "Ninguém respondeu neste período.");
+  if (f) {
+    fa.replaceChildren(
+      el("span", {}, f.tipo === "rede" ? `Mostrando as cidades de quem conheceu pelo ${f.valor}.` : `Mostrando as redes de quem é de ${f.valor}.`),
+      el("button", { type: "button", class: "mini", "data-limpar-filtro": "" }, "Ver todos"));
+  }
+  fa.hidden = !f;
+  const total = d.conheceu.reduce((t, x) => t + x.total, 0);
+  nota.textContent = total
+    ? `${nf.format(total)} ${total === 1 ? "pessoa respondeu" : "pessoas responderam"} no período. Toque numa rede para ver de onde são essas pessoas, ou numa cidade para ver por onde elas conheceram.`
+    : "As respostas aparecem aqui quando os clientes pedirem orçamento pelo site.";
+}
+
+function botaoFiltro(tipo, nome) {
+  const ativo = !!filtroPublico && filtroPublico.tipo === tipo && filtroPublico.valor === nome;
+  return el("button", { type: "button", class: "linkbtn", "data-filtro": tipo, "data-valor": nome, "aria-pressed": String(ativo) }, nome);
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-filtro]");
+  if (b) {
+    const igual = filtroPublico && filtroPublico.tipo === b.dataset.filtro && filtroPublico.valor === b.dataset.valor;
+    filtroPublico = igual ? null : { tipo: b.dataset.filtro, valor: b.dataset.valor };
+    if (dados) desenharPublico(dados);
+    return;
+  }
+  if (e.target.closest("[data-limpar-filtro]")) {
+    filtroPublico = null;
+    if (dados) desenharPublico(dados);
+  }
+});
+
+/* ---------- Abas ---------- */
+
+let abaAtual = "painel";
+
+function abrirAba(nome) {
+  abaAtual = nome === "agenda" ? "agenda" : "painel";
+  document.querySelectorAll("[data-aba]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === abaAtual)));
+  $("#painel").hidden = abaAtual !== "painel";
+  $("#agenda").hidden = abaAtual !== "agenda";
+  try { localStorage.setItem("blincar:aba", abaAtual); } catch {}
+  try { history.replaceState(null, "", abaAtual === "agenda" ? "#agenda" : "#metricas"); } catch {}
+  if (abaAtual === "painel" && !dados) carregar();
+  if (abaAtual === "agenda" && !AG.dados) agendaCarregar();
+}
+
+document.querySelectorAll("[data-aba]").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+
+/* ---------- Agenda ---------- */
+
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+const SEMANA_CURTA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const NOME_CURTO = { "Retoque / polimento": "Retoque/pol.", "Pintura geral": "Pintura" };
+const MSG_VERSAO = "O código da planilha ainda é o antigo. Cole o código novo no Apps Script e implante uma nova versão (passo a passo no LEIA-ME).";
+const MSG_REDE = "Não consegui falar com a planilha. Confira a internet e toque em Atualizar antes de tentar de novo.";
+const reais = v => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pad2 = n => String(n).padStart(2, "0");
+const maiuscula = s => s.charAt(0).toUpperCase() + s.slice(1);
+const juntar = itens => (itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}` : itens[0] || "");
+
+// Datas "aaaa-mm-dd" sem fuso, do mesmo jeito que a planilha.
+function emMs(data) {
+  const p = data.split("-").map(Number);
+  return Date.UTC(p[0], p[1] - 1, p[2]);
+}
+
+function somaDias(data, n) {
+  return new Date(emMs(data) + n * 864e5).toISOString().slice(0, 10);
+}
+
+function diaSemana(data) {
+  return new Date(emMs(data)).getUTCDay();
+}
+
+function diasNoMes(mes) {
+  const p = mes.split("-").map(Number);
+  return new Date(Date.UTC(p[0], p[1], 0)).getUTCDate();
+}
+
+const somaMes = (mes, n) => {
+  const p = mes.split("-").map(Number);
+  return new Date(Date.UTC(p[0], p[1] - 1 + n, 1)).toISOString().slice(0, 7);
+};
+const hojeAqui = () => {
+  const t = new Date();
+  return `${t.getFullYear()}-${pad2(t.getMonth() + 1)}-${pad2(t.getDate())}`;
+};
+const dataCurta = d => `${SEMANA_CURTA[diaSemana(d)].toLowerCase()}, ${d.slice(8, 10)}/${d.slice(5, 7)}`;
+const dataLonga = d => `${maiuscula(SEMANA[diaSemana(d)])}, ${Number(d.slice(8, 10))} de ${MESES[Number(d.slice(5, 7)) - 1]}`;
+const nomeMes = m => `${maiuscula(MESES[Number(m.slice(5, 7)) - 1])} de ${m.slice(0, 4)}`;
+
+// Vagas de um dia. "ignorar" é o próprio agendamento quando ele está sendo editado.
+function vagasDoDia(regras, ativos, data, ignorar) {
+  const regra = regras.dias[diaSemana(data)];
+  const outros = ativos.filter(a => a.id !== ignorar);
+  const ocupadas = outros.filter(a => a.data === data).length;
+  if (!regra) return { data, aberto: false, nome: "Sem agendamento", servicos: [], vagas: 0, ocupadas, livres: 0 };
+  if (!regra.pintura) {
+    return { data, aberto: true, nome: regra.nome, servicos: regra.servicos, vagas: regra.vagas, ocupadas, livres: Math.max(regra.vagas - ocupadas, 0) };
+  }
+  // Pintura geral: olha todo período de N dias que passa por esta data e pega o mais cheio.
+  const p = regras.pintura;
+  const pinturas = outros.filter(a => (regras.dias[diaSemana(a.data)] || {}).pintura).map(a => a.data);
+  let maisCheio = 0;
+  for (let s = 1 - p.dias; s <= 0; s++) {
+    const de = somaDias(data, s), ate = somaDias(data, s + p.dias - 1);
+    maisCheio = Math.max(maisCheio, pinturas.filter(x => x >= de && x <= ate).length);
+  }
+  return { data, aberto: true, pintura: true, nome: regra.nome, servicos: regra.servicos, vagas: p.vagas, ocupadas, livres: Math.max(p.vagas - maisCheio, 0) };
+}
+
+const AG = { mes: hojeAqui().slice(0, 7), vista: "mes", dados: null, demo: null, dia: null, modo: "lista", editando: null, confirmando: null, ocupado: false };
+try { if (localStorage.getItem("blincar:vista") === "dias") AG.vista = "dias"; } catch {}
+
+async function agendaPedir(acao, extra = {}) {
+  if (exemploLigado) return (AG.demo || (AG.demo = criarDemo())).pedir(acao, extra);
+  if (acao === "agenda") {
+    const r = await fetch(`${URL_METRICAS}?acao=agenda&mes=${extra.mes}&senha=${encodeURIComponent(senha)}`, { cache: "no-store" });
+    return r.json();
+  }
+  const r = await fetch(URL_METRICAS, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ acao, senha, ...extra })
+  });
+  return r.json();
+}
+
+function mostrarErro(alvo, msg) {
+  if (!alvo) return;
+  alvo.textContent = msg;
+  alvo.hidden = false;
+}
+
+// Aplica a resposta da planilha na tela. Devolve true quando deu certo.
+function agendaReceber(d, alvoErro) {
+  if (d && d.ok && d.dias) {
+    AG.dados = d;
+    AG.mes = d.mes;
+    agendaDesenhar();
+    return true;
+  }
+  if (d && d.erro === "senha") {
+    sair("A senha mudou. Entre de novo.");
+    return false;
+  }
+  let msg = MSG_VERSAO;
+  if (d && d.erro === "senha_nao_configurada") msg = "Falta trocar a senha no código da planilha (SENHA_ADMIN) e implantar de novo.";
+  else if (d && d.mensagem) msg = d.mensagem;
+  mostrarErro(alvoErro, msg);
+  return false;
+}
+
+async function agendaCarregar() {
+  const caixa = $("#agenda");
+  $("#agMes").textContent = nomeMes(AG.mes);
+  caixa.classList.add("carregando");
+  $("#agErro").hidden = true;
+  try {
+    agendaReceber(await agendaPedir("agenda", { mes: AG.mes }), $("#agErro"));
+  } catch {
+    mostrarErro($("#agErro"), MSG_REDE);
+  } finally {
+    caixa.classList.remove("carregando");
+  }
+}
+
+const erroVisivel = () => ($("#dlgDia").open ? $("#dlgErro") || $("#fErro") : $("#agErro"));
+
+async function executar(acao, extra, msgOk, alvoErro, aoDarCerto) {
+  AG.ocupado = true;
+  document.body.classList.add("salvando");
+  try {
+    const d = await agendaPedir(acao, { mes: AG.mes, ...extra });
+    if (d && d.ok && d.dias) {
+      AG.confirmando = null;
+      if (aoDarCerto) aoDarCerto();
+    }
+    const deu = agendaReceber(d, alvoErro || erroVisivel());
+    if (deu) aviso(msgOk);
+    return deu;
+  } catch {
+    mostrarErro(alvoErro || erroVisivel(), MSG_REDE);
+    return false;
+  } finally {
+    AG.ocupado = false;
+    document.body.classList.remove("salvando");
+  }
+}
+
+let avisoTimer;
+function aviso(msg) {
+  const alvo = $("#dlgDia").open ? $("#dlgAviso") : $("#agAviso");
+  if (!alvo || !msg) return;
+  alvo.textContent = msg;
+  alvo.hidden = false;
+  clearTimeout(avisoTimer);
+  avisoTimer = setTimeout(() => { alvo.hidden = true; }, 3500);
+}
+
+function estadoDia(dia, hoje) {
+  if (!dia.aberto) return "fechado";
+  if (dia.data < hoje) return "passou";
+  if (dia.livres <= 0) return "lotado";
+  return dia.ocupadas ? "parcial" : "livre";
+}
+
+function resumoVagas(dia) {
+  if (!dia.aberto) return "Sem agendamento";
+  if (dia.pintura) {
+    const doDia = dia.ocupadas ? `${dia.ocupadas} ${dia.ocupadas === 1 ? "carro" : "carros"} neste dia · ` : "";
+    return doDia + (dia.livres ? `${dia.livres} de ${dia.vagas} vagas de pintura livres no período` : "vagas de pintura do período ocupadas");
+  }
+  if (!dia.livres) return `Lotado · ${dia.vagas} de ${dia.vagas} vagas ocupadas`;
+  return `${dia.ocupadas} de ${dia.vagas} ocupadas · ${dia.livres} ${dia.livres === 1 ? "vaga livre" : "vagas livres"}`;
+}
+
+const podeAgendar = (dia, hoje) => dia.aberto && dia.livres > 0 && dia.data >= hoje;
+
+function motivoSemVaga(dia, hoje) {
+  if (!dia.aberto) return "Neste dia a oficina não recebe agendamento.";
+  if (dia.data < hoje) return "Este dia já passou.";
+  return dia.pintura
+    ? `As ${dia.vagas} vagas de pintura geral deste período já estão ocupadas.`
+    : `Dia lotado: ${dia.vagas} de ${dia.vagas} vagas ocupadas. Não dá para agendar mais ninguém.`;
+}
+
+function agruparPorDia(lista) {
+  const m = {};
+  lista.forEach(a => { (m[a.data] = m[a.data] || []).push(a); });
+  return m;
+}
+
+function agendaDesenhar() {
+  const d = AG.dados;
+  const porDia = agruparPorDia(d.agendamentos);
+  $("#agMes").textContent = nomeMes(d.mes);
+  $("#agDica").hidden = true;
+  desenharProximos(d);
+  desenharResumoMes(d);
+  $("#agCalWrap").hidden = AG.vista !== "mes";
+  $("#agLista").hidden = AG.vista !== "dias";
+  if (AG.vista === "mes") desenharGrade(d, porDia);
+  else desenharListaDias(d, porDia);
+  desenharRegras(d.regras);
+  if ($("#dlgDia").open) desenharDialogo();
+}
+
+function desenharProximos(d) {
+  const cartao = (rotulo, p) => {
+    const ags = p.agendamentos || [];
+    const titulo = !p.aberto && !ags.length ? "Sem agendamento"
+      : ags.length ? `${ags.length} ${ags.length === 1 ? "carro agendado" : "carros agendados"}` : "Nenhum carro ainda";
+    return el("button", { type: "button", class: "prox", "data-ir": p.data },
+      el("span", { class: "prox-rot" }, `${rotulo} · ${dataCurta(p.data)}`),
+      el("b", {}, titulo),
+      p.aberto ? el("span", { class: "sub" }, `${p.nome} · ${resumoVagas(p)}`) : "",
+      ...ags.slice(0, 3).map(a => el("span", { class: "prox-ag" }, `${a.cliente} · ${a.carro} · ${a.servico}`)));
+  };
+  $("#agProximos").replaceChildren(cartao("Hoje", d.proximos[0]), cartao("Amanhã", d.proximos[1]));
+}
+
+function desenharResumoMes(d) {
+  const conta = dow => d.dias.filter(x => diaSemana(x.data) === dow).length;
+  const soma = (arr, f) => arr.reduce((t, x) => t + f(x), 0);
+  const desm = d.desmarcados ? ` ${d.desmarcados} ${d.desmarcados === 1 ? "agendamento desmarcado" : "agendamentos desmarcados"} no mês.` : "";
+  $("#agContagem").textContent = `${nomeMes(d.mes)} tem ${conta(1)} segundas, ${conta(3)} quartas, ${conta(4)} quintas e ${conta(5)} sextas.${desm}`;
+  const ret = d.dias.filter(x => x.aberto && !x.pintura);
+  const vagasRet = soma(ret, x => x.vagas);
+  const ocupRet = soma(ret, x => Math.min(x.ocupadas, x.vagas));
+  const livresAdiante = soma(ret.filter(x => x.data >= d.hoje), x => x.livres);
+  const diasPintura = new Set(d.dias.filter(x => x.pintura).map(x => x.data));
+  const pinturas = d.agendamentos.filter(a => diasPintura.has(a.data)).length;
+  const pagos = d.agendamentos.filter(a => a.pago);
+  const pendentes = d.agendamentos.filter(a => !a.pago);
+  const qtd = n => `${n} ${n === 1 ? "agendamento" : "agendamentos"}`;
+  const tile = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
+  $("#agResumo").replaceChildren(
+    tile("Retoque e polimento", `${ocupRet} de ${vagasRet}`, `vagas ocupadas no mês · ${livresAdiante} livres de hoje em diante`),
+    tile("Pintura geral", nf.format(pinturas), `${pinturas === 1 ? "carro" : "carros"} no mês · ${d.regras.pintura.vagas} vagas a cada ${d.regras.pintura.dias} dias`),
+    tile("Sinais pagos", reais(soma(pagos, a => a.sinal)), qtd(pagos.length)),
+    tile("Sinais a receber", reais(soma(pendentes, a => a.sinal)), qtd(pendentes.length)));
+}
+
+function pontos(dia) {
+  const cheios = dia.pintura ? dia.vagas - dia.livres : dia.ocupadas;
+  const p = el("span", { class: "pontos", "aria-hidden": "true" });
+  for (let i = 0; i < dia.vagas; i++) p.append(el("i", { class: i < cheios ? "cheio" : "" }));
+  return p;
+}
+
+function celula(dia, ags, hoje) {
+  const est = estadoDia(dia, hoje);
+  const classe = `cel ${est}${dia.data === hoje ? " hoje" : ""}`;
+  const numero = el("span", { class: "num" }, Number(dia.data.slice(8)));
+  if (est === "fechado" && !ags.length) return el("div", { class: classe, "aria-hidden": "true" }, numero);
+  const b = el("button", { type: "button", class: classe, "data-dia": dia.data,
+    "aria-label": `${dataLonga(dia.data)}. ${dia.nome}. ${resumoVagas(dia)}.${ags.length ? " " + ags.map(a => a.cliente).join(", ") + "." : ""}` }, numero);
+  if (!dia.aberto) {
+    b.append(el("span", { class: "quem" }, `${ags.length} agendado`));
+    return b;
+  }
+  b.append(el("span", { class: "tipo" }, NOME_CURTO[dia.nome] || dia.nome));
+  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" }, a.cliente)));
+  if (ags.length > 3) b.append(el("span", { class: "quem" }, `+${ags.length - 3}`));
+  b.append(el("span", { class: "rodape-cel" }, pontos(dia), est === "lotado" ? el("span", { class: "tag" }, "Lotado") : ""));
+  return b;
+}
+
+function desenharGrade(d, porDia) {
+  const filhos = SEMANA_CURTA.map(n => el("div", { class: "cal-cab", "aria-hidden": "true" }, n));
+  for (let i = 0; i < diaSemana(d.dias[0].data); i++) filhos.push(el("div", { class: "cal-vazio", "aria-hidden": "true" }));
+  d.dias.forEach(dia => filhos.push(celula(dia, porDia[dia.data] || [], d.hoje)));
+  $("#agCal").replaceChildren(...filhos);
+}
+
+function rotuloEstado(est) {
+  return { lotado: "Lotado", passou: "Já passou", fechado: "Fechado", livre: "Livre", parcial: "Com vaga" }[est];
+}
+
+function blocoDia(dia, ags, hoje) {
+  const est = estadoDia(dia, hoje);
+  const cab = el("div", { class: "dia-cab" },
+    el("div", {},
+      el("b", {}, dataLonga(dia.data) + (dia.data === hoje ? " · hoje" : "")),
+      el("span", { class: "sub" }, `${dia.nome} · ${resumoVagas(dia)}`)),
+    podeAgendar(dia, hoje)
+      ? el("button", { type: "button", class: "mini", "data-agendar": dia.data }, "Agendar")
+      : el("span", { class: "tag-est " + est }, rotuloEstado(est)));
+  const corpo = ags.length ? ags.map(itemAgendamento) : [el("p", { class: "vazio" }, "Nenhum carro agendado.")];
+  return el("article", { class: "dia-bloco " + est }, cab, ...corpo);
+}
+
+function desenharListaDias(d, porDia) {
+  const dias = d.dias.filter(x => x.aberto || porDia[x.data]);
+  $("#agLista").replaceChildren(...dias.map(dia => blocoDia(dia, porDia[dia.data] || [], d.hoje)));
+}
+
+function linkWhatsApp(telefone) {
+  const n = String(telefone || "").replace(/\D/g, "");
+  if (n.length < 10) return "";
+  return el("a", { href: "https://wa.me/" + (n.length <= 11 ? "55" + n : n), target: "_blank", rel: "noopener" }, "abrir WhatsApp");
+}
+
+function itemAgendamento(a) {
+  const topo = el("div", { class: "ag-topo" },
+    el("span", { class: "ag-nome" }, a.cliente),
+    el("span", { class: "selo-sinal " + (a.pago ? "sim" : "nao") }, `${a.pago ? "Sinal pago" : "Sinal pendente"} · ${reais(a.sinal)}`));
+  const zap = linkWhatsApp(a.telefone);
+  const info = el("div", { class: "ag-info" },
+    el("span", {}, `${a.servico} · ${a.carro}`),
+    el("span", {}, a.telefone, zap ? " · " : "", zap));
+  const obs = a.obs ? el("p", { class: "ag-obs" }, a.obs) : "";
+  const acoes = AG.confirmando === a.id
+    ? el("div", { class: "confirma", role: "alert" },
+        el("span", {}, `Desmarcar ${a.cliente} em ${dataCurta(a.data)}? A vaga volta a ficar livre.`),
+        el("div", { class: "ag-acoes" },
+          el("button", { type: "button", class: "mini", "data-acao": "manter", "data-id": a.id }, "Não, manter"),
+          el("button", { type: "button", class: "mini perigo-cheio", "data-acao": "desmarcar", "data-id": a.id }, "Sim, desmarcar")))
+    : el("div", { class: "ag-acoes" },
+        el("button", { type: "button", class: "mini", "data-acao": "editar", "data-id": a.id }, "Editar"),
+        el("button", { type: "button", class: "mini", "data-acao": "pago", "data-id": a.id }, a.pago ? "Voltar sinal para pendente" : "Marcar sinal pago"),
+        el("button", { type: "button", class: "mini perigo", "data-acao": "pedir-desmarcar", "data-id": a.id }, "Desmarcar"));
+  return el("div", { class: "ag", "data-ag": a.id }, topo, info, obs, acoes);
+}
+
+function desenharRegras(r) {
+  const nomes = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const itens = [];
+  const diasPintura = [];
+  Object.keys(r.dias).forEach(k => {
+    const x = r.dias[k];
+    if (x.pintura) diasPintura.push(nomes[k].toLowerCase());
+    else itens.push(`${nomes[k]}: ${juntar(x.servicos.map(s => s.toLowerCase()))}. Até ${x.vagas} carros.`);
+  });
+  if (diasPintura.length) itens.push(`${maiuscula(juntar(diasPintura))}: pintura geral. No máximo ${r.pintura.vagas} carros a cada ${r.pintura.dias} dias.`);
+  itens.push(`Sinal padrão de ${reais(r.sinal)}. O agendamento segura a vaga mesmo com o sinal pendente.`);
+  itens.push("Os outros dias ficam fechados. Para mudar as regras, ajuste REGRAS no código da planilha.");
+  $("#agRegras").replaceChildren(...itens.map(t => el("li", {}, t)));
+}
+
+/* Dica ao passar o mouse no mês */
+
+function mostrarDica(b) {
+  const d = AG.dados;
+  const data = b.dataset.dia;
+  const dia = d.dias.find(x => x.data === data);
+  const ags = d.agendamentos.filter(a => a.data === data);
+  const dica = $("#agDica");
+  dica.replaceChildren(
+    el("b", {}, dataLonga(data)),
+    el("span", { class: "sub-dica" }, `${dia.nome} · ${resumoVagas(dia)}`),
+    ...(ags.length ? ags.map(a => el("span", {}, `${a.cliente} · ${a.carro} · ${a.servico}`)) : [el("span", {}, "Nenhum carro agendado.")]),
+    el("span", { class: "sub-dica" }, podeAgendar(dia, d.hoje) ? "Clique para ver os detalhes e agendar." : "Clique para ver os detalhes."));
+  const wrap = $("#agCalWrap");
+  const largura = Math.min(300, wrap.clientWidth);
+  dica.style.width = largura + "px";
+  dica.style.left = Math.max(0, Math.min(b.offsetLeft + b.offsetWidth / 2 - largura / 2, wrap.clientWidth - largura)) + "px";
+  dica.hidden = false;
+  const abaixo = b.offsetTop + b.offsetHeight + 6;
+  dica.style.top = (abaixo + dica.offsetHeight > wrap.clientHeight + 24 ? b.offsetTop - dica.offsetHeight - 6 : abaixo) + "px";
+}
+
+$("#agCal").addEventListener("pointerover", e => {
+  if (e.pointerType !== "mouse" || !AG.dados) return;
+  const b = e.target.closest("[data-dia]");
+  if (b) mostrarDica(b);
+});
+$("#agCal").addEventListener("pointerout", e => {
+  const para = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest("[data-dia]") : null;
+  if (!para) $("#agDica").hidden = true;
+});
+$("#agCal").addEventListener("click", e => {
+  const b = e.target.closest("[data-dia]");
+  if (b) abrirDia(b.dataset.dia);
+});
+
+/* Janela do dia: lista, agendar e editar */
+
+async function abrirDia(data, modo = "lista", ag = null) {
+  if (!AG.dados) return;
+  if (data.slice(0, 7) !== AG.dados.mes) {
+    AG.mes = data.slice(0, 7);
+    await agendaCarregar();
+    if (!AG.dados || AG.dados.mes !== data.slice(0, 7)) return;
+  }
+  AG.dia = data;
+  AG.modo = modo;
+  AG.editando = ag;
+  AG.confirmando = null;
+  $("#agDica").hidden = true;
+  desenharDialogo();
+  const dlg = $("#dlgDia");
+  if (!dlg.open) dlg.showModal();
+  const primeiro = modo === "form" ? $("#fCliente") : dlg.querySelector("[data-agendar], [data-acao='editar']");
+  if (primeiro) primeiro.focus();
+}
+
+function desenharDialogo() {
+  const d = AG.dados;
+  const dia = d.dias.find(x => x.data === AG.dia);
+  if (!dia) return $("#dlgDia").close();
+  const ags = d.agendamentos.filter(a => a.data === AG.dia);
+  const topo = el("div", { class: "dlg-topo" },
+    el("div", {}, el("h2", { id: "dlgTitulo" }, dataLonga(dia.data)), el("p", { class: "sub" }, `${dia.nome} · ${resumoVagas(dia)}`)),
+    el("button", { type: "button", class: "mini", "data-acao": "fechar" }, "Fechar"));
+  const avisoOk = el("p", { class: "aviso-ok", id: "dlgAviso", role: "status", hidden: "" });
+  let corpo;
+  if (AG.modo === "form") {
+    corpo = formulario(dia, AG.editando);
+  } else {
+    corpo = el("div", { class: "dlg-lista" },
+      el("p", { class: "err", id: "dlgErro", role: "alert", hidden: "" }),
+      ...(ags.length ? ags.map(itemAgendamento) : [el("p", { class: "vazio" }, dia.aberto ? "Nenhum carro agendado neste dia." : "Este dia não tem agendamento.")]),
+      podeAgendar(dia, d.hoje)
+        ? el("button", { type: "button", class: "btn btn-red", "data-agendar": dia.data }, "Agendar neste dia")
+        : el("p", { class: "nota" }, motivoSemVaga(dia, d.hoje)));
+  }
+  $("#dlgCorpo").replaceChildren(topo, avisoOk, corpo);
+}
+
+const opcao = (valor, texto, marcado) => {
+  const o = el("option", { value: valor }, texto);
+  o.selected = !!marcado;
+  return o;
+};
+
+function formulario(dia, ag) {
+  const d = AG.dados;
+  const novo = !ag;
+  const v = ag || { data: dia.data, servico: dia.servicos[0], cliente: "", telefone: "", carro: "", sinal: d.regras.sinal, pago: false, obs: "" };
+  const campo = (id, rotulo, controle) => el("div", { class: "campo" }, el("label", { for: id }, rotulo), controle);
+  const entrada = (id, attrs) => el("input", { id, name: id, ...attrs });
+  // Dá para trocar de dia dentro do mês, só para dias com vaga.
+  const dias = d.dias.filter(x => x.data === v.data || podeAgendar(vagasParaMover(x, ag), d.hoje));
+  const selDia = el("select", { id: "fDia", name: "fDia" }, ...dias.map(x => opcao(x.data, `${dataCurta(x.data)} · ${x.nome}`, x.data === v.data)));
+  const selServico = el("select", { id: "fServico", name: "fServico" });
+  const servicos = (data, atual) => {
+    const dd = d.dias.find(x => x.data === data);
+    selServico.replaceChildren(...dd.servicos.map(s => opcao(s, s, s === atual)));
+  };
+  servicos(v.data, v.servico);
+  selDia.addEventListener("change", () => servicos(selDia.value, selServico.value));
+  const pago = entrada("fPago", { type: "checkbox" });
+  pago.checked = !!v.pago;
+  const f = el("form", { class: "ag-form", id: "agForm", novalidate: "" },
+    el("h3", {}, novo ? "Novo agendamento" : "Editar agendamento"),
+    el("div", { class: "campos" },
+      campo("fCliente", "Nome do cliente", entrada("fCliente", { type: "text", value: v.cliente, autocomplete: "off" })),
+      campo("fTelefone", "Telefone (WhatsApp)", entrada("fTelefone", { type: "tel", value: v.telefone, inputmode: "tel", placeholder: "(21) 99999-9999", autocomplete: "off" })),
+      campo("fCarro", "Carro", entrada("fCarro", { type: "text", value: v.carro, placeholder: "Modelo, ano e cor", autocomplete: "off" })),
+      campo("fDia", "Dia", selDia),
+      campo("fServico", "Serviço", selServico),
+      campo("fSinal", "Valor do sinal (R$)", entrada("fSinal", { type: "number", min: "0", step: "0.01", inputmode: "decimal", value: String(v.sinal) }))),
+    el("label", { class: "check" }, pago, "O sinal já foi pago"),
+    campo("fObs", "Observações", el("textarea", { id: "fObs", name: "fObs", rows: "2", placeholder: "Ex.: arranhão na porta, cliente traz o carro às 8h" }, v.obs || "")),
+    el("p", { class: "err", id: "fErro", role: "alert", hidden: "" }),
+    el("div", { class: "ag-acoes" },
+      el("button", { type: "submit", class: "btn btn-red", id: "fSalvar" }, novo ? "Agendar" : "Salvar alterações"),
+      el("button", { type: "button", class: "btn btn-line", "data-acao": "voltar" }, "Voltar")));
+  f.addEventListener("submit", e => {
+    e.preventDefault();
+    salvarFormulario(ag);
+  });
+  return f;
+}
+
+// Ao editar, o próprio agendamento não conta como vaga ocupada no dia de destino.
+function vagasParaMover(dia, ag) {
+  if (!ag || !dia.aberto) return dia;
+  return vagasDoDia(AG.dados.regras, AG.dados.agendamentos, dia.data, ag.id);
+}
+
+async function salvarFormulario(ag) {
+  const val = id => $("#" + id).value.trim();
+  const novo = {
+    id: ag ? ag.id : "",
+    data: $("#fDia").value,
+    servico: $("#fServico").value,
+    cliente: val("fCliente"),
+    telefone: val("fTelefone"),
+    carro: val("fCarro"),
+    sinal: Number(String($("#fSinal").value).replace(",", ".")) || 0,
+    pago: $("#fPago").checked,
+    obs: val("fObs")
+  };
+  const falta = [];
+  if (!novo.cliente) falta.push("o nome do cliente");
+  if (novo.telefone.replace(/\D/g, "").length < 10) falta.push("o telefone com DDD");
+  if (!novo.carro) falta.push("o carro");
+  if (falta.length) return mostrarErro($("#fErro"), `Falta ${juntar(falta)}.`);
+  $("#fErro").hidden = true;
+  const botao = $("#fSalvar");
+  botao.textContent = "Salvando…";
+  const deu = await executar("agenda_salvar", { agendamento: novo }, ag ? "Alterações salvas." : "Agendado.", $("#fErro"), () => {
+    AG.modo = "lista";
+    AG.editando = null;
+    AG.dia = novo.data;
+  });
+  if (!deu && document.body.contains(botao)) botao.textContent = ag ? "Salvar alterações" : "Agendar";
+}
+
+document.addEventListener("click", e => {
+  const ir = e.target.closest("[data-ir]");
+  if (ir) return abrirDia(ir.dataset.ir);
+  const agendar = e.target.closest("[data-agendar]");
+  if (agendar) return abrirDia(agendar.dataset.agendar, "form");
+  const b = e.target.closest("[data-acao]");
+  if (!b || AG.ocupado || !AG.dados) return;
+  const a = AG.dados.agendamentos.find(x => x.id === b.dataset.id);
+  const acao = b.dataset.acao;
+  if (acao === "fechar") return $("#dlgDia").close();
+  if (acao === "voltar") {
+    AG.modo = "lista";
+    AG.editando = null;
+    return desenharDialogo();
+  }
+  if (!a) return;
+  if (acao === "editar") return abrirDia(a.data, "form", a);
+  if (acao === "pago") return executar("agenda_pago", { id: a.id, pago: !a.pago }, a.pago ? "Sinal voltou para pendente." : "Sinal marcado como pago.");
+  if (acao === "pedir-desmarcar" || acao === "manter") {
+    AG.confirmando = acao === "manter" ? null : a.id;
+    agendaDesenhar();
+    const foco = document.querySelector(`[data-acao="${acao === "manter" ? "pedir-desmarcar" : "manter"}"][data-id="${a.id}"]`);
+    if (foco) foco.focus();
+    return;
+  }
+  if (acao === "desmarcar") executar("agenda_desmarcar", { id: a.id }, "Desmarcado. A vaga ficou livre.");
+});
+
+$("#dlgDia").addEventListener("close", () => {
+  AG.dia = null;
+  AG.modo = "lista";
+  AG.editando = null;
+  if (AG.confirmando) {
+    AG.confirmando = null;
+    agendaDesenhar();
+  }
+});
+$("#dlgDia").addEventListener("click", e => {
+  if (e.target === $("#dlgDia")) $("#dlgDia").close();
+});
+
+$("#agAntes").addEventListener("click", () => { AG.mes = somaMes(AG.mes, -1); agendaCarregar(); });
+$("#agDepois").addEventListener("click", () => { AG.mes = somaMes(AG.mes, 1); agendaCarregar(); });
+$("#agHoje").addEventListener("click", () => { AG.mes = (AG.dados ? AG.dados.hoje : hojeAqui()).slice(0, 7); agendaCarregar(); });
+$("#agAtualizar").addEventListener("click", agendaCarregar);
+document.querySelectorAll("[data-vista]").forEach(b => b.addEventListener("click", () => {
+  AG.vista = b.dataset.vista;
+  try { localStorage.setItem("blincar:vista", AG.vista); } catch {}
+  if (AG.dados) agendaDesenhar();
+  marcarVista();
+}));
+function marcarVista() {
+  document.querySelectorAll("[data-vista]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.vista === AG.vista)));
+}
+marcarVista();
+
+/* Agenda de exemplo: mesmas regras da planilha, tudo só na memória do navegador */
+
+function criarDemo() {
+  const regras = {
+    dias: {
+      1: { nome: "Retoque / polimento", vagas: 3, servicos: ["Retoque", "Polimento", "Retoque + polimento"] },
+      3: { nome: "Retoque", vagas: 3, servicos: ["Retoque"] },
+      4: { nome: "Pintura geral", servicos: ["Pintura geral"], pintura: true },
+      5: { nome: "Pintura geral", servicos: ["Pintura geral"], pintura: true }
+    },
+    pintura: { vagas: 2, dias: 10 },
+    sinal: 50
+  };
+  const hoje = hojeAqui();
+  const proximo = (dow, semanas = 0) => {
+    let d = somaDias(hoje, 1);
+    while (diaSemana(d) !== dow) d = somaDias(d, 1);
+    return somaDias(d, semanas * 7);
+  };
+  let seq = 0;
+  const novo = (data, servico, cliente, carro, pago, obs = "") =>
+    ({ id: "ex" + (++seq), data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, sinal: 50, pago, obs, ativo: true });
+  const lista = [
+    novo(proximo(1), "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, "Arranhão na porta traseira"),
+    novo(proximo(1), "Polimento", "Marina (exemplo)", "HB20 2021 branco", false),
+    novo(proximo(3), "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
+    novo(proximo(3), "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true),
+    novo(proximo(3), "Retoque", "André (exemplo)", "Siena 2014 prata", false, "Para-choque dianteiro"),
+    novo(proximo(4), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, "Pintura geral na cor original"),
+    novo(proximo(1, 1), "Retoque + polimento", "Luana (exemplo)", "Corolla 2018 cinza", false)
+  ];
+  const ativos = () => lista.filter(a => a.ativo);
+  const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, sinal: a.sinal, pago: a.pago, obs: a.obs });
+  const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
+  const telefone = t => {
+    let n = String(t || "").replace(/\D/g, "");
+    if (n.length > 11 && n.indexOf("55") === 0) n = n.slice(2);
+    if (n.length === 11) return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+    if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+    return n;
+  };
+  function mes(m) {
+    const ini = m + "-01", total = diasNoMes(m), fim = somaDias(ini, total - 1);
+    const dias = [];
+    for (let i = 0; i < total; i++) dias.push(vagasDoDia(regras, ativos(), somaDias(ini, i)));
+    return {
+      ok: true, mes: m, hoje, regras, dias,
+      agendamentos: ativos().filter(a => a.data >= ini && a.data <= fim).map(publico).sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0)),
+      proximos: [hoje, somaDias(hoje, 1)].map(data => Object.assign(vagasDoDia(regras, ativos(), data), { agendamentos: ativos().filter(a => a.data === data).map(publico) })),
+      desmarcados: lista.filter(a => !a.ativo && a.data >= ini && a.data <= fim).length
+    };
+  }
+  function salvar(dados, m) {
+    const ag = { ...dados, cliente: String(dados.cliente || "").trim(), carro: String(dados.carro || "").trim(), telefone: telefone(dados.telefone), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago };
+    if (!ag.cliente || !ag.carro) return falha("dados", "Preencha o nome do cliente e o carro.");
+    if (ag.telefone.replace(/\D/g, "").length < 10) return falha("dados", "Coloque o telefone com DDD.");
+    const antigo = ag.id ? lista.find(a => a.id === ag.id && a.ativo) : null;
+    if (ag.id && !antigo) return falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
+    const diaNovo = !antigo || antigo.data !== ag.data;
+    if (diaNovo && ag.data < hoje) return falha("passado", "Não dá para agendar num dia que já passou.");
+    const v = vagasDoDia(regras, ativos(), ag.data, ag.id);
+    if (!v.aberto) return falha("fechado", "Esse dia não tem agendamento.");
+    if (v.servicos.indexOf(ag.servico) === -1) return falha("servico", "Nesse dia o serviço é " + v.servicos.join(" ou ") + ".");
+    if (diaNovo && v.livres <= 0) return falha("lotado", v.pintura ? `As ${regras.pintura.vagas} vagas de pintura geral desse período já estão ocupadas.` : `Esse dia já está lotado (${v.vagas} de ${v.vagas}).`);
+    if (antigo) Object.assign(antigo, ag);
+    else lista.push({ ...ag, id: "ex" + (++seq), ativo: true });
+    return mes(m);
+  }
+  function responder(acao, extra) {
+    const m = extra.mes || hoje.slice(0, 7);
+    if (acao === "agenda") return mes(m);
+    if (acao === "agenda_salvar") return salvar(extra.agendamento || {}, m);
+    const ag = lista.find(a => a.id === extra.id && a.ativo);
+    if (!ag) return falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
+    if (acao === "agenda_desmarcar") ag.ativo = false;
+    if (acao === "agenda_pago") ag.pago = !!extra.pago;
+    return mes(m);
+  }
+  return {
+    pedir: (acao, extra) => new Promise(ok => setTimeout(() => ok(responder(acao, extra)), 200))
+  };
 }
 
 /* ---------- Início ---------- */
