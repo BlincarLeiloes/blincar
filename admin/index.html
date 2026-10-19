@@ -516,7 +516,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
 
-<script src="../config.js"></script>
+<script src="../config.js?v=2"></script>
 <script>
 const CONFIG = window.BLINCAR || {};
 const URL_METRICAS = String(CONFIG.metricas || "").trim();
@@ -1691,22 +1691,33 @@ function desenharDialogo() {
 
 const campo = (id, rotulo, controle) => el("div", { class: "campo" }, el("label", { for: id }, rotulo), controle);
 
-// Serviços para sugerir: os do dia, os do padrão e os que aparecem no mês.
+// Serviços para sugerir no agendamento do painel: os do dia, os do padrão e os que aparecem no mês.
 function servicosConhecidos(dia) {
   const lista = [];
   const por = n => { if (n && !lista.some(x => mesmoServico(x, n))) lista.push(n); };
   (dia ? dia.ofertas : []).forEach(o => por(o.servico));
   Object.keys(AG.dados.regras.servicos).forEach(por);
   AG.dados.dias.forEach(x => x.ofertas.forEach(o => por(o.servico)));
-  por("Polimento");
   return lista;
 }
+
+// No site dos clientes só entram os serviços do padrão (retoque e pintura geral).
+const servicosDoSite = () => Object.keys(AG.dados.regras.servicos);
+
+const opcao = (valor, texto, marcado) => {
+  const o = el("option", { value: valor }, texto);
+  o.selected = !!marcado;
+  return o;
+};
 
 let seqOferta = 0;
 function linhaOferta(o) {
   const n = ++seqOferta;
+  const nomes = servicosDoSite();
+  const sel = el("select", { id: `dS${n}`, class: "dServico" },
+    ...nomes.map(s => opcao(s, s, mesmoServico(s, o.servico))));
   return el("div", { class: "oferta" },
-    campo(`dS${n}`, "Serviço", el("input", { id: `dS${n}`, class: "dServico", type: "text", value: o.servico, list: "dSugestoes", autocomplete: "off", placeholder: "Ex.: Polimento" })),
+    campo(`dS${n}`, "Serviço", sel),
     campo(`dV${n}`, "Vagas", el("input", { id: `dV${n}`, class: "dVagas", type: "number", min: "1", max: "50", step: "1", inputmode: "numeric", value: String(o.vagas) })),
     campo(`dP${n}`, "Preço (opcional)", el("input", { id: `dP${n}`, class: "dPreco", type: "number", min: "0", step: "0.01", inputmode: "decimal", value: o.preco ? String(o.preco) : "", placeholder: "R$" })),
     el("button", { type: "button", class: "mini perigo", "data-acao": "dia-remover" }, "Tirar"));
@@ -1721,11 +1732,11 @@ function editorDia(dia) {
     el("h3", {}, "Serviços e vagas deste dia"),
     el("p", { class: "nota" }, `É o que os clientes veem no site de agendamento. O padrão deste dia é ${textoPadrao}.` +
       (dia.editado ? " Este dia já está diferente do padrão." : "")),
-    el("datalist", { id: "dSugestoes" }, ...servicosConhecidos(dia).map(s => el("option", { value: s }))),
     linhas,
     el("p", { class: "vazio", id: "dVazio", ...(dia.ofertas.length ? { hidden: "" } : {}) }, "Nenhum serviço: o dia fica fechado para os clientes."),
     el("div", {}, el("button", { type: "button", class: "mini", "data-acao": "dia-adicionar" }, "+ Adicionar serviço")),
-    el("p", { class: "nota" }, `O preço é opcional e aparece para o cliente (ex.: promoção de polimento por R$ 150). O sinal continua ${reais(d.regras.sinal)}.`),
+    el("p", { class: "nota" }, `O preço é opcional e aparece para o cliente (ex.: uma promoção relâmpago). O sinal continua ${reais(d.regras.sinal)}. ` +
+      `No site só entram ${juntar(servicosDoSite().map(x => x.toLowerCase()))}: polimento e outros serviços são combinados direto com vocês.`),
     el("p", { class: "err", id: "dErro", role: "alert", hidden: "" }),
     el("div", { class: "ag-acoes" },
       el("button", { type: "submit", class: "btn btn-red", id: "dSalvar" }, "Salvar"),
@@ -1745,8 +1756,10 @@ function salvarDia() {
     vagas: Number(l.querySelector(".dVagas").value),
     preco: Number(String(l.querySelector(".dPreco").value).replace(",", ".")) || 0
   })).filter(o => o.servico || o.vagas);
-  const ruim = ofertas.find(o => !o.servico || !(o.vagas >= 1 && o.vagas <= 50));
-  if (ruim) return mostrarErro($("#dErro"), ruim.servico ? `Coloque de 1 a 50 vagas para ${ruim.servico}.` : "Falta o nome de um dos serviços.");
+  const repetido = ofertas.find((o, i) => ofertas.findIndex(x => mesmoServico(x.servico, o.servico)) !== i);
+  if (repetido) return mostrarErro($("#dErro"), `${repetido.servico} aparece duas vezes.`);
+  const ruim = ofertas.find(o => !(o.vagas >= 1 && o.vagas <= 50));
+  if (ruim) return mostrarErro($("#dErro"), `Coloque de 1 a 50 vagas para ${ruim.servico}.`);
   $("#dErro").hidden = true;
   executar("agenda_dia", { data: AG.dia, ofertas }, ofertas.length ? "Dia salvo. O site dos clientes já mostra a mudança." : "Dia fechado para os clientes.",
     $("#dErro"), () => { AG.modo = "lista"; });
@@ -1902,7 +1915,10 @@ document.addEventListener("click", e => {
     return focar("#dlgDia .dServico, #dlgDia [data-acao='dia-adicionar']");
   }
   if (acao === "dia-adicionar") {
-    const linha = linhaOferta({ servico: "", vagas: 1, preco: 0 });
+    const usados = [...document.querySelectorAll("#dOfertas .dServico")].map(x => x.value);
+    const livre = servicosDoSite().find(n => !usados.some(u => mesmoServico(u, n)));
+    if (!livre) return mostrarErro($("#dErro"), "Este dia já tem todos os serviços do site.");
+    const linha = linhaOferta({ servico: livre, vagas: 1, preco: 0 });
     $("#dOfertas").append(linha);
     $("#dVazio").hidden = true;
     return linha.querySelector(".dServico").focus();
@@ -2027,19 +2043,19 @@ function criarDemo() {
       situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : `${hoje} 23:59`,
       link: pago ? "" : linkFalso(id), presenca: false, origem: "Painel", remarcacao: 0, forma: pago ? "Pix" : "", ...extra };
   };
-  // Uma promoção numa quinta para mostrar a edição de dia.
-  let quinta = somaDias(hoje, 1);
-  while (diaSemana(quinta) !== 4) quinta = somaDias(quinta, 1);
-  especiais[quinta] = [{ servico: "Polimento", vagas: 2, preco: 150 }];
   const site = { origem: "Site", email: "" };
   const seg = proximo("Retoque"), qua = proximo("Retoque", 0, somaDias(seg, 1));
+  // Uma quinta aberta com retoque em promoção, para mostrar a edição de dia.
+  let quinta = somaDias(hoje, 1);
+  while (diaSemana(quinta) !== 4) quinta = somaDias(quinta, 1);
+  especiais[quinta] = [{ servico: "Retoque", vagas: 2, preco: 200 }];
   const lista = [
     novo(seg, "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, { ...site, email: "carlos@exemplo.com", obs: "Arranhão na porta traseira", presenca: true }),
     novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com", prazo: `${hoje} 23:59` }),
     novo(qua, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
     novo(qua, "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true, { ...site, email: "paula@exemplo.com" }),
     novo(proximo("Pintura geral"), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, { ...site, email: "rafael@exemplo.com" }),
-    novo(quinta, "Polimento", "Vera (exemplo)", "Corolla 2018 cinza", true, { ...site, email: "vera@exemplo.com", obs: "Preço do dia: R$ 150,00" }),
+    novo(quinta, "Retoque", "Vera (exemplo)", "Corolla 2018 cinza", true, { ...site, email: "vera@exemplo.com", obs: "Preço do dia: R$ 200,00" }),
     novo(anterior("Retoque"), "Retoque", "Sérgio (exemplo)", "Fox 2016 azul", true, { email: "sergio@exemplo.com" }),
     novo(somaDias(anterior("Retoque"), -2), "Retoque", "Luana (exemplo)", "Fiesta 2013 preto", true, { ...site, email: "luana@exemplo.com", situacao: "Não veio (virou crédito)" })
   ];
