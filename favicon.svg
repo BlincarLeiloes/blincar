@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 50 840 840">
+  <defs>
+    <linearGradient id="p" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".4" stop-color="#d4d5d8"/><stop offset=".6" stop-color="#9a9ca1"/><stop offset="1" stop-color="#e4e5e8"/>
+    </linearGradient>
+    <linearGradient id="v" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff3b3b"/><stop offset="1" stop-color="#d1161f"/>
+    </linearGradient>
+    <path id="e" fill="#f0c45c" d="M0,-26 L7.6,-8.1 L24.7,-8 L11.3,3.3 L15.3,21 L0,11.2 L-15.3,21 L-11.3,3.3 L-24.7,-8 L-7.6,-8.1 Z"/>
+  </defs>
+  <rect x="80" y="50" width="840" height="840" rx="150" fill="#0c0c0e"/>
+  <g fill="none" stroke="url(#p)" stroke-width="66" stroke-linejoin="miter">
+    <path d="M168,380 L162,212 L196,170 L497,112 L798,170 L832,212 L826,380"/>
+    <path d="M226,604 C272,712 386,796 497,840 C608,796 722,712 768,604"/>
+  </g>
+  <g transform="translate(497 248) scale(1.55)">
+    <use href="#e" x="-110"/><use href="#e" x="-55"/><use href="#e"/><use href="#e" x="55"/><use href="#e" x="110"/>
+  </g>
+  <g fill="none" stroke="url(#v)" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="34" d="M96,482 C170,462 230,446 300,432 C362,398 440,368 532,360 C626,354 720,372 800,388 L912,404"/>
+    <path stroke-width="30" d="M150,500 A70,38 0 0 1 290,500"/>
+    <path stroke-width="30" d="M716,496 A70,38 0 0 1 856,496"/>
+    <path stroke-width="28" d="M300,536 C430,524 560,514 668,506"/>
+  </g>
+</svg>
