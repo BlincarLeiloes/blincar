@@ -5,6 +5,7 @@
 | | |
 |---|---|
 | **Site dos clientes** | https://blincarleiloes.github.io/blincar/ |
+| **Agendamento (mandar ao cliente na conversa)** | https://blincarleiloes.github.io/blincar/agendar/ |
 | **Painel dos administradores** | https://blincarleiloes.github.io/blincar/admin/ |
 
 ### Links para divulgar
@@ -21,7 +22,8 @@ Cada link separa no painel de onde veio o cliente.
 ## Arquivos
 
 - `index.html`: página dos clientes, com pedido de orçamento pelo WhatsApp.
-- `admin/`: painel dos administradores, com senha (acessos, cliques e conversão).
+- `agendar/`: site de agendamento. O cliente faz o cadastro, escolhe retoque ou pintura geral e um dia com vaga, e paga o sinal pelo Pix.
+- `admin/`: painel dos administradores, com senha (métricas e agenda).
 - `config.js`: número do WhatsApp e link da planilha de métricas.
 
 Blin Car · Estética automotiva · Vilar dos Teles, São João de Meriti - RJ

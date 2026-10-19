@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Agendamento · Blin Car</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Agende retoque ou pintura geral na Blin Car, em Vilar dos Teles, São João de Meriti - RJ.">
+<meta name="theme-color" content="#0f1012">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
+<style>
+/* Layout: uma coluna estreita em qualquer tela; três etapas (dados, data, resultado), uma de cada vez */
+:root{
+  --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--fg:#f2f0ec;--muted:#a3a2a7;
+  --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
+  --ok-bg:#12301f;--ok-fg:#5fd896;--gold-bg:#2e2512;
+  --wa:#25d366;--wa-ink:#062a17;
+  --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --ok-bg:#e3f5ea;--ok-fg:#11703a;--gold-bg:#fbf1db;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --ok-bg:#e3f5ea;--ok-fg:#11703a;--gold-bg:#fbf1db;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--body);-webkit-text-size-adjust:100%}
+a{color:inherit}
+h1,h2{text-wrap:balance}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.bar{border-bottom:1px solid var(--line)}
+.bar-in{max-width:680px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mark{display:grid;text-decoration:none;line-height:1}
+.mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
+.mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
+.mark .word b{color:var(--red);font-weight:800}
+.mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.ajuda{font-size:.875rem;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 0}
+.ajuda:hover{color:var(--fg)}
+
+.page{max-width:680px;margin:0 auto;padding-block:28px 56px;display:grid;gap:22px}
+.eyebrow{margin:0 0 10px;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0;font:italic 800 clamp(2.25rem,9vw,3.5rem)/.92 var(--display);font-stretch:72%;text-transform:uppercase}
+h1 span{color:var(--red);display:block}
+.lede{margin:12px 0 0;color:var(--muted);font-size:1.0625rem}
+
+.etapas{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;counter-reset:e}
+.etapas li{counter-increment:e;display:flex;align-items:center;gap:8px;padding:10px 0 8px;border-top:3px solid var(--line);font-size:.875rem;font-weight:600;color:var(--muted);min-width:0}
+.etapas li::before{content:counter(e);font:italic 800 1.25rem/1 var(--display);font-stretch:75%}
+.etapas li[aria-current="step"]{border-top-color:var(--red);color:var(--fg)}
+.etapas li.feita{border-top-color:var(--fg);color:var(--fg)}
+
+.cartao{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:grid;gap:18px;min-width:0}
+@media (min-width:520px){.cartao{padding:28px}}
+.cartao h2{margin:0;font:italic 800 1.625rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+.cartao-head p{margin:6px 0 0;color:var(--muted);font-size:.9375rem}
+.campos{display:grid;gap:16px}
+@media (min-width:560px){.campos{grid-template-columns:repeat(2,minmax(0,1fr))}.campos .largo{grid-column:1/-1}}
+.field{display:grid;gap:6px;min-width:0}
+.field label{font-weight:600;font-size:.9375rem}
+.field input{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+.field input::placeholder{color:var(--muted);opacity:.8}
+.field input:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.field input[aria-invalid="true"]{border-color:var(--err)}
+.err{margin:0;color:var(--err);font-size:.875rem}
+.nota{margin:0;font-size:.875rem;color:var(--muted)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 20px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);font:600 1.0625rem/1.2 var(--body);text-decoration:none;cursor:pointer;text-align:center}
+.btn-red{background:var(--red);color:var(--on-red)}
+.btn-line{border-color:var(--line)}
+.btn-line:hover{border-color:var(--muted)}
+.btn-wa{background:var(--wa);color:var(--wa-ink)}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.largura{width:100%}
+.btn:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--fg);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+.ola{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.ola p{margin:0}
+.faixa{margin:0;padding:12px 14px;border-radius:12px;font-size:.9375rem}
+.faixa.credito{background:var(--gold-bg);border:1px solid var(--gold)}
+.faixa.credito b{color:var(--gold)}
+.faixa.info{border:1px solid var(--line);color:var(--muted)}
+.faixa.info b{color:var(--fg)}
+
+.servicos{border:0;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.servicos legend{font-weight:600;font-size:.9375rem;margin-bottom:10px;padding:0}
+.opcao{position:relative;display:block}
+.opcao input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.opcao span{display:grid;gap:2px;height:100%;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.opcao b{font-size:1.0625rem}
+.opcao small{color:var(--muted);font-size:.8125rem}
+.opcao input:checked+span{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.opcao input:checked+span small{color:var(--fg)}
+.opcao input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+
+.cal{display:grid;gap:10px}
+.cal-topo{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal-topo strong{font-weight:700;font-size:1.0625rem}
+.seta{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--fg);font:600 1.25rem/1 var(--body);cursor:pointer}
+.seta[disabled]{opacity:.3;cursor:default}
+.grade{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.grade .cab{text-align:center;font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-bottom:4px}
+.d{min-height:46px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--muted);font:500 .9375rem/1 var(--body);font-variant-numeric:tabular-nums;display:grid;place-items:center;gap:2px;padding:4px 0;opacity:.45}
+.d.livre,.d.esgotado{opacity:1;cursor:pointer}
+.d.livre{color:var(--fg);font-weight:700;border-color:var(--line);background:var(--bg)}
+.d.livre::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--red)}
+.d.livre:hover{border-color:var(--muted)}
+.d.livre[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--on-red)}
+.d.livre[aria-pressed="true"]::after{background:var(--on-red)}
+.d.esgotado{text-decoration:line-through;color:var(--muted)}
+@media (min-width:520px){.d{min-height:54px}.grade{gap:6px}}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8125rem;color:var(--muted)}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
+.legenda i{width:8px;height:8px;border-radius:50%;background:var(--red)}
+.legenda s{font-weight:600}
+.msg{margin:0;padding:10px 12px;border-radius:10px;border:1px solid var(--err);color:var(--err);font-size:.9375rem;font-weight:600}
+
+.escolha{display:grid;gap:4px;padding:14px 16px;border-radius:14px;border:1px solid var(--red)}
+.escolha span{font-size:.8125rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.escolha b{font-size:1.125rem}
+.regras{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:.9375rem}
+.regras li{padding-left:16px;position:relative}
+.regras li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+.resultado{text-align:left}
+.selo{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--ok-bg);color:var(--ok-fg)}
+.selo svg{width:30px;height:30px}
+.selo.espera{background:var(--gold-bg);color:var(--gold)}
+.selo.ruim{background:transparent;border:2px solid var(--err);color:var(--err)}
+.detalhes{margin:0;display:grid;border-top:1px solid var(--line)}
+.detalhes div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.detalhes dt{font-size:.75rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.detalhes dd{margin:0;font-weight:600;text-align:right}
+.acoes{display:flex;flex-wrap:wrap;gap:10px}
+address{font-style:normal}
+
+.rodape{border-top:1px solid var(--line)}
+.rodape p{max-width:680px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+.carregando{opacity:.6;pointer-events:none}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-in gutter">
+    <span class="mark" aria-label="Blin Car, estética automotiva">
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <span class="word">BLIN <b>CAR</b></span>
+      <span class="tag">Estética automotiva</span>
+    </span>
+    <a class="ajuda" id="ajuda" href="#" target="_blank" rel="noopener" hidden>Ajuda no WhatsApp</a>
+  </div>
+</header>
+
+<main class="page gutter">
+  <section>
+    <p class="eyebrow">Vilar dos Teles · São João de Meriti - RJ</p>
+    <h1>Agende o seu carro <span>na Blin Car</span></h1>
+    <p class="lede" id="lede">Faça o cadastro, escolha o serviço e o dia, e garanta a vaga com o sinal pelo Pix.</p>
+  </section>
+
+  <ol class="etapas" aria-label="Etapas do agendamento">
+    <li id="e1" aria-current="step">Seus dados</li>
+    <li id="e2">Data</li>
+    <li id="e3">Pagamento</li>
+  </ol>
+
+  <p class="msg" id="semApi" hidden>O agendamento on-line está fora do ar. Chame a gente no WhatsApp para agendar.</p>
+
+  <!-- Etapa 1: cadastro -->
+  <form class="cartao" id="vDados" novalidate>
+    <div class="cartao-head">
+      <h2>Seus dados</h2>
+      <p>Usamos o e-mail para confirmar o agendamento. Se você já agendou antes, use o mesmo e-mail e celular.</p>
+    </div>
+    <div class="campos">
+      <div class="field largo">
+        <label for="nome">Nome completo</label>
+        <input type="text" id="nome" autocomplete="name" placeholder="Ex.: Luis Felipe da Silva" aria-describedby="nome-err">
+        <p class="err" id="nome-err" hidden>Escreva seu nome.</p>
+      </div>
+      <div class="field">
+        <label for="telefone">Celular (WhatsApp)</label>
+        <input type="tel" id="telefone" autocomplete="tel-national" inputmode="tel" placeholder="(21) 99999-9999" aria-describedby="telefone-err">
+        <p class="err" id="telefone-err" hidden>Coloque o celular com DDD.</p>
+      </div>
+      <div class="field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" autocomplete="email" inputmode="email" placeholder="voce@email.com" aria-describedby="email-err">
+        <p class="err" id="email-err" hidden>Confira o e-mail.</p>
+      </div>
+      <div class="field largo">
+        <label for="carro">Modelo do carro</label>
+        <input type="text" id="carro" placeholder="Ex.: Onix 2019 prata" aria-describedby="carro-err">
+        <p class="err" id="carro-err" hidden>Diga qual é o carro.</p>
+      </div>
+    </div>
+    <p class="msg" id="dadosErro" role="alert" hidden></p>
+    <button class="btn btn-red largura" type="submit" id="continuar">Continuar</button>
+    <p class="nota">Seus dados ficam só com a Blin Car e são usados para o seu agendamento.</p>
+  </form>
+
+  <!-- Etapa 2: serviço e data -->
+  <section class="cartao" id="vData" hidden aria-labelledby="tData">
+    <div class="ola">
+      <p id="ola"></p>
+      <button type="button" class="linkbtn" id="trocarDados">Alterar meus dados</button>
+    </div>
+    <p class="faixa credito" id="faixaCredito" hidden></p>
+    <p class="faixa info" id="faixaAgendado" hidden></p>
+    <div class="cartao-head">
+      <h2 id="tData">Serviço e data</h2>
+    </div>
+    <fieldset class="servicos" id="servicos">
+      <legend>Qual serviço?</legend>
+    </fieldset>
+    <button type="button" class="btn btn-line largura" id="verificar">Verificar datas disponíveis</button>
+    <p class="msg" id="dataErro" role="alert" hidden></p>
+
+    <div class="cal" id="cal" hidden>
+      <div class="cal-topo">
+        <button type="button" class="seta" id="mesAntes" aria-label="Mês anterior">‹</button>
+        <strong id="mesNome" aria-live="polite"></strong>
+        <button type="button" class="seta" id="mesDepois" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="grade" id="grade"></div>
+      <p class="legenda"><span><i aria-hidden="true"></i>dia disponível</span><span><s>12</s> vagas esgotadas</span></p>
+      <p class="msg" id="esgotado" role="status" hidden>Vagas esgotadas nesse dia. Escolha outra data.</p>
+    </div>
+
+    <div id="fechar" hidden>
+      <div class="escolha">
+        <span>Sua escolha</span>
+        <b id="escolhaTxt"></b>
+      </div>
+      <ul class="regras" id="regras" style="margin-top:16px"></ul>
+      <button type="button" class="btn btn-red largura" id="agendar" style="margin-top:18px"></button>
+    </div>
+  </section>
+
+  <!-- Etapa 3: resultado do pagamento ou da remarcação -->
+  <section class="cartao resultado" id="vResultado" hidden aria-live="polite"></section>
+</main>
+
+<footer class="rodape"><p class="gutter">Blin Car · Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM</p></footer>
+
+<script src="../config.js"></script>
+<script>
+const CONFIG = window.BLINCAR || {};
+const API = String(CONFIG.metricas || "").trim();
+const WHATSAPP = String(CONFIG.whatsapp || "").replace(/\D/g, "");
+const MAPS = "https://www.google.com/maps/search/?api=1&query=Rua%20da%20Separa%C3%A7%C3%A3o%2C%20Vilar%20dos%20Teles%2C%20S%C3%A3o%20Jo%C3%A3o%20de%20Meriti%20-%20RJ";
+
+const $ = s => document.querySelector(s);
+
+// Monta elementos com textContent: nada que vem da planilha vira HTML.
+function el(tag, props = {}, ...filhos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else e.setAttribute(k, v);
+  }
+  for (const f of filhos) if (f !== "" && f != null) e.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return e;
+}
+
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+const SEMANA_CURTA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const pad2 = n => String(n).padStart(2, "0");
+const reais = v => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const emMs = d => { const p = d.split("-").map(Number); return Date.UTC(p[0], p[1] - 1, p[2]); };
+const somaDias = (d, n) => new Date(emMs(d) + n * 864e5).toISOString().slice(0, 10);
+const diaSemana = d => new Date(emMs(d)).getUTCDay();
+const diasNoMes = m => { const p = m.split("-").map(Number); return new Date(Date.UTC(p[0], p[1], 0)).getUTCDate(); };
+const somaMes = (m, n) => { const p = m.split("-").map(Number); return new Date(Date.UTC(p[0], p[1] - 1 + n, 1)).toISOString().slice(0, 7); };
+const feira = d => { const s = SEMANA[diaSemana(d)]; return /^(segunda|terça|quarta|quinta|sexta)$/.test(s) ? s + "-feira" : s; };
+const dataLonga = d => `${feira(d)}, ${Number(d.slice(8, 10))} de ${MESES[Number(d.slice(5, 7)) - 1]}`;
+const nomeMes = m => `${MESES[Number(m.slice(5, 7)) - 1].replace(/^./, c => c.toUpperCase())} de ${m.slice(0, 4)}`;
+const primeiroNome = n => String(n || "").trim().split(" ")[0];
+const letras = s => String(s || "").replace(/[^A-Za-zÀ-ÿ]/g, "").length;
+const digitos = s => String(s || "").replace(/\D/g, "");
+const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim());
+
+const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", mes: "", verificado: false };
+
+function lembrar(acao, valor) {
+  try {
+    if (acao === "ler") return JSON.parse(localStorage.getItem("blincar:cadastro") || "null");
+    localStorage.setItem("blincar:cadastro", JSON.stringify(valor));
+  } catch {}
+  return null;
+}
+
+async function api(acao, corpo) {
+  if (!corpo) {
+    const r = await fetch(`${API}?acao=${acao}`, { cache: "no-store" });
+    return r.json();
+  }
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ acao, ...corpo }) });
+  return r.json();
+}
+
+const MSG_REDE = "Não consegui falar com a agenda. Confira a internet e tente de novo.";
+
+function mostrar(alvo, msg) {
+  alvo.textContent = msg;
+  alvo.hidden = !msg;
+}
+
+function etapa(n) {
+  ["e1", "e2", "e3"].forEach((id, i) => {
+    const li = $("#" + id);
+    li.classList.toggle("feita", i + 1 < n);
+    if (i + 1 === n) li.setAttribute("aria-current", "step");
+    else li.removeAttribute("aria-current");
+  });
+  $("#vDados").hidden = n !== 1;
+  $("#vData").hidden = n !== 2;
+  $("#vResultado").hidden = n !== 3;
+}
+
+/* ---------- Etapa 1: cadastro ---------- */
+
+const CAMPOS = ["nome", "telefone", "email", "carro"];
+
+function lerCampos() {
+  return {
+    nome: $("#nome").value.trim().replace(/\s+/g, " "),
+    telefone: $("#telefone").value.trim(),
+    email: $("#email").value.trim().toLowerCase(),
+    carro: $("#carro").value.trim()
+  };
+}
+
+function conferirCampos(c) {
+  const ruins = {
+    nome: letras(c.nome) < 2,
+    telefone: digitos(c.telefone).length < 10 || digitos(c.telefone).replace(/^55(?=\d{10,11}$)/, "").length > 11,
+    email: !emailOk(c.email),
+    carro: c.carro.replace(/\s/g, "").length < 2
+  };
+  CAMPOS.forEach(k => {
+    $("#" + k).setAttribute("aria-invalid", String(ruins[k]));
+    $(`#${k}-err`).hidden = !ruins[k];
+  });
+  return CAMPOS.filter(k => ruins[k]);
+}
+
+CAMPOS.forEach(k => $("#" + k).addEventListener("input", () => {
+  if ($("#" + k).getAttribute("aria-invalid") === "true") conferirCampos(lerCampos());
+}));
+
+$("#vDados").addEventListener("submit", async e => {
+  e.preventDefault();
+  const c = lerCampos();
+  const ruins = conferirCampos(c);
+  if (ruins.length) return $("#" + ruins[0]).focus();
+  mostrar($("#dadosErro"), "");
+  const botao = $("#continuar");
+  botao.disabled = true;
+  botao.textContent = "Um instante…";
+  try {
+    const r = await api("cliente_entrar", { cadastro: c });
+    if (!r || !r.ok) return mostrar($("#dadosErro"), (r && r.mensagem) || MSG_REDE);
+    E.cadastro = c;
+    E.credito = r.credito;
+    E.agendado = r.agendado;
+    lembrar("gravar", c);
+    abrirData();
+  } catch {
+    mostrar($("#dadosErro"), MSG_REDE);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Continuar";
+  }
+});
+
+/* ---------- Etapa 2: serviço e data ---------- */
+
+async function abrirData() {
+  etapa(2);
+  E.data = "";
+  $("#ola").textContent = `Olá, ${primeiroNome(E.cadastro.nome)}! ${E.cadastro.carro} · ${E.cadastro.email}`;
+  const fc = $("#faixaCredito");
+  fc.hidden = !E.credito;
+  if (E.credito) {
+    fc.replaceChildren(el("b", {}, `Você tem um crédito de ${reais(E.credito.valor)}.`),
+      ` Escolha a nova data: não precisa pagar de novo.${E.credito.remarcacao ? ` (Remarcação ${E.credito.remarcacao} de ${E.credito.de}.)` : ""}`);
+  }
+  const fa = $("#faixaAgendado");
+  fa.hidden = !E.agendado;
+  if (E.agendado) fa.replaceChildren("Você já tem ", el("b", {}, `${E.agendado.servico.toLowerCase()} em ${dataLonga(E.agendado.data)}`), ". Pode agendar outro carro ou outro serviço aqui.");
+  window.scrollTo({ top: 0 });
+  await carregarAgenda();
+}
+
+async function carregarAgenda() {
+  const caixa = $("#vData");
+  caixa.classList.add("carregando");
+  mostrar($("#dataErro"), "");
+  try {
+    const d = await api("cliente_agenda");
+    if (!d || !d.ok) throw new Error();
+    E.dados = d;
+    desenharServicos();
+    if (E.verificado) desenharCalendario(false);
+    desenharEscolha();
+    return true;
+  } catch {
+    mostrar($("#dataErro"), MSG_REDE);
+    return false;
+  } finally {
+    caixa.classList.remove("carregando");
+  }
+}
+
+// Dias da semana em que o serviço aparece (para ajudar a escolher): "segunda e quarta".
+function diasDoServico(nome) {
+  const dows = new Set();
+  Object.keys(E.dados.dias).forEach(d => { if (E.dados.dias[d].some(o => o.servico === nome)) dows.add(diaSemana(d)); });
+  const lista = [...dows].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map(n => SEMANA[n]);
+  if (!lista.length) return "sem datas abertas agora";
+  return lista.length > 1 ? `${lista.slice(0, -1).join(", ")} e ${lista[lista.length - 1]}` : lista[0];
+}
+
+function desenharServicos() {
+  const caixa = $("#servicos");
+  const legenda = caixa.querySelector("legend");
+  if (E.servico && !E.dados.servicos.some(s => s.nome === E.servico)) E.servico = "";
+  caixa.replaceChildren(legenda, ...E.dados.servicos.map((s, i) => {
+    const input = el("input", { type: "radio", name: "servico", value: s.nome, id: "sv" + i });
+    input.checked = s.nome === E.servico;
+    input.addEventListener("change", () => {
+      E.servico = s.nome;
+      E.data = "";
+      mostrar($("#dataErro"), "");
+      if (E.verificado) desenharCalendario(true);
+      desenharEscolha();
+    });
+    return el("label", { class: "opcao", for: "sv" + i }, input,
+      el("span", {}, el("b", {}, s.nome), el("small", {}, s.preco ? `${reais(s.preco)} · ${diasDoServico(s.nome)}` : diasDoServico(s.nome))));
+  }));
+}
+
+function estadoDe(data) {
+  const o = (E.dados.dias[data] || []).find(x => x.servico === E.servico);
+  if (!o) return "";
+  return o.livre ? "livre" : "esgotado";
+}
+
+// "pular": vai para o mês do primeiro dia disponível (ao verificar ou trocar de serviço).
+function desenharCalendario(pular) {
+  $("#cal").hidden = false;
+  $("#esgotado").hidden = true;
+  const datas = Object.keys(E.dados.dias).filter(d => estadoDe(d)).sort();
+  const livres = datas.filter(d => estadoDe(d) === "livre");
+  if (pular || !E.mes) E.mes = (livres[0] || datas[0] || E.dados.de).slice(0, 7);
+  const primeiroMes = E.dados.de.slice(0, 7), ultimoMes = E.dados.ate.slice(0, 7);
+  if (E.mes < primeiroMes) E.mes = primeiroMes;
+  if (E.mes > ultimoMes) E.mes = ultimoMes;
+  $("#mesNome").textContent = nomeMes(E.mes);
+  $("#mesAntes").disabled = E.mes <= primeiroMes;
+  $("#mesDepois").disabled = E.mes >= ultimoMes;
+  const ini = E.mes + "-01";
+  const filhos = SEMANA_CURTA.map(n => el("span", { class: "cab", "aria-hidden": "true" }, n));
+  for (let i = 0; i < diaSemana(ini); i++) filhos.push(el("span", { "aria-hidden": "true" }));
+  for (let i = 0; i < diasNoMes(E.mes); i++) {
+    const data = somaDias(ini, i);
+    const est = estadoDe(data);
+    const rotulo = `${dataLonga(data)}${est === "livre" ? ", disponível" : est === "esgotado" ? ", vagas esgotadas" : ", sem agendamento"}`;
+    const b = el("button", { type: "button", class: "d " + est, "data-data": data, "aria-label": rotulo }, String(i + 1));
+    if (!est) b.setAttribute("aria-disabled", "true");
+    if (est === "livre") b.setAttribute("aria-pressed", String(data === E.data));
+    filhos.push(b);
+  }
+  $("#grade").replaceChildren(...filhos);
+  if (!livres.length) {
+    mostrar($("#dataErro"), datas.length
+      ? `As datas de ${E.servico.toLowerCase()} estão esgotadas por enquanto. Chame a gente no WhatsApp.`
+      : `Não há datas abertas para ${E.servico.toLowerCase()} nos próximos meses. Chame a gente no WhatsApp.`);
+  }
+}
+
+$("#verificar").addEventListener("click", async () => {
+  if (!E.servico) {
+    mostrar($("#dataErro"), "Escolha o serviço primeiro.");
+    const primeiro = document.querySelector("#servicos input");
+    if (primeiro) primeiro.focus();
+    return;
+  }
+  E.verificado = true;
+  if (await carregarAgenda()) {
+    desenharCalendario(true);
+    $("#cal").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+});
+
+$("#grade").addEventListener("click", e => {
+  const b = e.target.closest("[data-data]");
+  if (!b) return;
+  const est = estadoDe(b.dataset.data);
+  if (est === "esgotado") {
+    $("#esgotado").hidden = false;
+    return;
+  }
+  if (est !== "livre") return;
+  $("#esgotado").hidden = true;
+  E.data = b.dataset.data;
+  desenharCalendario(false);
+  desenharEscolha();
+  $("#fechar").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+});
+
+$("#mesAntes").addEventListener("click", () => { E.mes = somaMes(E.mes, -1); desenharCalendario(false); });
+$("#mesDepois").addEventListener("click", () => { E.mes = somaMes(E.mes, 1); desenharCalendario(false); });
+$("#trocarDados").addEventListener("click", () => { etapa(1); $("#nome").focus(); });
+
+function desenharEscolha() {
+  const caixa = $("#fechar");
+  caixa.hidden = !E.data;
+  if (!E.data) return;
+  const o = (E.dados.dias[E.data] || []).find(x => x.servico === E.servico) || {};
+  $("#escolhaTxt").textContent = `${E.servico} · ${dataLonga(E.data)}${o.preco ? ` · ${reais(o.preco)}` : ""}`;
+  const r = E.dados;
+  const regras = E.credito
+    ? [`O crédito de ${reais(E.credito.valor)} vale como sinal deste agendamento. Não precisa pagar de novo.`,
+      "O sinal é descontado do valor do serviço."]
+    : [`O sinal de ${reais(r.sinal)} garante a sua vaga e é descontado do valor do serviço.`,
+      `Você tem ${r.prazoMinutos} minutos para pagar pelo Pix. Sem o pagamento, a vaga fica livre para outra pessoa.`];
+  regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${r.remarcacoes} vezes).`);
+  $("#regras").replaceChildren(...regras.map(t => el("li", {}, t)));
+  $("#agendar").textContent = E.credito ? "Remarcar com meu crédito" : `Agendar e pagar o sinal de ${reais(r.sinal)}`;
+}
+
+$("#agendar").addEventListener("click", async () => {
+  const botao = $("#agendar");
+  if (botao.getAttribute("aria-disabled") === "true" || !E.data) return;
+  const texto = botao.textContent;
+  botao.setAttribute("aria-disabled", "true");
+  botao.textContent = E.credito ? "Remarcando…" : "Abrindo o pagamento…";
+  let indo = false;
+  try {
+    const r = await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, servico: E.servico });
+    if (r && r.ok && r.tipo === "pagar") {
+      indo = true;
+      location.href = r.link;
+      return;
+    }
+    if (r && r.ok && r.tipo === "remarcado") {
+      E.credito = null;
+      return mostrarResultado(r.agendamento, "remarcado");
+    }
+    if (r && (r.erro === "esgotado" || r.erro === "indisponivel")) {
+      E.data = "";
+      await carregarAgenda();
+      desenharCalendario(false);
+      $("#esgotado").hidden = false;
+      $("#esgotado").focus();
+      return;
+    }
+    mostrar($("#dataErro"), (r && r.mensagem) || MSG_REDE);
+  } catch {
+    mostrar($("#dataErro"), MSG_REDE);
+  } finally {
+    if (!indo) {
+      botao.removeAttribute("aria-disabled");
+      botao.textContent = texto;
+    }
+  }
+});
+$("#esgotado").setAttribute("tabindex", "-1");
+
+/* ---------- Etapa 3: resultado ---------- */
+
+const ICONES = {
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  espera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  ruim: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 7v6M12 16.5v.5"/></svg>'
+};
+
+function selo(tipo) {
+  const s = el("div", { class: "selo" + (tipo === "ok" ? "" : " " + tipo) });
+  s.innerHTML = ICONES[tipo];
+  return s;
+}
+
+function zap(texto) {
+  return WHATSAPP ? `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}` : "";
+}
+
+function botaoNovo(texto = "Escolher outra data") {
+  const b = el("button", { type: "button", class: "btn btn-red" }, texto);
+  b.addEventListener("click", recomecar);
+  return b;
+}
+
+// Volta ao começo, com os dados lembrados neste aparelho (o crédito, se houver, aparece de novo).
+function recomecar() {
+  try { history.replaceState(null, "", location.pathname); } catch {}
+  E.data = "";
+  E.verificado = false;
+  $("#cal").hidden = true;
+  $("#fechar").hidden = true;
+  etapa(1);
+  const c = lembrar("ler");
+  if (c) {
+    CAMPOS.forEach(k => { $("#" + k).value = c[k] || ""; });
+    $("#vDados").requestSubmit();
+  }
+}
+
+function mostrarResultado(a, tipo, extra) {
+  etapa(3);
+  const caixa = $("#vResultado");
+  const detalhes = a && a.data ? el("dl", { class: "detalhes" },
+    el("div", {}, el("dt", {}, "Serviço"), el("dd", {}, a.servico)),
+    el("div", {}, el("dt", {}, "Dia"), el("dd", {}, dataLonga(a.data))),
+    a.carro ? el("div", {}, el("dt", {}, "Carro"), el("dd", {}, a.carro)) : "") : "";
+  const onde = el("address", {}, "Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM");
+  const mapa = el("a", { class: "btn btn-line", href: MAPS, target: "_blank", rel: "noopener" }, "Abrir no Google Maps");
+  const ajuda = texto => { const l = zap(texto); return l ? el("a", { class: "btn btn-wa", href: l, target: "_blank", rel: "noopener" }, "Falar no WhatsApp") : ""; };
+  let filhos;
+  if (tipo === "confirmado" || tipo === "remarcado") {
+    filhos = [selo("ok"),
+      el("h2", {}, tipo === "remarcado" ? "Agendamento remarcado" : "Pagamento recebido!"),
+      el("p", { class: "lede" }, tipo === "remarcado"
+        ? "Seu agendamento foi remarcado com sucesso, usando o seu crédito."
+        : "Seu agendamento foi concluído com sucesso. Estamos esperando você!"),
+      detalhes, onde,
+      el("p", { class: "nota" }, "Enviamos a confirmação para o seu e-mail. No dia, você recebe um lembrete. Se não puder vir, o sinal vira crédito para remarcar."),
+      el("div", { class: "acoes" }, mapa)];
+  } else if (tipo === "aguardando") {
+    const pagar = a.link ? el("a", { class: "btn btn-red", href: a.link }, "Voltar para o pagamento") : "";
+    const conferir = el("button", { type: "button", class: "btn btn-line" }, "Já paguei, conferir de novo");
+    conferir.addEventListener("click", () => acompanhar(a.id, 1));
+    const hora = a.prazo ? a.prazo.slice(11, 16).replace(":", "h") : "";
+    filhos = [selo("espera"),
+      el("h2", {}, extra === "conferindo" ? "Confirmando o pagamento…" : "Ainda não recebemos o pagamento"),
+      el("p", { class: "lede" }, extra === "conferindo"
+        ? "Isso leva alguns segundos depois do Pix. Pode deixar esta página aberta."
+        : `A vaga só fica garantida depois do Pix.${hora ? ` Você tem até as ${hora} de hoje para pagar.` : ""}`),
+      detalhes,
+      extra === "conferindo" ? "" : el("div", { class: "acoes" }, pagar, conferir)];
+  } else if (tipo === "credito") {
+    filhos = [selo("espera"),
+      el("h2", {}, "O dia lotou enquanto você pagava"),
+      el("p", { class: "lede" }, "Outra pessoa pagou a última vaga um pouco antes. O seu dinheiro não se perdeu: o sinal virou crédito. Escolha outra data, sem pagar de novo."),
+      el("div", { class: "acoes" }, botaoNovo())];
+  } else if (tipo === "vencido" || tipo === "sem_vaga" || tipo === "desmarcado") {
+    const textos = {
+      vencido: ["O prazo para pagar acabou", "A reserva não foi paga a tempo e a vaga ficou livre. Escolha a data de novo."],
+      sem_vaga: ["Outra pessoa garantiu a vaga antes", "Esse dia lotou antes do seu pagamento. Escolha outra data."],
+      desmarcado: ["Essa reserva foi trocada", "Você escolheu outra data depois desta. Se quiser, agende de novo."]
+    }[tipo];
+    filhos = [selo("ruim"), el("h2", {}, textos[0]), el("p", { class: "lede" }, textos[1]),
+      el("div", { class: "acoes" }, botaoNovo(), ajuda("Olá! Tive um problema para agendar pelo site da Blin Car."))];
+  } else {
+    filhos = [selo("ruim"), el("h2", {}, "Não achamos esse agendamento"),
+      el("p", { class: "lede" }, extra || "Confira o link ou faça o agendamento de novo."),
+      el("div", { class: "acoes" }, botaoNovo("Agendar"), ajuda("Olá! Tive um problema para agendar pelo site da Blin Car."))];
+  }
+  caixa.replaceChildren(...filhos.filter(Boolean));
+  window.scrollTo({ top: 0 });
+}
+
+// Volta do Mercado Pago: confere o pagamento algumas vezes antes de dizer que não caiu.
+async function acompanhar(id, tentativas = 8) {
+  mostrarResultado({ id }, "aguardando", "conferindo");
+  for (let i = 0; i < tentativas; i++) {
+    let r;
+    try {
+      r = await api("cliente_status&id=" + encodeURIComponent(id));
+    } catch {
+      r = null;
+    }
+    if (r && r.ok) {
+      const a = r.agendamento;
+      if (a.sit !== "aguardando" || i === tentativas - 1) return mostrarResultado(a, a.sit === "nao_veio" ? "confirmado" : a.sit);
+    } else if (r && r.erro) {
+      return mostrarResultado(null, "erro", r.mensagem);
+    } else if (i === tentativas - 1) {
+      return mostrarResultado(null, "erro", MSG_REDE);
+    }
+    await new Promise(ok => setTimeout(ok, 3000));
+  }
+}
+
+/* ---------- Início ---------- */
+
+if (WHATSAPP) {
+  $("#ajuda").href = zap("Olá! Estou no site de agendamento da Blin Car e preciso de ajuda.");
+  $("#ajuda").hidden = false;
+}
+const salvo = lembrar("ler");
+if (salvo) CAMPOS.forEach(k => { $("#" + k).value = salvo[k] || ""; });
+const volta = new URLSearchParams(location.search).get("ag");
+if (!API) {
+  $("#semApi").hidden = false;
+  $("#continuar").disabled = true;
+} else if (volta) {
+  acompanhar(volta);
+}
+</script>
+</body>
+</html>

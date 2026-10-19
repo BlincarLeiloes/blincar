@@ -209,19 +209,25 @@ button.cel:hover{border-color:var(--muted)}
 .cel .tipo{font-size:.6875rem;color:var(--muted);font-weight:600}
 .cel .quem{font-size:.75rem;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rodape-cel{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%}
-.pontos{display:flex;gap:3px;flex-wrap:wrap}
+.pontos{display:flex;gap:2px 6px;flex-wrap:wrap}
+.pontos .grupo{display:inline-flex;align-items:center;gap:2px;font-size:.625rem;font-weight:600;font-variant-numeric:tabular-nums}
+.pontos .grupo b{font-size:.5625rem;font-weight:700;color:var(--muted);margin-right:1px}
 .pontos i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--muted)}
 .pontos i.cheio{background:var(--fg);border-color:var(--fg)}
+.cel{position:relative}
 .cel.lotado{background:var(--lotado-bg);border-color:var(--red)}
 .cel.lotado .pontos i.cheio{background:var(--red);border-color:var(--red)}
 .cel .tag{font-size:.625rem;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.04em}
 .cel.fechado{background:transparent;border-style:dashed;color:var(--muted)}
 .cel.passou{opacity:.5}
+.cel.editado::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.cel .quem.falta{color:var(--err);text-decoration:line-through}
 .cal-vazio{min-height:62px}
 @media (min-width:720px){
   .cal{gap:6px}
   .cel{min-height:108px;padding:8px;gap:3px}
   .cel .tipo,.cel .quem,.cel .tag{display:block}
+  .cel .pontos{display:none}
   .cal-vazio{min-height:108px}
 }
 .dica-cal{position:absolute;z-index:5;display:grid;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:.8125rem;pointer-events:none}
@@ -231,7 +237,19 @@ button.cel:hover{border-color:var(--muted)}
 .amostra{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);background:var(--bg)}
 .amostra.lot{background:var(--lotado-bg);border-color:var(--red)}
 .amostra.fec{background:transparent;border-style:dashed}
-.legenda-cal .pontos i{display:inline-block}
+.amostra.edi{position:relative}
+.amostra.edi::after{content:"";position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.site-cliente{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--surface)}
+.site-cliente > div{display:grid;gap:2px;min-width:0}
+.site-cliente .eyebrow{margin:0}
+.site-url{font-weight:700;overflow-wrap:anywhere}
+.ofertas{display:grid;gap:10px}
+.oferta{display:grid;grid-template-columns:minmax(0,1fr) 84px 120px auto;gap:8px;align-items:end;padding-bottom:10px;border-bottom:1px solid var(--line)}
+@media (max-width:519px){
+  .oferta{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .oferta .campo:first-child{grid-column:1/-1}
+  .oferta button{grid-column:1/-1;justify-self:start}
+}
 
 .lista-dias{display:grid;gap:10px}
 .dia-bloco{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--bg)}
@@ -454,9 +472,18 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     </div>
     <p class="selo" id="agExemplo" hidden><b>Agenda de exemplo.</b> Os clientes são inventados e nada vai para a planilha. Pode testar à vontade. Aqui, "Conferir pagamento" faz de conta que o cliente pagou o Pix.</p>
     <p class="err" id="agErro" role="alert" hidden></p>
+    <section class="site-cliente" id="agSite" hidden>
+      <div>
+        <p class="eyebrow">Site de agendamento dos clientes</p>
+        <a class="site-url" id="agSiteLink" href="#" target="_blank" rel="noopener"></a>
+        <p class="nota">Mande este link na conversa. O cliente faz o cadastro, escolhe o dia e paga o sinal.</p>
+      </div>
+      <button type="button" class="mini mini-forte" id="agSiteCopiar">Copiar link</button>
+    </section>
     <div class="proximos" id="agProximos"></div>
     <section class="bloco destaque" id="agConfirmar" hidden></section>
     <section class="bloco alerta" id="agRemarcar" hidden></section>
+    <section class="bloco" id="agCreditos" hidden></section>
     <p class="estado" id="agContagem"></p>
     <div class="kpis kpis-4" id="agResumo"></div>
     <section class="bloco">
@@ -466,11 +493,13 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       </div>
       <div class="lista-dias" id="agLista" hidden></div>
       <p class="nota legenda-cal">
-        <span><span class="pontos" aria-hidden="true"><i class="cheio"></i><i></i></span>paga / livre</span>
+        <span>1/3 = 1 de 3 vagas com sinal pago</span>
         <span><span class="pend-num" aria-hidden="true">+1</span>aguardando sinal (não segura a vaga)</span>
-        <span><span class="amostra lot" aria-hidden="true"></span>lotado, não aceita mais carro</span>
-        <span><span class="amostra fec" aria-hidden="true"></span>sem agendamento</span>
-        <span>Passe o mouse ou toque no dia para ver os carros.</span>
+        <span><span class="amostra lot" aria-hidden="true"></span>lotado no site dos clientes</span>
+        <span><span class="amostra fec" aria-hidden="true"></span>fechado para clientes</span>
+        <span><span class="amostra edi" aria-hidden="true"></span>dia editado</span>
+        <span id="agSiglas"></span>
+        <span>Toque no dia para ver os carros, agendar ou mudar as vagas.</span>
       </p>
     </section>
     <section class="bloco">
@@ -1037,8 +1066,8 @@ document.querySelectorAll("[data-aba]").forEach(b => b.addEventListener("click",
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const SEMANA_CURTA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const NOME_CURTO = { "Retoque / polimento": "Retoque/pol.", "Pintura geral": "Pintura" };
-const ORDEM_SIT = { confirmado: 0, pago_sem_vaga: 1, aguardando: 2 };
+const ORDEM_SIT = { confirmado: 0, pago_sem_vaga: 1, aguardando: 2, nao_veio: 3 };
+const VISIVEIS = ["confirmado", "aguardando", "pago_sem_vaga", "nao_veio"];
 const MSG_VERSAO = "O código da planilha ainda é o antigo. Cole o código novo no Apps Script e implante uma nova versão (passo a passo no LEIA-ME).";
 const MSG_REDE = "Não consegui falar com a planilha. Confira a internet e toque em Atualizar antes de tentar de novo.";
 const reais = v => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1046,6 +1075,8 @@ const pad2 = n => String(n).padStart(2, "0");
 const maiuscula = s => s.charAt(0).toUpperCase() + s.slice(1);
 const juntar = itens => (itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}` : itens[0] || "");
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+// "Pintura geral" vira "PG", "Retoque" vira "R": aparece nas bolinhas do calendário no celular.
+const sigla = nome => String(nome).trim().split(/\s+/).map(p => p.charAt(0).toUpperCase()).join("").slice(0, 2);
 
 // Datas "aaaa-mm-dd" sem fuso, do mesmo jeito que a planilha.
 function emMs(data) {
@@ -1074,40 +1105,71 @@ const hojeAqui = () => {
   const t = new Date();
   return `${t.getFullYear()}-${pad2(t.getMonth() + 1)}-${pad2(t.getDate())}`;
 };
+const agoraAqui = () => {
+  const t = new Date();
+  return `${hojeAqui()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+};
 const dataCurta = d => `${SEMANA_CURTA[diaSemana(d)].toLowerCase()}, ${d.slice(8, 10)}/${d.slice(5, 7)}`;
 const dataLonga = d => `${maiuscula(SEMANA[diaSemana(d)])}, ${Number(d.slice(8, 10))} de ${MESES[Number(d.slice(5, 7)) - 1]}`;
 const nomeMes = m => `${maiuscula(MESES[Number(m.slice(5, 7)) - 1])} de ${m.slice(0, 4)}`;
 
+/* As funções abaixo são iguais às da planilha (Codigo.gs). Aqui servem para a agenda de exemplo. */
+
 // Situação de um agendamento. Só "confirmado" (sinal pago) ocupa vaga.
-function situacaoDe(a, hoje) {
+function situacaoDe(a, agora) {
   const s = String(a.situacao || "").toLowerCase();
   if (/desmarc|cancel/.test(s)) return "desmarcado";
+  if (/n[ãa]o veio/.test(s)) return "nao_veio";
+  if (/virou cr[ée]dito/.test(s)) return "credito";
   if (/pago sem vaga/.test(s)) return "pago_sem_vaga";
   if (/sem vaga/.test(s)) return "sem_vaga";
   if (a.pago) return "confirmado";
-  if (/vencid/.test(s) || (a.criado && a.criado.slice(0, 10) < hoje)) return "vencido";
+  const prazo = a.prazo || (a.criado ? a.criado.slice(0, 10) + " 23:59" : "");
+  if (/vencid/.test(s) || (prazo && prazo < agora)) return "vencido";
   return "aguardando";
 }
 
-// Vagas de um dia, contando só os confirmados. "ignorar" é o próprio agendamento numa edição.
-function vagasDoDia(regras, ativos, data, ignorar) {
-  const regra = regras.dias[diaSemana(data)];
-  const outros = ativos.filter(a => a.id !== ignorar);
-  const ocupadas = outros.filter(a => a.data === data).length;
-  if (!regra) return { data, aberto: false, nome: "Sem agendamento", servicos: [], vagas: 0, ocupadas, livres: 0 };
-  if (!regra.pintura) {
-    return { data, aberto: true, nome: regra.nome, servicos: regra.servicos, vagas: regra.vagas, ocupadas, livres: Math.max(regra.vagas - ocupadas, 0) };
-  }
-  // Pintura geral: olha todo período de N dias que passa por esta data e pega o mais cheio.
-  const p = regras.pintura;
-  const pinturas = outros.filter(a => (regras.dias[diaSemana(a.data)] || {}).pintura).map(a => a.data);
-  let maisCheio = 0;
-  for (let s = 1 - p.dias; s <= 0; s++) {
-    const de = somaDias(data, s), ate = somaDias(data, s + p.dias - 1);
-    maisCheio = Math.max(maisCheio, pinturas.filter(x => x >= de && x <= ate).length);
-  }
-  return { data, aberto: true, pintura: true, nome: regra.nome, servicos: regra.servicos, vagas: p.vagas, ocupadas, livres: Math.max(p.vagas - maisCheio, 0) };
+// Segunda-feira da semana de uma data.
+function segundaDe(data) {
+  return somaDias(data, -((diaSemana(data) + 6) % 7));
 }
+
+// Serviços e vagas de um dia: o que foi mudado no painel (aba "Dias") ou o padrão de REGRAS.
+function ofertasDoDia(regras, especiais, data) {
+  if (especiais[data]) return especiais[data];
+  const dow = diaSemana(data);
+  const lista = [];
+  Object.keys(regras.servicos).forEach(nome => {
+    const s = regras.servicos[nome];
+    if (!s.dias[dow]) return;
+    if (s.aCadaSemanas > 1) {
+      const semanas = Math.round((emMs(segundaDe(data)) - emMs(segundaDe(s.semanaInicial))) / 6048e5);
+      if (((semanas % s.aCadaSemanas) + s.aCadaSemanas) % s.aCadaSemanas) return;
+    }
+    lista.push({ servico: nome, vagas: s.dias[dow], preco: 0 });
+  });
+  return lista;
+}
+
+function mesmoServico(a, b) {
+  return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+}
+
+// Vagas de um dia por serviço, contando só os confirmados. "ignorar" é o próprio agendamento numa edição.
+function vagasDoDia(regras, especiais, confirmados, data, ignorar) {
+  const doDia = confirmados.filter(a => a.data === data && a.id !== ignorar);
+  const ofertas = ofertasDoDia(regras, especiais, data).map(o => {
+    const ocupadas = doDia.filter(a => mesmoServico(a.servico, o.servico)).length;
+    return { servico: o.servico, vagas: o.vagas, preco: o.preco || 0, ocupadas, livres: Math.max(o.vagas - ocupadas, 0) };
+  });
+  return { data, editado: !!especiais[data], ofertas, ocupadas: doDia.length };
+}
+
+function vagaDe(dia, servico) {
+  return dia.ofertas.filter(o => mesmoServico(o.servico, servico))[0] || null;
+}
+
+/* Fim das funções iguais às da planilha. */
 
 const AG = { mes: hojeAqui().slice(0, 7), vista: "mes", dados: null, demo: null, dia: null, modo: "lista", editando: null, confirmando: null, ocupado: false };
 try { if (localStorage.getItem("blincar:vista") === "dias") AG.vista = "dias"; } catch {}
@@ -1134,7 +1196,7 @@ function mostrarErro(alvo, msg) {
 
 // Aplica a resposta da planilha na tela. Devolve true quando deu certo.
 function agendaReceber(d, alvoErro) {
-  if (d && d.ok && d.dias && "confirmar" in d) {
+  if (d && d.ok && d.dias && "creditos" in d) {
     AG.dados = d;
     AG.mes = d.mes;
     agendaDesenhar();
@@ -1165,7 +1227,7 @@ async function agendaCarregar() {
   }
 }
 
-const erroVisivel = () => ($("#dlgDia").open ? $("#dlgErro") || $("#fErro") : $("#agErro"));
+const erroVisivel = () => ($("#dlgDia").open ? $("#dlgErro") || $("#fErro") || $("#dErro") : $("#agErro"));
 
 // "msgOk" pode ser um texto ou uma função que monta o texto a partir da resposta.
 async function executar(acao, extra, msgOk, alvoErro, aoDarCerto) {
@@ -1179,7 +1241,8 @@ async function executar(acao, extra, msgOk, alvoErro, aoDarCerto) {
     }
     const deu = agendaReceber(d, alvoErro || erroVisivel());
     if (deu) {
-      aviso(typeof msgOk === "function" ? msgOk(d) : msgOk);
+      const texto = typeof msgOk === "function" ? msgOk(d) : msgOk;
+      aviso(d.aviso ? `${texto} ${d.aviso}` : texto);
       if (d.avisoLink) mostrarErro(erroVisivel(), d.avisoLink);
     }
     return deu;
@@ -1199,36 +1262,27 @@ function aviso(msg) {
   alvo.textContent = msg;
   alvo.hidden = false;
   clearTimeout(avisoTimer);
-  avisoTimer = setTimeout(() => { alvo.hidden = true; }, 4000);
+  avisoTimer = setTimeout(() => { alvo.hidden = true; }, msg.length > 90 ? 7000 : 4000);
 }
 
 function estadoDia(dia, hoje) {
-  if (!dia.aberto) return "fechado";
+  if (!dia.ofertas.length) return "fechado";
   if (dia.data < hoje) return "passou";
-  if (dia.livres <= 0) return "lotado";
+  if (dia.ofertas.every(o => o.livres <= 0)) return "lotado";
   return dia.ocupadas || dia.aguardando ? "parcial" : "livre";
 }
 
+const textoOferta = o => `${o.servico} ${o.ocupadas}/${o.vagas}${o.livres ? "" : " lotado"}${o.preco ? ` · ${reais(o.preco)}` : ""}`;
+
 function resumoVagas(dia) {
-  if (!dia.aberto) return "Sem agendamento";
-  const esperando = dia.aguardando ? ` · ${plural(dia.aguardando, "aguardando sinal", "aguardando sinal")}` : "";
-  if (dia.pintura) {
-    const doDia = dia.ocupadas ? `${plural(dia.ocupadas, "carro pago", "carros pagos")} neste dia · ` : "";
-    return doDia + (dia.livres ? `${dia.livres} de ${dia.vagas} vagas de pintura livres no período` : "vagas de pintura do período pagas") + esperando;
-  }
-  if (!dia.livres) return `Lotado · ${dia.vagas} de ${dia.vagas} com sinal pago`;
-  return `${dia.ocupadas} de ${dia.vagas} pagas · ${plural(dia.livres, "vaga livre", "vagas livres")}${esperando}`;
+  const extras = [];
+  if (dia.aguardando) extras.push(plural(dia.aguardando, "aguardando sinal", "aguardando sinal"));
+  if (dia.editado) extras.push("dia editado");
+  const base = dia.ofertas.length ? dia.ofertas.map(textoOferta).join(" · ") : "Fechado para clientes";
+  return [base].concat(extras).join(" · ");
 }
 
-const podeAgendar = (dia, hoje) => dia.aberto && dia.livres > 0 && dia.data >= hoje;
-
-function motivoSemVaga(dia, hoje) {
-  if (!dia.aberto) return "Neste dia a oficina não recebe agendamento.";
-  if (dia.data < hoje) return "Este dia já passou.";
-  return dia.pintura
-    ? `As ${dia.vagas} vagas de pintura geral deste período já foram pagas.`
-    : `Dia lotado: ${dia.vagas} de ${dia.vagas} vagas com sinal pago. Não dá para agendar mais ninguém.`;
-}
+const podeAgendar = (dia, hoje) => dia.data >= hoje;
 
 function agruparPorDia(lista) {
   const m = {};
@@ -1242,32 +1296,42 @@ function agendaDesenhar() {
   const porDia = agruparPorDia(d.agendamentos);
   $("#agMes").textContent = nomeMes(d.mes);
   $("#agDica").hidden = true;
+  desenharSite(d);
   desenharProximos(d);
   desenharListaAcao("#agConfirmar", d.confirmar, "Ligar para confirmar presença",
     `Carros com sinal pago para os próximos ${d.regras.avisoDias} dias. Ligue para o cliente e marque quando ele confirmar.`);
   desenharListaAcao("#agRemarcar", d.remarcar, "Pagaram, mas o dia lotou",
-    "Esses clientes pagaram o sinal depois que outro pagou a última vaga. Remarque para outro dia.");
+    "Esses clientes pagaram o sinal depois que o agendamento foi desmarcado ou o dia lotou. Remarque para outro dia.");
+  desenharCreditos(d);
   desenharResumoMes(d);
   $("#agCalWrap").hidden = AG.vista !== "mes";
   $("#agLista").hidden = AG.vista !== "dias";
   if (AG.vista === "mes") desenharGrade(d, porDia);
   else desenharListaDias(d, porDia);
+  desenharLegenda(d);
   desenharRegras(d);
   if ($("#dlgDia").open) desenharDialogo();
+}
+
+function desenharSite(d) {
+  $("#agSite").hidden = !d.site;
+  const link = $("#agSiteLink");
+  link.textContent = d.site.replace(/^https?:\/\//, "");
+  link.href = d.site;
 }
 
 function desenharProximos(d) {
   const cartao = (rotulo, p) => {
     const ags = p.agendamentos || [];
     const pagos = ags.filter(a => a.sit === "confirmado").length;
-    const titulo = !p.aberto && !ags.length ? "Sem agendamento"
+    const titulo = !p.ofertas.length && !ags.length ? "Fechado para clientes"
       : pagos ? plural(pagos, "carro confirmado", "carros confirmados") : "Nenhum carro confirmado";
     return el("button", { type: "button", class: "prox", "data-ir": p.data },
       el("span", { class: "prox-rot" }, `${rotulo} · ${dataCurta(p.data)}`),
       el("b", {}, titulo),
-      p.aberto ? el("span", { class: "sub" }, `${p.nome} · ${resumoVagas(p)}`) : "",
+      p.ofertas.length ? el("span", { class: "sub" }, resumoVagas(p)) : "",
       ...ags.slice(0, 3).map(a => el("span", { class: "prox-ag" + (a.sit === "aguardando" ? " pend" : "") },
-        `${a.cliente} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : ""}`)));
+        `${a.cliente} · ${a.servico} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : a.sit === "nao_veio" ? " · não veio" : ""}`)));
   };
   $("#agProximos").replaceChildren(cartao("Hoje", d.proximos[0]), cartao("Amanhã", d.proximos[1]));
 }
@@ -1282,51 +1346,87 @@ function desenharListaAcao(sel, lista, titulo, explicacao) {
     el("div", { class: "dlg-lista" }, ...lista.map(a => itemAgendamento(a, true))));
 }
 
+function mensagemCredito(c) {
+  return `Olá, ${c.cliente.split(" ")[0]}! Aqui é da Blin Car. O seu sinal de ${reais(c.valor)} virou crédito. ` +
+    `Para escolher a nova data, entre no site com o mesmo e-mail e celular do cadastro (não precisa pagar de novo):\n${AG.dados.site}`;
+}
+
+function desenharCreditos(d) {
+  const caixa = $("#agCreditos");
+  caixa.hidden = !d.creditos.length;
+  if (!d.creditos.length) return caixa.replaceChildren();
+  const max = d.regras.remarcacoes;
+  const item = c => {
+    const botao = (acao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-acao": acao, "data-credito": c.id }, texto);
+    const zap = linkZap(c.telefone, mensagemCredito(c));
+    const acoes = AG.confirmando === "credito:" + c.id
+      ? el("div", { class: "confirma", role: "alert" },
+        el("span", {}, `Dar baixa no crédito de ${c.cliente}? Use quando vocês já agendaram o cliente por fora. Ele não vai mais conseguir usar o crédito no site.`),
+        el("div", { class: "ag-acoes" }, botao("manter", "Não"), botao("baixa", "Sim, dar baixa", "mini perigo-cheio")))
+      : el("div", { class: "ag-acoes" },
+        zap ? el("a", { class: "mini mini-wa", href: zap, target: "_blank", rel: "noopener" }, "Mandar o link no WhatsApp") : "",
+        botao("pedir-baixa", "Dar baixa"));
+    return el("div", { class: "ag", "data-credito-item": c.id },
+      el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, c.cliente), el("span", { class: "selo-sinal sim" }, `Crédito de ${reais(c.valor)}`)),
+      el("div", { class: "ag-info" },
+        el("span", {}, `${c.motivo}${c.nivel ? ` · vale a remarcação ${c.nivel} de ${max}` : ""}`),
+        el("span", {}, c.telefone, c.email ? ` · ${c.email}` : " · sem e-mail: ele não consegue usar sozinho no site")),
+      acoes);
+  };
+  caixa.replaceChildren(
+    el("div", { class: "bloco-head" }, el("h2", {}, "Créditos de clientes"),
+      el("p", { class: "nota" }, "Sinal de quem não veio, desmarcou ou pagou quando o dia já tinha lotado. O cliente usa entrando no site com o mesmo e-mail e celular.")),
+    el("div", { class: "dlg-lista" }, ...d.creditos.map(item)));
+}
+
 function desenharResumoMes(d) {
-  const conta = dow => d.dias.filter(x => diaSemana(x.data) === dow).length;
   const soma = (arr, f) => arr.reduce((t, x) => t + f(x), 0);
   const extras = [];
   if (d.desmarcados) extras.push(plural(d.desmarcados, "desmarcado", "desmarcados"));
   if (d.vencidos) extras.push(plural(d.vencidos, "reserva perdeu a vaga sem pagar", "reservas perderam a vaga sem pagar"));
-  $("#agContagem").textContent = `${nomeMes(d.mes)} tem ${conta(1)} segundas, ${conta(3)} quartas, ${conta(4)} quintas e ${conta(5)} sextas.` +
+  const abertos = d.dias.filter(x => x.ofertas.length).length;
+  $("#agContagem").textContent = `${nomeMes(d.mes)}: ${plural(abertos, "dia aberto", "dias abertos")} no site dos clientes.` +
     (extras.length ? ` No mês: ${juntar(extras)}.` : "");
-  const ret = d.dias.filter(x => x.aberto && !x.pintura);
-  const vagasRet = soma(ret, x => x.vagas);
-  const ocupRet = soma(ret, x => Math.min(x.ocupadas, x.vagas));
-  const livresAdiante = soma(ret.filter(x => x.data >= d.hoje), x => x.livres);
-  const diasPintura = new Set(d.dias.filter(x => x.pintura).map(x => x.data));
+  const tile = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
+  const tileServico = nome => {
+    const lista = d.dias.map(x => ({ data: x.data, o: vagaDe(x, nome) })).filter(x => x.o);
+    const vagas = soma(lista, x => x.o.vagas);
+    const pagas = soma(lista, x => Math.min(x.o.ocupadas, x.o.vagas));
+    const livres = soma(lista.filter(x => x.data >= d.hoje), x => x.o.livres);
+    return tile(nome, `${pagas} de ${vagas}`, `vagas pagas no mês · ${livres} livres de hoje em diante`);
+  };
   const pagos = d.agendamentos.filter(a => a.sit === "confirmado");
   const esperando = d.agendamentos.filter(a => a.sit === "aguardando");
-  const pinturas = pagos.filter(a => diasPintura.has(a.data)).length;
-  const tile = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
   $("#agResumo").replaceChildren(
-    tile("Retoque e polimento", `${ocupRet} de ${vagasRet}`, `vagas pagas no mês · ${livresAdiante} livres de hoje em diante`),
-    tile("Pintura geral", nf.format(pinturas), `${pinturas === 1 ? "carro pago" : "carros pagos"} no mês · ${d.regras.pintura.vagas} vagas a cada ${d.regras.pintura.dias} dias`),
-    tile("Sinais pagos", reais(soma(pagos, a => a.sinal)), plural(pagos.length, "carro confirmado", "carros confirmados")),
-    tile("Aguardando sinal", reais(soma(esperando, a => a.sinal)), `${plural(esperando.length, "reserva", "reservas")} · vencem às 23h59 do dia em que foram feitas`));
+    ...Object.keys(d.regras.servicos).slice(0, 2).map(tileServico),
+    tile("Sinais pagos", reais(soma(pagos.filter(a => a.forma !== "Crédito"), a => a.sinal)), plural(pagos.length, "carro confirmado", "carros confirmados")),
+    tile("Aguardando sinal", reais(soma(esperando, a => a.sinal)), `${plural(esperando.length, "reserva", "reservas")} · não seguram a vaga`));
 }
 
 function pontos(dia) {
-  const cheios = dia.pintura ? dia.vagas - dia.livres : dia.ocupadas;
   const p = el("span", { class: "pontos", "aria-hidden": "true" });
-  for (let i = 0; i < dia.vagas; i++) p.append(el("i", { class: i < cheios ? "cheio" : "" }));
+  dia.ofertas.forEach(o => {
+    const g = el("span", { class: "grupo" }, el("b", {}, sigla(o.servico)));
+    if (o.vagas > 6) g.append(el("span", {}, `${o.ocupadas}/${o.vagas}`));
+    else for (let i = 0; i < o.vagas; i++) g.append(el("i", { class: i < o.ocupadas ? "cheio" : "" }));
+    p.append(g);
+  });
   return p;
 }
 
 function celula(dia, ags, hoje) {
   const est = estadoDia(dia, hoje);
-  const classe = `cel ${est}${dia.data === hoje ? " hoje" : ""}`;
-  const numero = el("span", { class: "num" }, Number(dia.data.slice(8)));
-  if (est === "fechado" && !ags.length) return el("div", { class: classe, "aria-hidden": "true" }, numero);
+  const classe = `cel ${est}${dia.data === hoje ? " hoje" : ""}${dia.editado ? " editado" : ""}`;
   const b = el("button", { type: "button", class: classe, "data-dia": dia.data,
-    "aria-label": `${dataLonga(dia.data)}. ${dia.nome}. ${resumoVagas(dia)}.${ags.length ? " " + ags.map(a => a.cliente).join(", ") + "." : ""}` }, numero);
-  if (!dia.aberto) {
-    b.append(el("span", { class: "quem" }, `${ags.length} agendado`));
+    "aria-label": `${dataLonga(dia.data)}. ${resumoVagas(dia)}.${ags.length ? " " + ags.map(a => a.cliente).join(", ") + "." : ""}` },
+    el("span", { class: "num" }, Number(dia.data.slice(8))));
+  dia.ofertas.forEach(o => b.append(el("span", { class: "tipo" }, `${o.servico} ${o.ocupadas}/${o.vagas}`)));
+  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" + (a.sit === "aguardando" ? " pend" : a.sit === "nao_veio" ? " falta" : "") }, a.cliente)));
+  if (ags.length > 3) b.append(el("span", { class: "quem" }, `+${ags.length - 3}`));
+  if (!dia.ofertas.length) {
+    if (ags.length) b.append(el("span", { class: "rodape-cel" }, el("span", { class: "pend-num" }, plural(ags.length, "carro", "carros"))));
     return b;
   }
-  b.append(el("span", { class: "tipo" }, NOME_CURTO[dia.nome] || dia.nome));
-  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" + (a.sit === "aguardando" ? " pend" : "") }, a.cliente)));
-  if (ags.length > 3) b.append(el("span", { class: "quem" }, `+${ags.length - 3}`));
   b.append(el("span", { class: "rodape-cel" }, pontos(dia),
     dia.aguardando ? el("span", { class: "pend-num", title: plural(dia.aguardando, "aguardando sinal", "aguardando sinal") }, `+${dia.aguardando}`) : "",
     est === "lotado" ? el("span", { class: "tag" }, "Lotado") : ""));
@@ -1341,7 +1441,7 @@ function desenharGrade(d, porDia) {
 }
 
 function rotuloEstado(est) {
-  return { lotado: "Lotado", passou: "Já passou", fechado: "Fechado", livre: "Livre", parcial: "Com vaga" }[est];
+  return { lotado: "Lotado", passou: "Já passou", fechado: "Fechado para clientes", livre: "Livre", parcial: "Com vaga" }[est];
 }
 
 function blocoDia(dia, ags, hoje) {
@@ -1349,17 +1449,27 @@ function blocoDia(dia, ags, hoje) {
   const cab = el("div", { class: "dia-cab" },
     el("div", {},
       el("b", {}, dataLonga(dia.data) + (dia.data === hoje ? " · hoje" : "")),
-      el("span", { class: "sub" }, `${dia.nome} · ${resumoVagas(dia)}`)),
+      el("span", { class: "sub" }, resumoVagas(dia))),
     podeAgendar(dia, hoje)
-      ? el("button", { type: "button", class: "mini", "data-agendar": dia.data }, "Agendar")
+      ? el("div", { class: "ag-acoes" },
+        el("button", { type: "button", class: "mini", "data-agendar": dia.data }, "Agendar"),
+        el("button", { type: "button", class: "mini", "data-editar-dia": dia.data }, "Editar vagas"))
       : el("span", { class: "tag-est " + est }, rotuloEstado(est)));
   const corpo = ags.length ? ags.map(a => itemAgendamento(a)) : [el("p", { class: "vazio" }, "Nenhum carro agendado.")];
   return el("article", { class: "dia-bloco " + est }, cab, ...corpo);
 }
 
 function desenharListaDias(d, porDia) {
-  const dias = d.dias.filter(x => x.aberto || porDia[x.data]);
-  $("#agLista").replaceChildren(...dias.map(dia => blocoDia(dia, porDia[dia.data] || [], d.hoje)));
+  const dias = d.dias.filter(x => x.ofertas.length || porDia[x.data]);
+  $("#agLista").replaceChildren(...(dias.length ? dias.map(dia => blocoDia(dia, porDia[dia.data] || [], d.hoje))
+    : [el("p", { class: "vazio" }, "Nenhum dia aberto neste mês.")]));
+}
+
+function desenharLegenda(d) {
+  const nomes = [];
+  d.dias.forEach(x => x.ofertas.forEach(o => { if (!nomes.some(n => mesmoServico(n, o.servico))) nomes.push(o.servico); }));
+  $("#agSiglas").textContent = "No celular, cada bolinha é uma vaga (cheia = paga)" +
+    (nomes.length ? ": " + nomes.map(n => `${sigla(n)} = ${n.toLowerCase()}`).join(", ") : "") + ".";
 }
 
 function numeroWhatsApp(telefone) {
@@ -1373,9 +1483,12 @@ const linkZap = (telefone, texto) => {
   return n ? `https://wa.me/${n}${texto ? "?text=" + encodeURIComponent(texto) : ""}` : "";
 };
 
+// "até 23h59 de hoje", "até 14h30 de hoje", "até 23h59 de ter, 20/10"
 function prazoTexto(a) {
   if (!a.prazo) return "o quanto antes";
-  return a.prazo === AG.dados.hoje ? "até 23h59 de hoje" : `até 23h59 de ${dataCurta(a.prazo)}`;
+  const data = a.prazo.slice(0, 10);
+  const hora = a.prazo.slice(11, 16).replace(":", "h").replace(/h00$/, "h");
+  return `até ${hora} de ${data === AG.dados.hoje ? "hoje" : dataCurta(data)}`;
 }
 
 function mensagemSinal(a) {
@@ -1383,7 +1496,7 @@ function mensagemSinal(a) {
   return `Olá, ${nome}! Aqui é da Blin Car.\n\n` +
     `Separamos ${a.servico.toLowerCase()} para ${dataLonga(a.data).toLowerCase()} (${a.carro}).\n\n` +
     `Para garantir a vaga, pague o sinal de ${reais(a.sinal)} ${prazoTexto(a)} por este link:\n${a.link}\n\n` +
-    "A vaga só fica garantida depois do pagamento. O sinal é descontado do valor do serviço. Se você não puder vir, ele não é devolvido.";
+    "A vaga só fica garantida depois do pagamento. O sinal é descontado do valor do serviço. Se você não puder vir, o sinal vira crédito para remarcar.";
 }
 
 function mensagemPresenca(a) {
@@ -1392,45 +1505,72 @@ function mensagemPresenca(a) {
 }
 
 function seloSituacao(a) {
-  if (a.sit === "confirmado") return el("span", { class: "selo-sinal sim" }, `Confirmado · sinal pago ${reais(a.sinal)}`);
+  if (a.sit === "confirmado") {
+    return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito" : `Confirmado · sinal pago ${reais(a.sinal)}`);
+  }
   if (a.sit === "pago_sem_vaga") return el("span", { class: "selo-sinal alerta" }, `Pagou ${reais(a.sinal)}, mas o dia lotou`);
+  if (a.sit === "nao_veio") return el("span", { class: "selo-sinal alerta" }, "Não veio");
   return el("span", { class: "selo-sinal nao" }, `Aguardando sinal de ${reais(a.sinal)} ${prazoTexto(a)}`);
 }
 
 // "comData": mostra o dia junto (nos quadros fora do calendário).
 function itemAgendamento(a, comData) {
+  const max = AG.dados.regras.remarcacoes;
   const botao = (acao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-acao": acao, "data-id": a.id }, texto);
   const topo = el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, a.cliente), seloSituacao(a));
   const zap = linkZap(a.telefone);
+  const etiquetas = [];
+  if (a.origem === "Site") etiquetas.push("agendou pelo site");
+  if (a.remarcacao) etiquetas.push(`remarcação ${a.remarcacao} de ${max}`);
   const info = el("div", { class: "ag-info" },
     comData ? el("span", { class: "ag-dia" }, dataLonga(a.data)) : "",
     el("span", {}, `${a.servico} · ${a.carro}`),
     el("span", {}, a.telefone, zap ? " · " : "", zap ? el("a", { href: zap, target: "_blank", rel: "noopener" }, "abrir WhatsApp") : ""),
-    a.sit === "confirmado" ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "");
+    a.email ? el("span", {}, a.email) : "",
+    etiquetas.length ? el("span", {}, maiuscula(etiquetas.join(" · "))) : "",
+    a.sit === "confirmado" ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
+    a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
   const obs = a.obs ? el("p", { class: "ag-obs" }, a.obs) : "";
   let acoes;
-  if (AG.confirmando === a.id) {
+  if (AG.confirmando === "desmarcar:" + a.id) {
+    const podeCredito = a.sit === "confirmado" && a.sinal > 0 && a.remarcacao < max;
     acoes = el("div", { class: "confirma", role: "alert" },
-      el("span", {}, `Desmarcar ${a.cliente} em ${dataCurta(a.data)}?${a.sit === "confirmado" ? " O sinal pago não é devolvido e a vaga volta a ficar livre." : " A vaga continua livre para outros clientes."}`),
-      el("div", { class: "ag-acoes" }, botao("manter", "Não, manter"), botao("desmarcar", "Sim, desmarcar", "mini perigo-cheio")));
+      el("span", {}, `Desmarcar ${a.cliente} em ${dataCurta(a.data)}?` + (a.sit === "confirmado"
+        ? ` A vaga volta a ficar livre.${podeCredito ? ` Se o cliente avisou, o sinal pode virar crédito para ele remarcar pelo site${a.email ? " (ele recebe um e-mail)" : ""}.` : ""}`
+        : " A vaga continua livre para outros clientes.")),
+      el("div", { class: "ag-acoes" }, botao("manter", "Não, manter"),
+        podeCredito ? botao("desmarcar-credito", "Desmarcar e virar crédito", "mini mini-forte") : "",
+        botao("desmarcar", a.sit === "confirmado" ? "Desmarcar sem crédito" : "Sim, desmarcar", "mini perigo-cheio")));
+  } else if (AG.confirmando === "naoveio:" + a.id) {
+    const vira = a.sinal > 0 && a.remarcacao < max;
+    acoes = el("div", { class: "confirma", role: "alert" },
+      el("span", {}, `${a.cliente} não veio? ` + (vira
+        ? `O sinal de ${reais(a.sinal)} vira crédito (remarcação ${a.remarcacao + 1} de ${max})` +
+          (a.email ? " e o cliente recebe um e-mail com o link para remarcar." : ". Sem e-mail no cadastro: mande o link do site pelo WhatsApp.")
+        : `Esse sinal já foi remarcado ${max} vezes: ele não vira crédito de novo.`)),
+      el("div", { class: "ag-acoes" }, botao("manter", "Não"), botao("naoveio", "Sim, não veio", "mini perigo-cheio")));
   } else if (a.sit === "aguardando") {
     const pagar = [];
     if (a.link) {
       const msg = linkZap(a.telefone, mensagemSinal(a));
       pagar.push(el("div", { class: "link-pag" },
         el("span", {}, "Link de pagamento: "), el("a", { href: a.link, target: "_blank", rel: "noopener" }, a.link)));
-      if (msg) pagar.push(el("a", { class: "mini mini-wa", href: msg, target: "_blank", rel: "noopener" }, "Mandar link no WhatsApp"));
+      if (msg && a.origem !== "Site") pagar.push(el("a", { class: "mini mini-wa", href: msg, target: "_blank", rel: "noopener" }, "Mandar link no WhatsApp"));
       pagar.push(botao("copiar", "Copiar link"));
       pagar.push(botao("conferir", "Conferir pagamento"));
     }
     acoes = el("div", { class: "ag-acoes" }, ...pagar, botao("pago", "Marcar sinal pago"), botao("editar", "Editar"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
   } else if (a.sit === "pago_sem_vaga") {
     acoes = el("div", { class: "ag-acoes" }, botao("editar", "Remarcar", "mini mini-forte"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
+  } else if (a.sit === "nao_veio") {
+    acoes = el("div", { class: "ag-acoes" }, botao("desfazer-naoveio", "Desfazer \"não veio\""));
   } else {
     const lembrar = linkZap(a.telefone, mensagemPresenca(a));
+    const chegou = a.data <= AG.dados.hoje;
     acoes = el("div", { class: "ag-acoes" },
-      a.presenca ? botao("presenca-nao", "Desfazer presença") : botao("presenca", "Cliente confirmou presença"),
-      !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
+      chegou ? botao("pedir-naoveio", "Não veio") : "",
+      !chegou ? (a.presenca ? botao("presenca-nao", "Desfazer presença") : botao("presenca", "Cliente confirmou presença")) : "",
+      !chegou && !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
       botao("editar", "Editar"), botao("despagar", "Desfazer sinal pago"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
   }
   return el("div", { class: "ag ag-" + a.sit, "data-ag": a.id }, topo, info, obs, acoes);
@@ -1438,22 +1578,27 @@ function itemAgendamento(a, comData) {
 
 function desenharRegras(d) {
   const r = d.regras;
-  const nomes = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-  const itens = [];
-  const diasPintura = [];
-  Object.keys(r.dias).forEach(k => {
-    const x = r.dias[k];
-    if (x.pintura) diasPintura.push(nomes[k].toLowerCase());
-    else itens.push(`${nomes[k]}: ${juntar(x.servicos.map(s => s.toLowerCase()))}. Até ${x.vagas} carros.`);
+  const itens = Object.keys(r.servicos).map(nome => {
+    const s = r.servicos[nome];
+    const dias = Object.keys(s.dias).map(k => `${SEMANA[k]} (${plural(s.dias[k], "vaga", "vagas")})`);
+    let txt = `${nome}: ${juntar(dias)}.`;
+    if (s.aCadaSemanas > 1) {
+      const proximas = [];
+      for (let w = segundaDe(d.hoje); proximas.length < 3; w = somaDias(w, 7)) {
+        if (ofertasDoDia({ servicos: { [nome]: s } }, {}, somaDias(w, Number(Object.keys(s.dias)[0]) - 1)).length) proximas.push(`${w.slice(8, 10)}/${w.slice(5, 7)}`);
+      }
+      txt += ` Uma semana sim, outra não (semanas de ${juntar(proximas)}...).`;
+    }
+    return txt;
   });
-  if (diasPintura.length) itens.push(`${maiuscula(juntar(diasPintura))}: pintura geral. No máximo ${r.pintura.vagas} carros a cada ${r.pintura.dias} dias.`);
-  itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago. Quem pagar primeiro fica com ela.`);
-  itens.push("Sem pagamento até 23h59 do dia em que o agendamento foi feito, ele vence sozinho.");
-  itens.push("O sinal é descontado do valor do serviço. Se o cliente não vier, o sinal não é devolvido.");
-  itens.push(`${r.avisoDias} dias antes de cada carro chega um e-mail (e aparece aqui) para ligar e confirmar a presença.`);
+  itens.push("Para mudar um dia (fechar, mudar as vagas ou criar uma promoção com preço), abra o dia e toque em \"Editar serviços e vagas\". O site dos clientes muda na hora.");
+  itens.push("No painel dá para agendar em qualquer dia e serviço, mesmo passando do limite. O site dos clientes respeita as vagas e mostra \"Vagas esgotadas\" quando lota.");
+  itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site, o cliente tem ${r.prazoSiteMinutos} minutos para pagar. Agendado aqui, até 23h59 do dia.`);
+  itens.push(`O sinal é descontado do serviço. Se o cliente não vier, toque em "Não veio": o sinal vira crédito para remarcar pelo site, até ${r.remarcacoes} vezes.`);
+  itens.push(`No dia do carro, às 8h, o cliente recebe um e-mail lembrando. ${r.avisoDias} dias antes, vocês recebem um e-mail (e aparece aqui) para ligar e confirmar.`);
   itens.push(d.mp
-    ? "Mercado Pago ligado: cada agendamento ganha um link de Pix, e a vaga é confirmada sozinha quando o cliente paga."
-    : "Mercado Pago ainda não ligado: quando o cliente pagar, toque em \"Marcar sinal pago\". Para ligar, veja o LEIA-ME.");
+    ? "Mercado Pago ligado: o sinal é confirmado sozinho quando o cliente paga."
+    : "Mercado Pago ainda não ligado: o site dos clientes não consegue receber o sinal. Para ligar, veja o LEIA-ME.");
   $("#agRegras").replaceChildren(...itens.map(t => el("li", {}, t)));
 }
 
@@ -1465,12 +1610,12 @@ function mostrarDica(b) {
   const dia = d.dias.find(x => x.data === data);
   const ags = agruparPorDia(d.agendamentos)[data] || [];
   const dica = $("#agDica");
-  const rotulo = { confirmado: "pago", aguardando: "aguardando sinal", pago_sem_vaga: "pagou sem vaga" };
+  const rotulo = { confirmado: "pago", aguardando: "aguardando sinal", pago_sem_vaga: "pagou sem vaga", nao_veio: "não veio" };
   dica.replaceChildren(
     el("b", {}, dataLonga(data)),
-    el("span", { class: "sub-dica" }, `${dia.nome} · ${resumoVagas(dia)}`),
+    el("span", { class: "sub-dica" }, resumoVagas(dia)),
     ...(ags.length ? ags.map(a => el("span", { class: a.sit === "aguardando" ? "pend" : "" }, `${a.cliente} · ${a.carro} · ${a.servico} (${rotulo[a.sit]})`)) : [el("span", {}, "Nenhum carro agendado.")]),
-    el("span", { class: "sub-dica" }, podeAgendar(dia, d.hoje) ? "Clique para ver os detalhes e agendar." : "Clique para ver os detalhes."));
+    el("span", { class: "sub-dica" }, podeAgendar(dia, d.hoje) ? "Clique para ver, agendar ou mudar as vagas." : "Clique para ver os detalhes."));
   const wrap = $("#agCalWrap");
   const largura = Math.min(320, wrap.clientWidth);
   dica.style.width = largura + "px";
@@ -1494,7 +1639,7 @@ $("#agCal").addEventListener("click", e => {
   if (b) abrirDia(b.dataset.dia);
 });
 
-/* Janela do dia: lista, agendar e editar */
+/* Janela do dia: lista, agendar, editar agendamento e editar as vagas do dia */
 
 async function abrirDia(data, modo = "lista", ag = null) {
   if (!AG.dados) return;
@@ -1511,7 +1656,8 @@ async function abrirDia(data, modo = "lista", ag = null) {
   desenharDialogo();
   const dlg = $("#dlgDia");
   if (!dlg.open) dlg.showModal();
-  const primeiro = modo === "form" ? $("#fCliente") : dlg.querySelector("[data-agendar], [data-acao]:not([data-acao='fechar'])");
+  const primeiro = modo === "form" ? $("#fCliente") : modo === "dia" ? dlg.querySelector(".dServico, [data-acao='dia-adicionar']")
+    : dlg.querySelector("[data-agendar], [data-acao]:not([data-acao='fechar'])");
   if (primeiro) primeiro.focus();
 }
 
@@ -1521,61 +1667,132 @@ function desenharDialogo() {
   if (!dia) return $("#dlgDia").close();
   const ags = agruparPorDia(d.agendamentos)[AG.dia] || [];
   const topo = el("div", { class: "dlg-topo" },
-    el("div", {}, el("h2", { id: "dlgTitulo" }, dataLonga(dia.data)), el("p", { class: "sub" }, `${dia.nome} · ${resumoVagas(dia)}`)),
+    el("div", {}, el("h2", { id: "dlgTitulo" }, dataLonga(dia.data)), el("p", { class: "sub" }, resumoVagas(dia))),
     el("button", { type: "button", class: "mini", "data-acao": "fechar" }, "Fechar"));
   const avisoOk = el("p", { class: "aviso-ok", id: "dlgAviso", role: "status", hidden: "" });
   let corpo;
   if (AG.modo === "form") {
     corpo = formulario(dia, AG.editando);
+  } else if (AG.modo === "dia") {
+    corpo = editorDia(dia);
   } else {
     corpo = el("div", { class: "dlg-lista" },
       el("p", { class: "err", id: "dlgErro", role: "alert", hidden: "" }),
-      ...(ags.length ? ags.map(a => itemAgendamento(a)) : [el("p", { class: "vazio" }, dia.aberto ? "Nenhum carro agendado neste dia." : "Este dia não tem agendamento.")]),
+      ...(ags.length ? ags.map(a => itemAgendamento(a)) : [el("p", { class: "vazio" }, "Nenhum carro agendado neste dia.")]),
       podeAgendar(dia, d.hoje)
-        ? el("button", { type: "button", class: "btn btn-red", "data-agendar": dia.data }, "Agendar neste dia")
-        : el("p", { class: "nota" }, motivoSemVaga(dia, d.hoje)));
+        ? el("div", { class: "ag-acoes" },
+          el("button", { type: "button", class: "btn btn-red", "data-agendar": dia.data }, "Agendar neste dia"),
+          el("button", { type: "button", class: "btn btn-line", "data-acao": "editar-dia" }, "Editar serviços e vagas"))
+        : el("p", { class: "nota" }, "Este dia já passou."));
   }
   $("#dlgCorpo").replaceChildren(topo, avisoOk, corpo);
 }
 
-const opcao = (valor, texto, marcado) => {
-  const o = el("option", { value: valor }, texto);
-  o.selected = !!marcado;
-  return o;
-};
+const campo = (id, rotulo, controle) => el("div", { class: "campo" }, el("label", { for: id }, rotulo), controle);
+
+// Serviços para sugerir: os do dia, os do padrão e os que aparecem no mês.
+function servicosConhecidos(dia) {
+  const lista = [];
+  const por = n => { if (n && !lista.some(x => mesmoServico(x, n))) lista.push(n); };
+  (dia ? dia.ofertas : []).forEach(o => por(o.servico));
+  Object.keys(AG.dados.regras.servicos).forEach(por);
+  AG.dados.dias.forEach(x => x.ofertas.forEach(o => por(o.servico)));
+  por("Polimento");
+  return lista;
+}
+
+let seqOferta = 0;
+function linhaOferta(o) {
+  const n = ++seqOferta;
+  return el("div", { class: "oferta" },
+    campo(`dS${n}`, "Serviço", el("input", { id: `dS${n}`, class: "dServico", type: "text", value: o.servico, list: "dSugestoes", autocomplete: "off", placeholder: "Ex.: Polimento" })),
+    campo(`dV${n}`, "Vagas", el("input", { id: `dV${n}`, class: "dVagas", type: "number", min: "1", max: "50", step: "1", inputmode: "numeric", value: String(o.vagas) })),
+    campo(`dP${n}`, "Preço (opcional)", el("input", { id: `dP${n}`, class: "dPreco", type: "number", min: "0", step: "0.01", inputmode: "decimal", value: o.preco ? String(o.preco) : "", placeholder: "R$" })),
+    el("button", { type: "button", class: "mini perigo", "data-acao": "dia-remover" }, "Tirar"));
+}
+
+function editorDia(dia) {
+  const d = AG.dados;
+  const padrao = ofertasDoDia(d.regras, {}, dia.data);
+  const textoPadrao = padrao.length ? padrao.map(o => `${o.servico.toLowerCase()} (${plural(o.vagas, "vaga", "vagas")})`).join(" e ") : "fechado";
+  const linhas = el("div", { class: "ofertas", id: "dOfertas" }, ...dia.ofertas.map(linhaOferta));
+  const f = el("form", { class: "ag-form", id: "diaForm", novalidate: "" },
+    el("h3", {}, "Serviços e vagas deste dia"),
+    el("p", { class: "nota" }, `É o que os clientes veem no site de agendamento. O padrão deste dia é ${textoPadrao}.` +
+      (dia.editado ? " Este dia já está diferente do padrão." : "")),
+    el("datalist", { id: "dSugestoes" }, ...servicosConhecidos(dia).map(s => el("option", { value: s }))),
+    linhas,
+    el("p", { class: "vazio", id: "dVazio", ...(dia.ofertas.length ? { hidden: "" } : {}) }, "Nenhum serviço: o dia fica fechado para os clientes."),
+    el("div", {}, el("button", { type: "button", class: "mini", "data-acao": "dia-adicionar" }, "+ Adicionar serviço")),
+    el("p", { class: "nota" }, `O preço é opcional e aparece para o cliente (ex.: promoção de polimento por R$ 150). O sinal continua ${reais(d.regras.sinal)}.`),
+    el("p", { class: "err", id: "dErro", role: "alert", hidden: "" }),
+    el("div", { class: "ag-acoes" },
+      el("button", { type: "submit", class: "btn btn-red", id: "dSalvar" }, "Salvar"),
+      dia.ofertas.length ? el("button", { type: "button", class: "btn btn-line", "data-acao": "dia-fechar" }, "Fechar o dia para clientes") : "",
+      dia.editado ? el("button", { type: "button", class: "btn btn-line", "data-acao": "dia-padrao" }, "Voltar ao padrão") : "",
+      el("button", { type: "button", class: "btn btn-line", "data-acao": "voltar" }, "Voltar")));
+  f.addEventListener("submit", e => {
+    e.preventDefault();
+    salvarDia();
+  });
+  return f;
+}
+
+function salvarDia() {
+  const ofertas = [...document.querySelectorAll("#dOfertas .oferta")].map(l => ({
+    servico: l.querySelector(".dServico").value.trim(),
+    vagas: Number(l.querySelector(".dVagas").value),
+    preco: Number(String(l.querySelector(".dPreco").value).replace(",", ".")) || 0
+  })).filter(o => o.servico || o.vagas);
+  const ruim = ofertas.find(o => !o.servico || !(o.vagas >= 1 && o.vagas <= 50));
+  if (ruim) return mostrarErro($("#dErro"), ruim.servico ? `Coloque de 1 a 50 vagas para ${ruim.servico}.` : "Falta o nome de um dos serviços.");
+  $("#dErro").hidden = true;
+  executar("agenda_dia", { data: AG.dia, ofertas }, ofertas.length ? "Dia salvo. O site dos clientes já mostra a mudança." : "Dia fechado para os clientes.",
+    $("#dErro"), () => { AG.modo = "lista"; });
+}
 
 function formulario(dia, ag) {
   const d = AG.dados;
   const novo = !ag;
-  const v = ag || { data: dia.data, servico: dia.servicos[0], cliente: "", telefone: "", carro: "", sinal: d.regras.sinal, pago: false, obs: "" };
-  const campo = (id, rotulo, controle) => el("div", { class: "campo" }, el("label", { for: id }, rotulo), controle);
+  const v = ag || { data: dia.data, servico: (dia.ofertas[0] || {}).servico || "", cliente: "", telefone: "", email: "", carro: "", sinal: d.regras.sinal, pago: false, obs: "" };
   const entrada = (id, attrs) => el("input", { id, name: id, ...attrs });
-  // Dá para trocar de dia dentro do mês, só para dias com vaga.
-  const dias = d.dias.filter(x => x.data === v.data || podeAgendar(vagasParaMover(x, ag), d.hoje));
-  const selDia = el("select", { id: "fDia", name: "fDia" }, ...dias.map(x => opcao(x.data, `${dataCurta(x.data)} · ${x.nome}`, x.data === v.data)));
-  const selServico = el("select", { id: "fServico", name: "fServico" });
-  const disputa = el("p", { class: "nota disputa", id: "fDisputa", hidden: "" });
-  const atualizarDia = (data, atual) => {
-    const dd = d.dias.find(x => x.data === data);
-    selServico.replaceChildren(...dd.servicos.map(s => opcao(s, s, s === atual)));
-    const outros = (agruparPorDia(d.agendamentos)[data] || []).filter(a => a.sit === "aguardando" && (!ag || a.id !== ag.id)).length;
-    disputa.hidden = !(outros && outros >= dd.livres);
-    disputa.textContent = `Já tem ${plural(outros, "reserva", "reservas")} aguardando sinal neste dia e ${plural(dd.livres, "vaga livre", "vagas livres")}. Quem pagar primeiro fica com a vaga.`;
+  const inDia = entrada("fDia", { type: "date", value: v.data, ...(novo ? { min: d.hoje } : {}) });
+  const inServico = entrada("fServico", { type: "text", value: v.servico, list: "fSugestoes", autocomplete: "off", placeholder: "Ex.: Retoque" });
+  const limite = el("p", { class: "nota disputa", id: "fLimite", hidden: "" });
+  // Só avisa: no painel dá para agendar mesmo passando do limite.
+  const conferir = () => {
+    limite.hidden = true;
+    const dd = d.dias.find(x => x.data === inDia.value);
+    const servico = inServico.value.trim();
+    if (!dd || !servico) return;
+    const o = vagaDe(dd, servico);
+    if (!o) {
+      limite.textContent = `O site dos clientes não tem ${servico.toLowerCase()} nesse dia. Dá para agendar mesmo assim.`;
+      limite.hidden = false;
+      return;
+    }
+    const proprio = ag && ag.sit === "confirmado" && ag.data === dd.data && mesmoServico(ag.servico, o.servico) ? 1 : 0;
+    if (o.ocupadas - proprio >= o.vagas) {
+      limite.textContent = `${o.servico} já está lotado nesse dia (${o.vagas} de ${o.vagas} pagas). Dá para agendar mesmo assim, passando do limite.`;
+      limite.hidden = false;
+    }
   };
-  atualizarDia(v.data, v.servico);
-  selDia.addEventListener("change", () => atualizarDia(selDia.value, selServico.value));
+  inDia.addEventListener("change", conferir);
+  inServico.addEventListener("input", conferir);
   const pago = entrada("fPago", { type: "checkbox" });
   pago.checked = !!v.pago;
   const f = el("form", { class: "ag-form", id: "agForm", novalidate: "" },
     el("h3", {}, novo ? "Novo agendamento" : (ag.sit === "pago_sem_vaga" ? "Remarcar" : "Editar agendamento")),
+    el("datalist", { id: "fSugestoes" }, ...servicosConhecidos(dia).map(s => el("option", { value: s }))),
     el("div", { class: "campos" },
       campo("fCliente", "Nome do cliente", entrada("fCliente", { type: "text", value: v.cliente, autocomplete: "off" })),
       campo("fTelefone", "Telefone (WhatsApp)", entrada("fTelefone", { type: "tel", value: v.telefone, inputmode: "tel", placeholder: "(21) 99999-9999", autocomplete: "off" })),
+      campo("fEmail", "E-mail (opcional)", entrada("fEmail", { type: "email", value: v.email || "", inputmode: "email", placeholder: "Para o cliente receber os avisos", autocomplete: "off" })),
       campo("fCarro", "Carro", entrada("fCarro", { type: "text", value: v.carro, placeholder: "Modelo, ano e cor", autocomplete: "off" })),
-      campo("fDia", "Dia", selDia),
-      campo("fServico", "Serviço", selServico),
+      campo("fDia", "Dia", inDia),
+      campo("fServico", "Serviço", inServico),
       campo("fSinal", "Valor do sinal (R$)", entrada("fSinal", { type: "number", min: "0", step: "0.01", inputmode: "decimal", value: String(v.sinal) }))),
-    disputa,
+    limite,
     el("label", { class: "check" }, pago, "O sinal já foi pago (dinheiro ou Pix na chave)"),
     el("p", { class: "nota" }, d.mp && novo
       ? "Sem marcar acima, o agendamento fica aguardando o sinal até 23h59 de hoje e ganha um link de Pix do Mercado Pago para mandar ao cliente."
@@ -1585,6 +1802,7 @@ function formulario(dia, ag) {
     el("div", { class: "ag-acoes" },
       el("button", { type: "submit", class: "btn btn-red", id: "fSalvar" }, novo ? "Agendar" : "Salvar alterações"),
       el("button", { type: "button", class: "btn btn-line", "data-acao": "voltar" }, "Voltar")));
+  conferir();
   f.addEventListener("submit", e => {
     e.preventDefault();
     salvarFormulario(ag);
@@ -1592,21 +1810,15 @@ function formulario(dia, ag) {
   return f;
 }
 
-// Ao editar, o próprio agendamento não conta como vaga ocupada no dia de destino.
-function vagasParaMover(dia, ag) {
-  if (!ag || !dia.aberto) return dia;
-  const confirmados = AG.dados.agendamentos.filter(a => a.sit === "confirmado");
-  return vagasDoDia(AG.dados.regras, confirmados, dia.data, ag.id);
-}
-
 async function salvarFormulario(ag) {
   const val = id => $("#" + id).value.trim();
   const novo = {
     id: ag ? ag.id : "",
     data: $("#fDia").value,
-    servico: $("#fServico").value,
+    servico: val("fServico"),
     cliente: val("fCliente"),
     telefone: val("fTelefone"),
+    email: val("fEmail"),
     carro: val("fCarro"),
     sinal: Number(String($("#fSinal").value).replace(",", ".")) || 0,
     pago: $("#fPago").checked,
@@ -1616,7 +1828,10 @@ async function salvarFormulario(ag) {
   if (!novo.cliente) falta.push("o nome do cliente");
   if (novo.telefone.replace(/\D/g, "").length < 10) falta.push("o telefone com DDD");
   if (!novo.carro) falta.push("o carro");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(novo.data)) falta.push("o dia");
+  if (!novo.servico) falta.push("o serviço");
   if (falta.length) return mostrarErro($("#fErro"), `Falta ${juntar(falta)}.`);
+  if (novo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(novo.email)) return mostrarErro($("#fErro"), "Confira o e-mail (ou deixe em branco).");
   $("#fErro").hidden = true;
   const botao = $("#fSalvar");
   botao.textContent = "Salvando…";
@@ -1649,15 +1864,25 @@ function copiarTexto(texto, botao) {
 const RESULTADO_CONFERIR = {
   confirmado: "Pagamento encontrado. Vaga confirmada.",
   aguardando: "O pagamento ainda não caiu no Mercado Pago.",
-  pago_sem_vaga: "O cliente pagou, mas o dia já lotou. Remarque para outro dia.",
+  pago_sem_vaga: "O cliente pagou, mas o agendamento já tinha sido desmarcado. Remarque para outro dia.",
+  credito: "O cliente pagou, mas o dia já tinha lotado: o sinal virou crédito e ele recebeu um e-mail para escolher outra data.",
   sem_mp: "O Mercado Pago não está ligado na planilha."
 };
+
+// Depois de abrir ou fechar uma confirmação, o foco vai para o botão certo.
+function focar(seletor) {
+  const alvo = document.querySelector(seletor);
+  if (alvo) alvo.focus();
+}
 
 document.addEventListener("click", e => {
   const ir = e.target.closest("[data-ir]");
   if (ir) return abrirDia(ir.dataset.ir);
   const agendar = e.target.closest("[data-agendar]");
   if (agendar) return abrirDia(agendar.dataset.agendar, "form");
+  const editarDia = e.target.closest("[data-editar-dia]");
+  if (editarDia) return abrirDia(editarDia.dataset.editarDia, "dia");
+  if (e.target.closest("#agSiteCopiar") && AG.dados) return copiarTexto(AG.dados.site, e.target.closest("#agSiteCopiar"));
   const b = e.target.closest("[data-acao]");
   if (!b || AG.ocupado || !AG.dados) return;
   const acao = b.dataset.acao;
@@ -1666,6 +1891,42 @@ document.addEventListener("click", e => {
     AG.modo = "lista";
     AG.editando = null;
     return desenharDialogo();
+  }
+  if (acao === "editar-dia") {
+    AG.modo = "dia";
+    desenharDialogo();
+    return focar("#dlgDia .dServico, #dlgDia [data-acao='dia-adicionar']");
+  }
+  if (acao === "dia-adicionar") {
+    const linha = linhaOferta({ servico: "", vagas: 1, preco: 0 });
+    $("#dOfertas").append(linha);
+    $("#dVazio").hidden = true;
+    return linha.querySelector(".dServico").focus();
+  }
+  if (acao === "dia-remover") {
+    b.closest(".oferta").remove();
+    $("#dVazio").hidden = !!document.querySelector("#dOfertas .oferta");
+    return focar("#dlgDia [data-acao='dia-adicionar']");
+  }
+  if (acao === "dia-fechar") return executar("agenda_dia", { data: AG.dia, ofertas: [] }, "Dia fechado para os clientes.", $("#dErro"), () => { AG.modo = "lista"; });
+  if (acao === "dia-padrao") return executar("agenda_dia", { data: AG.dia, ofertas: null }, "O dia voltou ao padrão.", $("#dErro"), () => { AG.modo = "lista"; });
+  if (acao === "manter") {
+    const volta = AG.confirmando;
+    AG.confirmando = null;
+    agendaDesenhar();
+    const [tipo, id] = String(volta).split(":");
+    return focar(tipo === "credito" ? `[data-acao="pedir-baixa"][data-credito="${id}"]` : `[data-acao="pedir-${tipo}"][data-id="${id}"]`);
+  }
+  if (b.dataset.credito) {
+    const c = AG.dados.creditos.find(x => x.id === b.dataset.credito);
+    if (!c) return;
+    if (acao === "pedir-baixa") {
+      AG.confirmando = "credito:" + c.id;
+      agendaDesenhar();
+      return focar(`[data-credito-item="${c.id}"] [data-acao="manter"]`);
+    }
+    if (acao === "baixa") return executar("agenda_credito_baixa", { credito: c.id }, `Baixa feita no crédito de ${c.cliente}.`);
+    return;
   }
   const todos = AG.dados.agendamentos.concat(AG.dados.confirmar, AG.dados.remarcar);
   const a = todos.find(x => x.id === b.dataset.id);
@@ -1678,14 +1939,21 @@ document.addEventListener("click", e => {
     return executar("agenda_presenca", { id: a.id, confirmada: acao === "presenca" }, acao === "presenca" ? "Presença confirmada." : "Presença desfeita.");
   }
   if (acao === "conferir") return executar("agenda_conferir", { id: a.id }, d => RESULTADO_CONFERIR[d.conferido] || "Pagamento conferido.");
-  if (acao === "pedir-desmarcar" || acao === "manter") {
-    AG.confirmando = acao === "manter" ? null : a.id;
+  if (acao === "pedir-desmarcar" || acao === "pedir-naoveio") {
+    AG.confirmando = (acao === "pedir-desmarcar" ? "desmarcar:" : "naoveio:") + a.id;
     agendaDesenhar();
-    const foco = document.querySelector(`[data-acao="${acao === "manter" ? "pedir-desmarcar" : "manter"}"][data-id="${a.id}"]`);
-    if (foco) foco.focus();
-    return;
+    return focar(`[data-acao="manter"][data-id="${a.id}"]`);
   }
-  if (acao === "desmarcar") executar("agenda_desmarcar", { id: a.id }, "Desmarcado.");
+  if (acao === "desmarcar") return executar("agenda_desmarcar", { id: a.id }, "Desmarcado.");
+  if (acao === "desmarcar-credito") {
+    return executar("agenda_desmarcar", { id: a.id, credito: true }, `Desmarcado. O sinal virou crédito${a.email ? " e o cliente recebeu um e-mail para remarcar." : "."}`);
+  }
+  if (acao === "naoveio") {
+    return executar("agenda_naoveio", { id: a.id }, d => d.credito === "criado"
+      ? `Marcado: não veio. O sinal virou crédito${d.emailEnviado ? " e o cliente recebeu um e-mail para remarcar." : ". Mande o link do site para o cliente remarcar."}`
+      : "Marcado: não veio. O sinal não virou crédito (já tinha usado as remarcações).");
+  }
+  if (acao === "desfazer-naoveio") return executar("agenda_naoveio", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
 });
 
 $("#dlgDia").addEventListener("close", () => {
@@ -1721,49 +1989,27 @@ marcarVista();
 
 function criarDemo() {
   const regras = {
-    dias: {
-      1: { nome: "Retoque / polimento", vagas: 3, servicos: ["Retoque", "Polimento", "Retoque + polimento"] },
-      3: { nome: "Retoque", vagas: 3, servicos: ["Retoque"] },
-      4: { nome: "Pintura geral", servicos: ["Pintura geral"], pintura: true },
-      5: { nome: "Pintura geral", servicos: ["Pintura geral"], pintura: true }
+    servicos: {
+      "Retoque": { dias: { 1: 3, 3: 2 } },
+      "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
-    pintura: { vagas: 2, dias: 10 },
-    sinal: 50,
-    avisoDias: 2
+    sinal: 50, avisoDias: 2, remarcacoes: 3, prazoSiteMinutos: 60, antecedenciaDias: 1, janelaDias: 120
   };
   const hoje = hojeAqui();
-  const agora = () => `${hoje} ${pad2(new Date().getHours())}:${pad2(new Date().getMinutes())}`;
-  const proximo = (dow, semanas = 0) => {
-    let d = somaDias(hoje, 1);
-    while (diaSemana(d) !== dow) d = somaDias(d, 1);
-    return somaDias(d, semanas * 7);
-  };
+  const especiais = {};
+  const creditos = [];
   let seq = 0;
   const linkFalso = id => `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=EXEMPLO-${id}`;
-  const novo = (data, servico, cliente, carro, pago, extra = {}) => {
-    const id = "ex" + (++seq);
-    return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, sinal: 50, pago, obs: "",
-      situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, link: pago ? "" : linkFalso(id), presenca: false, ...extra };
+  const temServico = (data, servico) => ofertasDoDia(regras, especiais, data).some(o => mesmoServico(o.servico, servico));
+  const proximo = (servico, pular = 0, desde = somaDias(hoje, 1)) => {
+    let d = desde;
+    for (let achados = 0; ; d = somaDias(d, 1)) if (temServico(d, servico) && achados++ === pular) return d;
   };
-  // Um carro pago daqui a 1 ou 2 dias aparece em "Ligar para confirmar".
-  const perto = [somaDias(hoje, 1), somaDias(hoje, 2)].find(d => regras.dias[diaSemana(d)]);
-  const quarta = proximo(3) === perto ? proximo(3, 1) : proximo(3);
-  const lista = [
-    novo(proximo(1), "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, { obs: "Arranhão na porta traseira", presenca: true }),
-    novo(proximo(1), "Polimento", "Marina (exemplo)", "HB20 2021 branco", false),
-    novo(quarta, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
-    novo(quarta, "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true),
-    novo(quarta, "Retoque", "André (exemplo)", "Siena 2014 prata", true, { obs: "Para-choque dianteiro" }),
-    novo(proximo(4), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true),
-    novo(proximo(1, 1), "Retoque + polimento", "Luana (exemplo)", "Corolla 2018 cinza", false)
-  ];
-  if (perto) lista.push(novo(perto, regras.dias[diaSemana(perto)].servicos[0], "Bruno (exemplo)", "Fox 2016 azul", true, { obs: "Ligar para confirmar" }));
-  const comSit = () => lista.map(a => Object.assign(a, { sit: situacaoDe(a, hoje) }));
-  const confirmados = () => comSit().filter(a => a.sit === "confirmado");
-  const visiveis = () => comSit().filter(a => ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
-  const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, sinal: a.sinal,
-    pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, presenca: a.presenca, prazo: a.criado.slice(0, 10) });
-  const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
+  const anterior = servico => {
+    let d = hoje;
+    while (!temServico(d, servico)) d = somaDias(d, -1);
+    return d;
+  };
   const telefone = t => {
     let n = String(t || "").replace(/\D/g, "");
     if (n.length > 11 && n.indexOf("55") === 0) n = n.slice(2);
@@ -1771,78 +2017,160 @@ function criarDemo() {
     if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
     return n;
   };
+  const novo = (data, servico, cliente, carro, pago, extra = {}) => {
+    const id = "ex" + (++seq);
+    return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, email: "", sinal: 50, pago, obs: "",
+      situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : `${hoje} 23:59`,
+      link: pago ? "" : linkFalso(id), presenca: false, origem: "Painel", remarcacao: 0, forma: pago ? "Pix" : "", ...extra };
+  };
+  // Uma promoção numa quinta para mostrar a edição de dia.
+  let quinta = somaDias(hoje, 1);
+  while (diaSemana(quinta) !== 4) quinta = somaDias(quinta, 1);
+  especiais[quinta] = [{ servico: "Polimento", vagas: 2, preco: 150 }];
+  const site = { origem: "Site", email: "" };
+  const seg = proximo("Retoque"), qua = proximo("Retoque", 0, somaDias(seg, 1));
+  const lista = [
+    novo(seg, "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, { ...site, email: "carlos@exemplo.com", obs: "Arranhão na porta traseira", presenca: true }),
+    novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com", prazo: `${hoje} 23:59` }),
+    novo(qua, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
+    novo(qua, "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true, { ...site, email: "paula@exemplo.com" }),
+    novo(proximo("Pintura geral"), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, { ...site, email: "rafael@exemplo.com" }),
+    novo(quinta, "Polimento", "Vera (exemplo)", "Corolla 2018 cinza", true, { ...site, email: "vera@exemplo.com", obs: "Preço do dia: R$ 150,00" }),
+    novo(anterior("Retoque"), "Retoque", "Sérgio (exemplo)", "Fox 2016 azul", true, { email: "sergio@exemplo.com" }),
+    novo(somaDias(anterior("Retoque"), -2), "Retoque", "Luana (exemplo)", "Fiesta 2013 preto", true, { ...site, email: "luana@exemplo.com", situacao: "Não veio (virou crédito)" })
+  ];
+  creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
+  // Um carro pago daqui a 1 ou 2 dias aparece em "Ligar para confirmar".
+  const perto = [somaDias(hoje, 1), somaDias(hoje, 2)].find(x => ofertasDoDia(regras, especiais, x).length);
+  if (perto) lista.push(novo(perto, ofertasDoDia(regras, especiais, perto)[0].servico, "Bruno (exemplo)", "Uno 2012 branco", true, { obs: "Ligar para confirmar" }));
+  const agora = () => agoraAqui();
+  const comSit = () => lista.map(a => Object.assign(a, { sit: situacaoDe(a, agora()) }));
+  const confirmados = () => comSit().filter(a => a.sit === "confirmado");
+  const visiveis = () => comSit().filter(a => VISIVEIS.indexOf(a.sit) !== -1);
+  const ativo = id => comSit().find(a => a.id === id && ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
+  const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, email: a.email,
+    sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao,
+    forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59` });
+  const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
+  const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
+  const credito = (a, nivel, motivo) => creditos.push({ id: "cr" + (++seq), cliente: a.cliente, email: a.email, telefone: a.telefone,
+    valor: a.sinal, nivel, motivo, origem: a.id, situacao: "disponivel" });
   const fecharPendentes = () => {
     const c = confirmados();
-    comSit().filter(a => a.sit === "aguardando").forEach(a => {
-      if (vagasDoDia(regras, c, a.data, a.id).livres <= 0) a.situacao = "Sem vaga (outro cliente pagou antes)";
+    comSit().filter(a => a.sit === "aguardando" && a.origem === "Site").forEach(a => {
+      const v = vagaDe(vagasDoDia(regras, especiais, c, a.data, a.id), a.servico);
+      if (!v || v.livres <= 0) a.situacao = "Sem vaga (outro cliente pagou antes)";
     });
   };
   function mes(m, extra) {
     const ini = m + "-01", total = diasNoMes(m), fim = somaDias(ini, total - 1);
     const vis = visiveis(), c = confirmados();
-    const info = data => Object.assign(vagasDoDia(regras, c, data), { aguardando: vis.filter(a => a.data === data && a.sit === "aguardando").length });
+    const info = data => Object.assign(vagasDoDia(regras, especiais, c, data), { aguardando: vis.filter(a => a.data === data && a.sit === "aguardando").length });
     const dias = [];
     for (let i = 0; i < total; i++) dias.push(info(somaDias(ini, i)));
     const noMes = sit => comSit().filter(a => a.sit === sit && a.data >= ini && a.data <= fim).length;
     const porData = (a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
     return Object.assign({
-      ok: true, mes: m, hoje, regras, dias, mp: true,
+      ok: true, mes: m, hoje, agora: agora(), regras, dias, mp: true, site: new URL("../agendar/", location.href).href,
       agendamentos: vis.filter(a => a.data >= ini && a.data <= fim).map(publico).sort(porData),
       proximos: [hoje, somaDias(hoje, 1)].map(data => Object.assign(info(data), { agendamentos: vis.filter(a => a.data === data).map(publico) })),
       confirmar: c.filter(a => a.data > hoje && a.data <= somaDias(hoje, regras.avisoDias) && !a.presenca).map(publico).sort(porData),
       remarcar: comSit().filter(a => a.sit === "pago_sem_vaga").map(publico),
+      creditos: creditos.filter(x => x.situacao === "disponivel").map(x => ({ ...x })),
       desmarcados: noMes("desmarcado"),
       vencidos: noMes("vencido") + noMes("sem_vaga")
     }, extra || {});
   }
   function salvar(dados, m) {
-    const ag = { ...dados, cliente: String(dados.cliente || "").trim(), carro: String(dados.carro || "").trim(), telefone: telefone(dados.telefone), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago };
+    const ag = { ...dados, servico: String(dados.servico || "").trim(), cliente: String(dados.cliente || "").trim(), carro: String(dados.carro || "").trim(),
+      telefone: telefone(dados.telefone), email: String(dados.email || "").trim().toLowerCase(), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago };
+    if (!ag.servico) return falha("dados", "Escolha o serviço.");
     if (!ag.cliente || !ag.carro) return falha("dados", "Preencha o nome do cliente e o carro.");
     if (ag.telefone.replace(/\D/g, "").length < 10) return falha("dados", "Coloque o telefone com DDD.");
-    const antigo = ag.id ? visiveis().find(a => a.id === ag.id) : null;
-    if (ag.id && !antigo) return falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
+    const antigo = ag.id ? ativo(ag.id) : null;
+    if (ag.id && !antigo) return naoAchou();
     const diaNovo = !antigo || antigo.data !== ag.data;
     if (diaNovo && ag.data < hoje) return falha("passado", "Não dá para agendar num dia que já passou.");
-    const v = vagasDoDia(regras, confirmados(), ag.data, ag.id);
-    if (!v.aberto) return falha("fechado", "Esse dia não tem agendamento.");
-    if (v.servicos.indexOf(ag.servico) === -1) return falha("servico", "Nesse dia o serviço é " + v.servicos.join(" ou ") + ".");
-    const jaOcupa = antigo && antigo.sit === "confirmado" && !diaNovo;
-    if (!jaOcupa && (ag.pago || diaNovo) && v.livres <= 0) {
-      return falha("lotado", v.pintura ? `As ${v.vagas} vagas de pintura geral desse período já foram pagas.` : `Esse dia já está lotado (${v.vagas} de ${v.vagas} com sinal pago).`);
-    }
+    const vaga = vagaDe(vagasDoDia(regras, especiais, confirmados(), ag.data, ag.id), ag.servico);
+    const aviso = !vaga ? `O site dos clientes não tem ${ag.servico.toLowerCase()} nesse dia. O agendamento foi feito mesmo assim.`
+      : vaga.livres <= 0 ? `Passou do limite de ${vaga.servico.toLowerCase()} desse dia (${vaga.vagas} vagas). O agendamento foi feito mesmo assim.` : "";
     const situacao = ag.pago ? "Confirmado" : "Aguardando pagamento";
     let id = ag.id;
     if (antigo) {
       const criado = antigo.pago && !ag.pago ? agora() : antigo.criado;
-      Object.assign(antigo, ag, { situacao, criado, link: ag.pago ? "" : antigo.link || linkFalso(antigo.id) });
+      Object.assign(antigo, ag, { situacao, criado, prazo: ag.pago ? antigo.prazo : `${criado.slice(0, 10)} 23:59`,
+        link: ag.pago ? "" : antigo.link || linkFalso(antigo.id), forma: ag.pago ? antigo.forma || "Manual" : "" });
     } else {
       id = "ex" + (++seq);
-      lista.push({ ...ag, id, situacao, criado: agora(), link: ag.pago ? "" : linkFalso(id), presenca: false });
+      lista.push({ ...ag, id, situacao, criado: agora(), prazo: `${hoje} 23:59`, link: ag.pago ? "" : linkFalso(id), presenca: false,
+        origem: "Painel", remarcacao: 0, forma: ag.pago ? "Manual" : "" });
     }
     if (ag.pago) fecharPendentes();
-    return mes(m, { salvo: id });
+    return mes(m, { salvo: id, aviso });
+  }
+  function pagou(a) {
+    const vaga = vagaDe(vagasDoDia(regras, especiais, confirmados(), a.data, a.id), a.servico);
+    if (a.origem !== "Site" || (vaga && vaga.livres > 0)) {
+      Object.assign(a, { pago: true, situacao: "Confirmado", forma: "Pix", link: "" });
+      fecharPendentes();
+      return "confirmado";
+    }
+    Object.assign(a, { pago: true, situacao: "Pago sem vaga (virou crédito)", forma: "Pix" });
+    credito(a, a.remarcacao, "Dia lotou");
+    return "credito";
   }
   function responder(acao, extra) {
     const m = extra.mes || hoje.slice(0, 7);
     if (acao === "agenda") return mes(m);
     if (acao === "agenda_salvar") return salvar(extra.agendamento || {}, m);
-    const a = visiveis().find(x => x.id === extra.id);
-    if (!a) return falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
-    if (acao === "agenda_desmarcar") a.situacao = "Desmarcado";
-    if (acao === "agenda_presenca") a.presenca = !!extra.confirmada;
-    if ((acao === "agenda_pago" && extra.pago) || acao === "agenda_conferir") {
-      if (a.sit !== "confirmado") {
-        if (vagasDoDia(regras, confirmados(), a.data, a.id).livres <= 0) {
-          if (acao === "agenda_pago") return falha("lotado", "Esse dia já lotou com quem pagou antes. Remarque o cliente para outro dia.");
-          Object.assign(a, { pago: true, situacao: "Pago sem vaga" });
-          return mes(m, { conferido: "pago_sem_vaga" });
-        }
-        Object.assign(a, { pago: true, situacao: "Confirmado", link: "" });
-        fecharPendentes();
-      }
-      return mes(m, acao === "agenda_conferir" ? { conferido: "confirmado" } : {});
+    if (acao === "agenda_dia") {
+      if (extra.ofertas === null) delete especiais[extra.data];
+      else especiais[extra.data] = extra.ofertas.map(o => ({ servico: o.servico, vagas: o.vagas, preco: o.preco || 0 }));
+      fecharPendentes();
+      return mes(m, { diaSalvo: extra.data });
     }
-    if (acao === "agenda_pago" && !extra.pago) Object.assign(a, { pago: false, situacao: "Aguardando pagamento", criado: agora(), link: linkFalso(a.id) });
+    if (acao === "agenda_credito_baixa") {
+      const c = creditos.find(x => x.id === extra.credito && x.situacao === "disponivel");
+      if (!c) return falha("nao_encontrado", "Esse crédito não está mais disponível. Atualize a agenda.");
+      c.situacao = "usado";
+      return mes(m);
+    }
+    if (acao === "agenda_naoveio") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (extra.desfazer) {
+        const c = creditos.find(x => x.origem === a.id && x.situacao !== "cancelado");
+        if (c && c.situacao === "usado") return falha("credito_usado", "O cliente já usou o crédito desse agendamento. Não dá para desfazer.");
+        if (c) c.situacao = "cancelado";
+        a.situacao = "Confirmado";
+        return mes(m);
+      }
+      if (a.data > hoje) return falha("futuro", "Esse dia ainda não chegou.");
+      if (a.remarcacao + 1 > regras.remarcacoes) {
+        a.situacao = "Não veio (sem crédito)";
+        return mes(m, { credito: "sem" });
+      }
+      credito(a, a.remarcacao + 1, "Não veio");
+      a.situacao = "Não veio (virou crédito)";
+      return mes(m, { credito: "criado", emailEnviado: !!a.email });
+    }
+    const a = ativo(extra.id);
+    if (!a) return naoAchou();
+    if (acao === "agenda_desmarcar") {
+      if (extra.credito) {
+        credito(a, a.remarcacao + 1, "Desmarcado");
+        a.situacao = "Desmarcado (virou crédito)";
+      } else a.situacao = "Desmarcado";
+    }
+    if (acao === "agenda_presenca") a.presenca = !!extra.confirmada;
+    if (acao === "agenda_pago" && extra.pago && a.sit !== "confirmado") {
+      Object.assign(a, { pago: true, situacao: "Confirmado", forma: "Manual", link: "" });
+      fecharPendentes();
+    }
+    if (acao === "agenda_pago" && !extra.pago) {
+      Object.assign(a, { pago: false, situacao: "Aguardando pagamento", criado: agora(), prazo: `${hoje} 23:59`, link: linkFalso(a.id), forma: "" });
+    }
+    if (acao === "agenda_conferir") return mes(m, { conferido: a.sit === "aguardando" ? pagou(a) : a.sit });
     return mes(m);
   }
   return {
