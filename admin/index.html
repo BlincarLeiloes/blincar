@@ -1235,6 +1235,15 @@ async function agendaCarregar() {
   }
 }
 
+// Reserva que passou do prazo do Pix some da agenda: a cada 20 segundos, se alguma venceu, busca a agenda de novo.
+// Não atrapalha quem está preenchendo um agendamento ou editando o dia.
+setInterval(() => {
+  const d = AG.dados;
+  if (abaAtual !== "agenda" || !d || AG.ocupado || document.hidden || ($("#dlgDia").open && AG.modo !== "lista")) return;
+  const todas = d.agendamentos.concat(...d.proximos.map(p => p.agendamentos || []));
+  if (todas.some(a => a.sit === "aguardando" && a.prazo && Date.parse(a.prazo.replace(" ", "T") + ":59-03:00") < Date.now())) agendaCarregar();
+}, 20000);
+
 const erroVisivel = () => ($("#dlgDia").open ? $("#dlgErro") || $("#fErro") || $("#dErro") : $("#agErro"));
 
 // "msgOk" pode ser um texto ou uma função que monta o texto a partir da resposta.
@@ -1503,7 +1512,7 @@ function mensagemSinal(a) {
   const nome = a.cliente.split(" ")[0];
   return `Olá, ${nome}! Aqui é da Blin Car.\n\n` +
     `Separamos ${a.servico.toLowerCase()} para ${dataLonga(a.data).toLowerCase()} (${a.carro}).\n\n` +
-    `Para garantir a vaga, pague o sinal de ${reais(a.sinal)} ${prazoTexto(a)} por este link:\n${a.link}\n\n` +
+    `Para garantir a vaga, pague o sinal de ${reais(a.sinal)} ${prazoTexto(a)} por este link (depois desse horário ele não vale mais):\n${a.link}\n\n` +
     "A vaga só fica garantida depois do pagamento. O sinal é descontado do valor do serviço. Se você não puder vir, o sinal vira crédito para remarcar.";
 }
 
@@ -1602,7 +1611,7 @@ function desenharRegras(d) {
   });
   itens.push("Para mudar um dia (fechar, mudar as vagas ou criar uma promoção com preço), abra o dia e toque em \"Editar serviços e vagas\". O site dos clientes muda na hora.");
   itens.push("No painel dá para agendar em qualquer dia e serviço, mesmo passando do limite. O site dos clientes respeita as vagas e mostra \"Vagas esgotadas\" quando lota.");
-  itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site, o cliente tem ${r.prazoSiteMinutos} minutos para pagar; se não pagar, a reserva sai da agenda e da planilha sozinha. Agendado aqui, até 23h59 do dia.`);
+  itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site ou pelo link mandado daqui, o cliente tem ${r.prazoMinutos ?? r.prazoSiteMinutos} minutos para pagar o Pix; se não pagar, a reserva sai da agenda e da planilha sozinha.`);
   itens.push(`O sinal é descontado do serviço. Se o cliente não vier, toque em "Não veio": o sinal vira crédito para remarcar pelo site, até ${r.remarcacoes} vezes.`);
   itens.push(`No dia do carro, às 8h, o cliente recebe um e-mail lembrando. ${r.avisoDias} dias antes, vocês recebem um e-mail (e aparece aqui) para ligar e confirmar.`);
   itens.push(d.mp
@@ -1818,7 +1827,7 @@ function formulario(dia, ag) {
     limite,
     el("label", { class: "check" }, pago, "O sinal já foi pago (dinheiro ou Pix na chave)"),
     el("p", { class: "nota" }, d.mp && novo
-      ? "Sem marcar acima, o agendamento fica aguardando o sinal até 23h59 de hoje e ganha um link de Pix do Mercado Pago para mandar ao cliente."
+      ? `Sem marcar acima, o agendamento ganha um link de Pix do Mercado Pago para mandar ao cliente. O link vale ${d.regras.prazoMinutos ?? d.regras.prazoSiteMinutos} minutos: sem o pagamento, a reserva sai da agenda.`
       : "Sem marcar acima, o agendamento fica aguardando o sinal até 23h59 de hoje e não segura a vaga."),
     campo("fObs", "Observações", el("textarea", { id: "fObs", name: "fObs", rows: "2", placeholder: "Ex.: arranhão na porta, cliente traz o carro às 8h" }, v.obs || "")),
     el("p", { class: "err", id: "fErro", role: "alert", hidden: "" }),
@@ -1962,7 +1971,7 @@ document.addEventListener("click", e => {
   if (acao === "editar") return abrirDia(a.data, "form", a);
   if (acao === "copiar") return copiarTexto(a.link, b);
   if (acao === "pago") return executar("agenda_pago", { id: a.id, pago: true }, "Sinal marcado como pago. Vaga confirmada.");
-  if (acao === "despagar") return executar("agenda_pago", { id: a.id, pago: false }, "Voltou para aguardando sinal, com prazo até 23h59 de hoje.");
+  if (acao === "despagar") return executar("agenda_pago", { id: a.id, pago: false }, "Voltou para aguardando sinal, com link de Pix novo.");
   if (acao === "presenca" || acao === "presenca-nao") {
     return executar("agenda_presenca", { id: a.id, confirmada: acao === "presenca" }, acao === "presenca" ? "Presença confirmada." : "Presença desfeita.");
   }
@@ -2021,12 +2030,17 @@ function criarDemo() {
       "Retoque": { dias: { 1: 3, 3: 2 } },
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
-    sinal: 50, avisoDias: 2, remarcacoes: 3, prazoSiteMinutos: 5, antecedenciaDias: 1, janelaDias: 120
+    sinal: 50, avisoDias: 2, remarcacoes: 3, prazoMinutos: 5, antecedenciaDias: 1, janelaDias: 120
   };
   const hoje = hojeAqui();
   const especiais = {};
   const creditos = [];
   let seq = 0;
+  // Reserva esperando o Pix: tem regras.prazoMinutos para pagar.
+  const daquiPrazo = () => {
+    const t = new Date(Date.now() + regras.prazoMinutos * 60000);
+    return `${hojeAqui()} ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+  };
   const linkFalso = id => `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=EXEMPLO-${id}`;
   const temServico = (data, servico) => ofertasDoDia(regras, especiais, data).some(o => mesmoServico(o.servico, servico));
   const proximo = (servico, pular = 0, desde = somaDias(hoje, 1)) => {
@@ -2048,13 +2062,10 @@ function criarDemo() {
   const novo = (data, servico, cliente, carro, pago, extra = {}) => {
     const id = "ex" + (++seq);
     return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, placa: `RIO${seq}A${pad2(seq + 10)}`, email: "", sinal: 50, pago, obs: "",
-      situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : `${hoje} 23:59`,
+      situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : daquiPrazo(),
       link: pago ? "" : linkFalso(id), presenca: false, origem: "Painel", remarcacao: 0, forma: pago ? "Pix" : "", ...extra };
   };
   const site = { origem: "Site", email: "" };
-  // Reserva do site esperando o Pix: tem 5 minutos para pagar.
-  const em5 = new Date(Date.now() + 5 * 60000);
-  const daqui5 = `${hoje} ${pad2(em5.getHours())}:${pad2(em5.getMinutes())}`;
   const seg = proximo("Retoque"), qua = proximo("Retoque", 0, somaDias(seg, 1));
   // Uma quinta aberta com retoque em promoção, para mostrar a edição de dia.
   let quinta = somaDias(hoje, 1);
@@ -2062,7 +2073,7 @@ function criarDemo() {
   especiais[quinta] = [{ servico: "Retoque", vagas: 2, preco: 200 }];
   const lista = [
     novo(seg, "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, { ...site, email: "carlos@exemplo.com", obs: "Arranhão na porta traseira", presenca: true }),
-    novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com", prazo: daqui5 }),
+    novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com" }),
     novo(qua, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
     novo(qua, "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true, { ...site, email: "paula@exemplo.com" }),
     novo(proximo("Pintura geral"), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, { ...site, email: "rafael@exemplo.com" }),
@@ -2129,11 +2140,11 @@ function criarDemo() {
     let id = ag.id;
     if (antigo) {
       const criado = antigo.pago && !ag.pago ? agora() : antigo.criado;
-      Object.assign(antigo, ag, { situacao, criado, prazo: ag.pago ? antigo.prazo : `${criado.slice(0, 10)} 23:59`,
+      Object.assign(antigo, ag, { situacao, criado, prazo: ag.pago || criado === antigo.criado ? antigo.prazo : daquiPrazo(),
         link: ag.pago ? "" : antigo.link || linkFalso(antigo.id), forma: ag.pago ? antigo.forma || "Manual" : "" });
     } else {
       id = "ex" + (++seq);
-      lista.push({ ...ag, id, situacao, criado: agora(), prazo: `${hoje} 23:59`, link: ag.pago ? "" : linkFalso(id), presenca: false,
+      lista.push({ ...ag, id, situacao, criado: agora(), prazo: ag.pago ? "" : daquiPrazo(), link: ag.pago ? "" : linkFalso(id), presenca: false,
         origem: "Painel", remarcacao: 0, forma: ag.pago ? "Manual" : "" });
     }
     if (ag.pago) fecharPendentes();
@@ -2199,7 +2210,7 @@ function criarDemo() {
       fecharPendentes();
     }
     if (acao === "agenda_pago" && !extra.pago) {
-      Object.assign(a, { pago: false, situacao: "Aguardando pagamento", criado: agora(), prazo: `${hoje} 23:59`, link: linkFalso(a.id), forma: "" });
+      Object.assign(a, { pago: false, situacao: "Aguardando pagamento", criado: agora(), prazo: daquiPrazo(), link: linkFalso(a.id), forma: "" });
     }
     if (acao === "agenda_conferir") return mes(m, { conferido: a.sit === "aguardando" ? pagou(a) : a.sit });
     return mes(m);
