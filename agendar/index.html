@@ -749,7 +749,7 @@ function desenharResumo() {
   dd("#rOrcamento", E.cadastro ? reais(valorReais(E.cadastro.orcamento)) : "", "");
   const sinal = E.dados ? E.dados.sinal : 50;
   const remarcacoes = E.dados ? E.dados.remarcacoes : 3;
-  const prazo = E.dados ? E.dados.prazoMinutos : 5;
+  const prazo = E.dados ? E.dados.prazoMinutos : 10;
   const taxa = E.dados ? E.dados.taxaCartao ?? null : null;
   if (taxa == null) E.forma = "pix";
   const apagar = E.forma === "cartao" ? sinal + taxa : sinal;
