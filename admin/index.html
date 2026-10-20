@@ -276,6 +276,32 @@ button.cel:hover{border-color:var(--muted)}
 .mini.perigo{color:var(--err);border-color:var(--err)}
 .mini-wa{background:var(--c-wa);border-color:var(--c-wa);color:#062a17;text-decoration:none;display:inline-flex;align-items:center}
 .mini-forte{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.mini-ok{background:var(--ok-fg);border-color:var(--ok-fg);color:var(--bg);font-weight:700}
+.mini-icone{display:inline-flex;align-items:center;gap:6px}
+.mini-icone svg{width:16px;height:16px;flex:none}
+.ag-entregue{border-color:var(--ok-fg)}
+.dlg-largo{width:min(760px,calc(100% - 24px))}
+.hist-resumo{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.hist-resumo div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+.hist-resumo span{font-size:.8125rem;color:var(--muted)}
+.hist-resumo b{font-size:1.125rem}
+.hist-busca{width:100%;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+.hist-busca:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.hist-mes{display:grid;gap:6px}
+.hist-mes h3{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 0}
+.hist-mes h3 span{font-size:.8125rem;font-weight:400;color:var(--muted)}
+.hist-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
+.hist-item:hover{border-color:var(--muted)}
+.hist-item:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.hist-item b{overflow-wrap:anywhere}
+.hist-item .sub{grid-column:1/-1;font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
+.hist-item .quando{font-size:.8125rem;color:var(--muted);text-align:right}
+.hist-item .selo-sinal{justify-self:start}
+.hist-dados{margin:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.hist-dados div{display:grid;gap:1px;min-width:0}
+.hist-dados dt{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hist-dados dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.hist-dados .largo{grid-column:1/-1}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
 .selo-sinal.alerta{background:var(--lotado-bg);color:var(--err)}
 .ag-aguardando{border-style:dashed}
@@ -472,6 +498,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
           <button type="button" class="mini" data-vista="dias" aria-pressed="false">Dia a dia</button>
         </div>
         <button type="button" class="mini" id="agAtualizar">Atualizar</button>
+        <button type="button" class="mini mini-icone" id="agHistorico" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+          Histórico
+        </button>
       </div>
     </div>
     <p class="selo" id="agExemplo" hidden><b>Agenda de exemplo.</b> Os clientes são inventados e nada vai para a planilha. Pode testar à vontade. Aqui, "Conferir pagamento" faz de conta que o cliente pagou o Pix.</p>
@@ -516,6 +546,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg" id="dlgDia" aria-labelledby="dlgTitulo">
   <div class="dlg-corpo" id="dlgCorpo"></div>
+</dialog>
+
+<dialog class="dlg dlg-largo" id="dlgHist" aria-labelledby="histTitulo">
+  <div class="dlg-corpo" id="histCorpo"></div>
 </dialog>
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
@@ -1075,7 +1109,9 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 const SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 const SEMANA_CURTA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const ORDEM_SIT = { confirmado: 0, pago_sem_vaga: 1, aguardando: 2, nao_veio: 3 };
-const VISIVEIS = ["confirmado", "aguardando", "pago_sem_vaga", "nao_veio"];
+const VISIVEIS = ["confirmado", "entregue", "aguardando", "pago_sem_vaga", "nao_veio"];
+// Sinal pago e vaga ocupada: confirmado ou veículo já entregue.
+const PAGO = a => a.sit === "confirmado" || a.sit === "entregue";
 const MSG_VERSAO = "O código da planilha ainda é o antigo. Cole o código novo no Apps Script e implante uma nova versão (passo a passo no LEIA-ME).";
 const MSG_REDE = "Não consegui falar com a planilha. Confira a internet e toque em Atualizar antes de tentar de novo.";
 const reais = v => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1129,16 +1165,19 @@ const agoraAqui = () => {
 const dataCurta = d => `${SEMANA_CURTA[diaSemana(d)].toLowerCase()}, ${d.slice(8, 10)}/${d.slice(5, 7)}`;
 const dataLonga = d => `${maiuscula(SEMANA[diaSemana(d)])}, ${Number(d.slice(8, 10))} de ${MESES[Number(d.slice(5, 7)) - 1]}`;
 const nomeMes = m => `${maiuscula(MESES[Number(m.slice(5, 7)) - 1])} de ${m.slice(0, 4)}`;
+// "2026-10-21 17:30" vira "21/10 às 17:30".
+const quandoTexto = q => `${q.slice(8, 10)}/${q.slice(5, 7)}${q.length > 10 ? ` às ${q.slice(11, 16)}` : ""}`;
 
 /* As funções abaixo são iguais às da planilha (Codigo.gs). Aqui servem para a agenda de exemplo. */
 
-// Situação de um agendamento. Só "confirmado" (sinal pago) ocupa vaga.
+// Situação de um agendamento. Só "confirmado" e "entregue" (sinal pago) ocupam vaga.
 function situacaoDe(a, agora) {
   const s = String(a.situacao || "").toLowerCase();
   if (/desmarc|cancel/.test(s)) return "desmarcado";
   if (/n[ãa]o veio/.test(s)) return "nao_veio";
   if (/virou cr[ée]dito/.test(s)) return "credito";
   if (/pago sem vaga/.test(s)) return "pago_sem_vaga";
+  if (/entregue/.test(s)) return "entregue";
   if (/sem vaga/.test(s)) return "sem_vaga";
   if (a.pago) return "confirmado";
   const prazo = a.prazo || (a.criado ? a.criado.slice(0, 10) + " 23:59" : "");
@@ -1349,7 +1388,7 @@ function desenharSite(d) {
 function desenharProximos(d) {
   const cartao = (rotulo, p) => {
     const ags = p.agendamentos || [];
-    const pagos = ags.filter(a => a.sit === "confirmado").length;
+    const pagos = ags.filter(PAGO).length;
     const titulo = !p.ofertas.length && !ags.length ? "Fechado para clientes"
       : pagos ? plural(pagos, "carro confirmado", "carros confirmados") : "Nenhum carro confirmado";
     return el("button", { type: "button", class: "prox", "data-ir": p.data },
@@ -1423,7 +1462,7 @@ function desenharResumoMes(d) {
     if (lista.length && !futuro.length) return tile(nome, plural(marcadas, "marcada", "marcadas"), "mês encerrado");
     return tile(nome, livres ? `Restam ${livres}` : "Lotado", `${plural(marcadas, "já marcada", "já marcadas")} no mês`);
   };
-  const pagos = d.agendamentos.filter(a => a.sit === "confirmado");
+  const pagos = d.agendamentos.filter(PAGO);
   const esperando = d.agendamentos.filter(a => a.sit === "aguardando");
   $("#agResumo").replaceChildren(
     ...Object.keys(d.regras.servicos).slice(0, 2).map(tileServico),
@@ -1544,6 +1583,7 @@ function seloSituacao(a) {
     return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito"
       : `Confirmado · sinal pago ${reais(a.sinal)}${a.forma === "Cartão" ? " no cartão" : ""}`);
   }
+  if (a.sit === "entregue") return el("span", { class: "selo-sinal sim" }, "Veículo entregue");
   if (a.sit === "pago_sem_vaga") return el("span", { class: "selo-sinal alerta" }, `Pagou ${reais(a.sinal)}, mas o dia lotou`);
   if (a.sit === "nao_veio") return el("span", { class: "selo-sinal alerta" }, "Não veio");
   return el("span", { class: "selo-sinal nao" }, `Aguardando sinal de ${reais(a.sinal)} ${prazoTexto(a)}`);
@@ -1567,6 +1607,7 @@ function itemAgendamento(a, comData) {
     a.nascimento ? el("span", {}, `Nascimento: ${a.nascimento}`) : "",
     etiquetas.length ? el("span", {}, maiuscula(etiquetas.join(" · "))) : "",
     a.sit === "confirmado" ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
+    a.sit === "entregue" && a.entregueEm ? el("span", { class: "ok-txt" }, `Entregue em ${quandoTexto(a.entregueEm)}`) : "",
     a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
   const obs = a.obs ? el("p", { class: "ag-obs" }, a.obs) : "";
   let acoes;
@@ -1607,10 +1648,13 @@ function itemAgendamento(a, comData) {
     acoes = el("div", { class: "ag-acoes" }, botao("editar", "Remarcar", "mini mini-forte"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
   } else if (a.sit === "nao_veio") {
     acoes = el("div", { class: "ag-acoes" }, botao("desfazer-naoveio", "Desfazer \"não veio\""));
+  } else if (a.sit === "entregue") {
+    acoes = el("div", { class: "ag-acoes" }, botao("desfazer-entregue", "Desfazer \"entregue\""));
   } else {
     const lembrar = linkZap(a.telefone, mensagemPresenca(a));
     const chegou = a.data <= AG.dados.hoje;
     acoes = el("div", { class: "ag-acoes" },
+      chegou ? botao("entregue", "Veículo entregue", "mini mini-ok") : "",
       chegou ? botao("pedir-naoveio", "Não veio") : "",
       !chegou ? (a.presenca ? botao("presenca-nao", "Desfazer presença") : botao("presenca", "Cliente confirmou presença")) : "",
       !chegou && !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
@@ -2020,6 +2064,8 @@ document.addEventListener("click", e => {
       : "Marcado: não veio. O sinal não virou crédito (já tinha usado as remarcações).");
   }
   if (acao === "desfazer-naoveio") return executar("agenda_naoveio", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
+  if (acao === "entregue") return executar("agenda_entregue", { id: a.id }, `Veículo de ${a.cliente} entregue. Está no histórico.`);
+  if (acao === "desfazer-entregue") return executar("agenda_entregue", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
 });
 
 $("#dlgDia").addEventListener("close", () => {
@@ -2039,6 +2085,146 @@ $("#agAntes").addEventListener("click", () => { AG.mes = somaMes(AG.mes, -1); ag
 $("#agDepois").addEventListener("click", () => { AG.mes = somaMes(AG.mes, 1); agendaCarregar(); });
 $("#agHoje").addEventListener("click", () => { AG.mes = (AG.dados ? AG.dados.hoje : hojeAqui()).slice(0, 7); agendaCarregar(); });
 $("#agAtualizar").addEventListener("click", agendaCarregar);
+
+/* ---------- Histórico: todos os carros agendados com sinal pago ---------- */
+
+const HIST = { lista: null, hoje: "", erro: "", busca: "", sel: null };
+const SIT_HIST = { entregue: "Entregue", confirmado: "Agendado", nao_veio: "Não veio" };
+const soDigitos = s => String(s || "").replace(/\D/g, "");
+const semAcento = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+async function abrirHistorico() {
+  Object.assign(HIST, { lista: null, erro: "", sel: null });
+  desenharHistorico();
+  if (!$("#dlgHist").open) $("#dlgHist").showModal();
+  try {
+    const r = await agendaPedir("agenda_historico");
+    if (r && r.ok && Array.isArray(r.agendamentos)) Object.assign(HIST, { lista: r.agendamentos, hoje: r.hoje });
+    else if (r && r.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else HIST.erro = r && r.erro !== "acao" && r.mensagem ? r.mensagem : MSG_VERSAO;
+  } catch {
+    HIST.erro = MSG_REDE;
+  }
+  desenharHistorico();
+  const busca = $("#histBusca");
+  if (busca) busca.focus();
+}
+
+// Quantos carros e quantos entregues numa lista.
+function contagemHist(lista) {
+  const entregues = lista.filter(a => a.sit === "entregue").length;
+  return `${plural(lista.length, "carro", "carros")} · ${plural(entregues, "entregue", "entregues")}`;
+}
+
+function chipHist(a) {
+  return el("span", { class: "selo-sinal " + (a.sit === "nao_veio" ? "alerta" : a.sit === "entregue" ? "sim" : "nao") }, SIT_HIST[a.sit] || a.sit);
+}
+
+function itemHist(a) {
+  return el("button", { type: "button", class: "hist-item", "data-hist-id": a.id },
+    el("b", {}, a.cliente), el("span", { class: "quando" }, dataCurta(a.data)),
+    el("span", { class: "sub" }, [a.telefone, a.carro + (a.placa ? ` · ${a.placa}` : "")].filter(Boolean).join(" · ")),
+    el("span", { class: "sub" }, a.servico + (a.orcamento ? ` · orçamento ${reais(a.orcamento)}` : "")),
+    chipHist(a));
+}
+
+function desenharHistorico() {
+  const fechar = el("button", { type: "button", class: "mini", "data-hist": "fechar" }, "Fechar");
+  const corpo = $("#histCorpo");
+  if (HIST.sel && HIST.lista) {
+    const a = HIST.lista.find(x => x.id === HIST.sel);
+    if (a) return corpo.replaceChildren(...detalheHist(a, fechar));
+    HIST.sel = null;
+  }
+  const topo = el("div", { class: "dlg-topo" },
+    el("div", {}, el("h2", { id: "histTitulo" }, "Histórico"), el("p", { class: "sub" }, "Todos os carros agendados com sinal pago. Toque num cliente para ver os detalhes.")),
+    fechar);
+  if (!HIST.lista) {
+    return corpo.replaceChildren(topo, HIST.erro ? el("p", { class: "err", role: "alert" }, HIST.erro) : el("p", { class: "nota" }, "Carregando o histórico…"));
+  }
+  const mes = HIST.hoje.slice(0, 7), ano = HIST.hoje.slice(0, 4);
+  const resumo = el("div", { class: "hist-resumo" },
+    el("div", {}, el("span", {}, nomeMes(mes)), el("b", {}, contagemHist(HIST.lista.filter(a => a.data.slice(0, 7) === mes)))),
+    el("div", {}, el("span", {}, `Ano de ${ano}`), el("b", {}, contagemHist(HIST.lista.filter(a => a.data.slice(0, 4) === ano)))));
+  const busca = el("input", { type: "search", class: "hist-busca", id: "histBusca", value: HIST.busca, autocomplete: "off",
+    placeholder: "Buscar por nome, telefone, carro ou placa", "aria-label": "Buscar no histórico" });
+  const lista = el("div", { class: "dlg-lista", id: "histLista", "aria-live": "polite" });
+  busca.addEventListener("input", () => {
+    HIST.busca = busca.value;
+    desenharListaHist(lista);
+  });
+  corpo.replaceChildren(topo, resumo, busca, lista);
+  desenharListaHist(lista);
+}
+
+// Lista agrupada por mês (os mais novos primeiro), filtrada pela busca.
+function desenharListaHist(caixa) {
+  const termo = semAcento(HIST.busca.trim());
+  const dig = soDigitos(HIST.busca);
+  const achados = HIST.lista.filter(a => !termo ||
+    semAcento([a.cliente, a.carro, a.placa, a.servico, a.email].join(" ")).includes(termo) ||
+    (dig.length >= 3 && soDigitos(a.telefone).includes(dig)));
+  if (!achados.length) {
+    return caixa.replaceChildren(el("p", { class: "vazio" }, HIST.lista.length ? "Nenhum carro encontrado." : "Ainda não tem carro com sinal pago."));
+  }
+  const meses = [];
+  achados.forEach(a => {
+    const m = a.data.slice(0, 7);
+    if (!meses.length || meses[meses.length - 1].mes !== m) meses.push({ mes: m, lista: [] });
+    meses[meses.length - 1].lista.push(a);
+  });
+  caixa.replaceChildren(...meses.map(g => el("section", { class: "hist-mes" },
+    el("h3", {}, nomeMes(g.mes), el("span", {}, contagemHist(g.lista))),
+    ...g.lista.map(itemHist))));
+}
+
+function detalheHist(a, fechar) {
+  const zap = linkZap(a.telefone);
+  const linha = (rot, valor, largo) => (valor ? el("div", { class: largo ? "largo" : "" }, el("dt", {}, rot), el("dd", {}, valor)) : "");
+  const forma = a.forma === "Crédito" ? "com crédito" : a.forma === "Cartão" ? "no cartão" : a.forma === "Manual" ? "à mão" : a.forma ? `no ${a.forma}` : "";
+  // Outras visitas do mesmo cliente (mesmo celular) ou do mesmo carro (mesma placa).
+  const tel = soDigitos(a.telefone).slice(-8);
+  const outras = HIST.lista.filter(x => x.id !== a.id &&
+    ((tel.length === 8 && soDigitos(x.telefone).slice(-8) === tel) || (a.placa && x.placa === a.placa)));
+  const topo = el("div", { class: "dlg-topo" },
+    el("button", { type: "button", class: "mini", "data-hist": "voltar" }, "‹ Histórico"), fechar);
+  return [topo,
+    el("div", { class: "ag-topo" }, el("h2", { id: "histTitulo" }, a.cliente), chipHist(a)),
+    el("dl", { class: "hist-dados" },
+      linha("Telefone", zap ? el("span", {}, a.telefone, " · ", el("a", { href: zap, target: "_blank", rel: "noopener" }, "abrir WhatsApp")) : a.telefone),
+      linha("E-mail", a.email),
+      linha("Nascimento", a.nascimento),
+      linha("Carro", a.carro + (a.placa ? ` · placa ${a.placa}` : "")),
+      linha("Serviço", a.servico),
+      linha("Dia do agendamento", dataLonga(a.data)),
+      linha("Orçamento", a.orcamento ? reais(a.orcamento) : ""),
+      linha("Sinal", a.sinal ? `${reais(a.sinal)} ${forma}`.trim() : ""),
+      linha("Agendado em", a.criado ? quandoTexto(a.criado) + (a.origem === "Site" ? " · pelo site" : " · pelo painel") : ""),
+      linha("Entregue em", a.entregueEm ? quandoTexto(a.entregueEm) : ""),
+      linha("O que foi feito / observações", a.obs, true)),
+    outras.length
+      ? el("section", { class: "hist-mes" }, el("h3", {}, "Outras visitas deste cliente", el("span", {}, plural(outras.length, "visita", "visitas"))), ...outras.map(itemHist))
+      : el("p", { class: "nota" }, "Primeira visita deste cliente.")];
+}
+
+$("#agHistorico").addEventListener("click", abrirHistorico);
+$("#dlgHist").addEventListener("click", e => {
+  if (e.target === $("#dlgHist")) return $("#dlgHist").close();
+  const item = e.target.closest("[data-hist-id]");
+  if (item) {
+    HIST.sel = item.dataset.histId;
+    desenharHistorico();
+    return focar("#dlgHist [data-hist='voltar']");
+  }
+  const b = e.target.closest("[data-hist]");
+  if (!b) return;
+  if (b.dataset.hist === "fechar") return $("#dlgHist").close();
+  if (b.dataset.hist === "voltar") {
+    HIST.sel = null;
+    desenharHistorico();
+    return focar("#histBusca");
+  }
+});
 document.querySelectorAll("[data-vista]").forEach(b => b.addEventListener("click", () => {
   AG.vista = b.dataset.vista;
   try { localStorage.setItem("blincar:vista", AG.vista); } catch {}
@@ -2110,7 +2296,10 @@ function criarDemo() {
     novo(proximo("Pintura geral"), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, { ...site, email: "rafael@exemplo.com" }),
     novo(quinta, "Retoque", "Vera (exemplo)", "Corolla 2018 cinza", true, { ...site, email: "vera@exemplo.com", obs: "Preço do dia: R$ 200,00" }),
     novo(anterior("Retoque"), "Retoque", "Sérgio (exemplo)", "Fox 2016 azul", true, { email: "sergio@exemplo.com" }),
-    novo(somaDias(anterior("Retoque"), -2), "Retoque", "Luana (exemplo)", "Fiesta 2013 preto", true, { ...site, email: "luana@exemplo.com", situacao: "Não veio (virou crédito)" })
+    novo(somaDias(anterior("Retoque"), -2), "Retoque", "Luana (exemplo)", "Fiesta 2013 preto", true, { ...site, email: "luana@exemplo.com", situacao: "Não veio (virou crédito)" }),
+    // Carro já entregue: aparece no histórico.
+    novo(somaDias(anterior("Retoque"), -7), "Retoque", "Diego (exemplo)", "Civic 2017 preto", true, { email: "diego@exemplo.com",
+      situacao: "Veículo entregue", entregueEm: `${somaDias(anterior("Retoque"), -6)} 16:40`, obs: "Retoque no para-choque traseiro" })
   ];
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
   // Um carro pago daqui a 1 ou 2 dias aparece em "Ligar para confirmar".
@@ -2118,12 +2307,12 @@ function criarDemo() {
   if (perto) lista.push(novo(perto, ofertasDoDia(regras, especiais, perto)[0].servico, "Bruno (exemplo)", "Uno 2012 branco", true, { obs: "Ligar para confirmar" }));
   const agora = () => agoraAqui();
   const comSit = () => lista.map(a => Object.assign(a, { sit: situacaoDe(a, agora()) }));
-  const confirmados = () => comSit().filter(a => a.sit === "confirmado");
+  const confirmados = () => comSit().filter(PAGO);
   const visiveis = () => comSit().filter(a => VISIVEIS.indexOf(a.sit) !== -1);
   const ativo = id => comSit().find(a => a.id === id && ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
-    forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59` });
+    forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "" });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
   const credito = (a, nivel, motivo) => creditos.push({ id: "cr" + (++seq), cliente: a.cliente, email: a.email, telefone: a.telefone,
@@ -2208,6 +2397,19 @@ function criarDemo() {
       const c = creditos.find(x => x.id === extra.credito && x.situacao === "disponivel");
       if (!c) return falha("nao_encontrado", "Esse crédito não está mais disponível. Atualize a agenda.");
       c.situacao = "usado";
+      return mes(m);
+    }
+    if (acao === "agenda_historico") {
+      const h = comSit().filter(a => ["confirmado", "entregue", "nao_veio"].indexOf(a.sit) !== -1).map(publico);
+      return { ok: true, hoje, agendamentos: h.sort((x, y) => (x.data < y.data ? 1 : x.data > y.data ? -1 : 0)) };
+    }
+    if (acao === "agenda_entregue") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (extra.desfazer) Object.assign(a, { situacao: "Confirmado", entregueEm: "" });
+      else if (a.sit !== "confirmado") return falha("situacao", "Só dá para marcar como entregue um carro com sinal pago.");
+      else if (a.data > hoje) return falha("futuro", "Esse dia ainda não chegou.");
+      else Object.assign(a, { situacao: "Veículo entregue", entregueEm: agora() });
       return mes(m);
     }
     if (acao === "agenda_naoveio") {
