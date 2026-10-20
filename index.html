@@ -367,7 +367,9 @@ function lembrar(nome, chave, gerar) {
   }
 }
 const novoId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-const NOMES_ORIGEM = { bio: "Instagram (bio)", stories: "Instagram (stories)", story: "Instagram (stories)", status: "Status do WhatsApp", qr: "QR code", google: "Google" };
+// "ig" é o que o próprio Instagram coloca nos links (utm_source=ig).
+const NOMES_ORIGEM = { bio: "Instagram (bio)", stories: "Instagram (stories)", story: "Instagram (stories)", status: "Status do WhatsApp", qr: "QR code", google: "Google",
+  ig: "Instagram", instagram: "Instagram", fb: "Facebook", facebook: "Facebook", wa: "WhatsApp", whatsapp: "WhatsApp" };
 
 function descobrirOrigem() {
   const p = new URLSearchParams(location.search);
