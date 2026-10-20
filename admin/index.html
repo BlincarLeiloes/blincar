@@ -302,6 +302,13 @@ button.cel:hover{border-color:var(--muted)}
 .hist-dados dt{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .hist-dados dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .hist-dados .largo{grid-column:1/-1}
+.contador{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--red);color:#fff;font-size:.75rem;font-weight:700}
+.estrelas-txt{color:var(--gold);letter-spacing:.08em}
+.aval-card{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;background:var(--surface);min-width:0}
+.aval-card.nova{border-color:var(--gold)}
+.aval-card blockquote{margin:0;padding:8px 12px;border-left:3px solid var(--line);font-size:.9375rem;overflow-wrap:anywhere}
+.aval-notas{display:grid;gap:2px 16px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));font-size:.875rem;color:var(--muted)}
+.aval-notas b{color:var(--fg);font-weight:600}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
 .selo-sinal.alerta{background:var(--lotado-bg);color:var(--err)}
 .ag-aguardando{border-style:dashed}
@@ -502,6 +509,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
           Histórico
         </button>
+        <button type="button" class="mini mini-icone" id="agAvaliacoes" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>
+          Avaliações <span class="contador" id="agAvalNovas" hidden></span>
+        </button>
       </div>
     </div>
     <p class="selo" id="agExemplo" hidden><b>Agenda de exemplo.</b> Os clientes são inventados e nada vai para a planilha. Pode testar à vontade. Aqui, "Conferir pagamento" faz de conta que o cliente pagou o Pix.</p>
@@ -550,6 +561,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg dlg-largo" id="dlgHist" aria-labelledby="histTitulo">
   <div class="dlg-corpo" id="histCorpo"></div>
+</dialog>
+
+<dialog class="dlg dlg-largo" id="dlgAval" aria-labelledby="avalTitulo">
+  <div class="dlg-corpo" id="avalCorpo"></div>
 </dialog>
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
@@ -1358,6 +1373,10 @@ function agruparPorDia(lista) {
 
 function agendaDesenhar() {
   const d = AG.dados;
+  const novas = d.avaliacoesNovas || 0;
+  $("#agAvalNovas").textContent = novas;
+  $("#agAvalNovas").hidden = !novas;
+  $("#agAvaliacoes").setAttribute("aria-label", novas ? `Avaliações, ${plural(novas, "nova", "novas")}` : "Avaliações");
   const porDia = agruparPorDia(d.agendamentos);
   $("#agMes").textContent = nomeMes(d.mes);
   $("#agDica").hidden = true;
@@ -1578,6 +1597,30 @@ function mensagemPresenca(a) {
   return `Olá, ${nome}! Aqui é da Blin Car. Passando para confirmar: ${a.servico.toLowerCase()} do ${a.carro} ${dataLonga(a.data).toLowerCase()}. Você confirma que vem?`;
 }
 
+// Avaliação do carro entregue: se o cliente já respondeu ou quando sai o e-mail pedindo.
+function situacaoAvaliacao(a) {
+  const v = a.avaliacao;
+  if (!v) return "";
+  if (v.respondida) return el("span", {}, "Avaliou: ", el("span", { class: "estrelas-txt", role: "img", "aria-label": `${v.nota} de 5 estrelas` }, estrelas(v.nota)));
+  if (v.enviado) return el("span", {}, `E-mail pedindo a avaliação enviado em ${quandoTexto(v.enviado)}`);
+  const dias = (AG.dados && AG.dados.regras.avaliacaoDias) || 5;
+  return el("span", {}, a.email ? `O e-mail pedindo a avaliação sai ${dias} dias depois da entrega.` : "Sem e-mail: peça a avaliação pelo WhatsApp.");
+}
+
+const estrelas = n => "★".repeat(n) + "☆".repeat(5 - n);
+
+function mensagemAvaliacao(a) {
+  return `Olá, ${a.cliente.split(" ")[0]}! Aqui é da Blin Car. Já faz alguns dias que você buscou o seu ${a.carro}. ` +
+    `Pode contar pra gente como foi? São 5 perguntas rápidas, leva 1 minuto:\n${a.avaliacao.link}\n\nObrigado pela confiança!`;
+}
+
+// Botão verde que abre o WhatsApp do cliente com o link da avaliação (enquanto ele não respondeu).
+function botaoPedirAvaliacao(a) {
+  if (!a.avaliacao || a.avaliacao.respondida) return "";
+  const link = linkZap(a.telefone, mensagemAvaliacao(a));
+  return link ? el("a", { class: "mini mini-wa", href: link, target: "_blank", rel: "noopener" }, "Pedir avaliação no WhatsApp") : "";
+}
+
 function seloSituacao(a) {
   if (a.sit === "confirmado") {
     return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito"
@@ -1608,6 +1651,7 @@ function itemAgendamento(a, comData) {
     etiquetas.length ? el("span", {}, maiuscula(etiquetas.join(" · "))) : "",
     a.sit === "confirmado" ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
     a.sit === "entregue" && a.entregueEm ? el("span", { class: "ok-txt" }, `Entregue em ${quandoTexto(a.entregueEm)}`) : "",
+    a.sit === "entregue" ? situacaoAvaliacao(a) : "",
     a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
   const obs = a.obs ? el("p", { class: "ag-obs" }, a.obs) : "";
   let acoes;
@@ -1649,7 +1693,7 @@ function itemAgendamento(a, comData) {
   } else if (a.sit === "nao_veio") {
     acoes = el("div", { class: "ag-acoes" }, botao("desfazer-naoveio", "Desfazer \"não veio\""));
   } else if (a.sit === "entregue") {
-    acoes = el("div", { class: "ag-acoes" }, botao("desfazer-entregue", "Desfazer \"entregue\""));
+    acoes = el("div", { class: "ag-acoes" }, botaoPedirAvaliacao(a), botao("desfazer-entregue", "Desfazer \"entregue\""));
   } else {
     const lembrar = linkZap(a.telefone, mensagemPresenca(a));
     const chegou = a.data <= AG.dados.hoje;
@@ -2201,13 +2245,114 @@ function detalheHist(a, fechar) {
       linha("Sinal", a.sinal ? `${reais(a.sinal)} ${forma}`.trim() : ""),
       linha("Agendado em", a.criado ? quandoTexto(a.criado) + (a.origem === "Site" ? " · pelo site" : " · pelo painel") : ""),
       linha("Entregue em", a.entregueEm ? quandoTexto(a.entregueEm) : ""),
-      linha("O que foi feito / observações", a.obs, true)),
+      linha("O que foi feito / observações", a.obs, true),
+      a.sit === "entregue" && a.avaliacao ? linha("Avaliação", situacaoAvaliacao(a), true) : ""),
+    a.sit === "entregue" && botaoPedirAvaliacao(a) ? el("div", { class: "ag-acoes" }, botaoPedirAvaliacao(a)) : "",
     outras.length
       ? el("section", { class: "hist-mes" }, el("h3", {}, "Outras visitas deste cliente", el("span", {}, plural(outras.length, "visita", "visitas"))), ...outras.map(itemHist))
       : el("p", { class: "nota" }, "Primeira visita deste cliente.")];
 }
 
 $("#agHistorico").addEventListener("click", abrirHistorico);
+
+/* ---------- Avaliações dos clientes: vocês leem e decidem o que vai para o site ---------- */
+
+const AV = { dados: null, erro: "", ocupado: false };
+
+async function abrirAvaliacoes() {
+  Object.assign(AV, { dados: null, erro: "" });
+  desenharAvaliacoes();
+  if (!$("#dlgAval").open) $("#dlgAval").showModal();
+  try {
+    const r = await agendaPedir("agenda_avaliacoes");
+    if (r && r.ok) AV.dados = r;
+    else if (r && r.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else AV.erro = r && r.erro !== "acao" && r.mensagem ? r.mensagem : MSG_VERSAO;
+  } catch {
+    AV.erro = MSG_REDE;
+  }
+  desenharAvaliacoes();
+}
+
+const media = n => String(n).replace(".", ",");
+
+function desenharAvaliacoes(aviso) {
+  const topo = el("div", { class: "dlg-topo" },
+    el("div", {}, el("h2", { id: "avalTitulo" }, "Avaliações"),
+      el("p", { class: "sub" }, `O pedido de avaliação sai ${(AG.dados && AG.dados.regras.avaliacaoDias) || 5} dias depois do "Veículo entregue". Só vai para o site o que vocês publicarem (4 ou 5 estrelas, com autorização do cliente).`)),
+    el("button", { type: "button", class: "mini", "data-av": "fechar" }, "Fechar"));
+  const corpo = $("#avalCorpo");
+  if (!AV.dados) {
+    return corpo.replaceChildren(topo, AV.erro ? el("p", { class: "err", role: "alert" }, AV.erro) : el("p", { class: "nota" }, "Carregando as avaliações…"));
+  }
+  const d = AV.dados, m = d.medias;
+  const resumo = d.avaliacoes.length ? el("div", { class: "hist-resumo" },
+    el("div", {}, el("span", {}, "Resultado no carro"), el("b", {}, `${media(m.resultado)} de 5`)),
+    el("div", {}, el("span", {}, "Atendimento (recepção · entrega)"), el("b", {}, `${media(m.recepcao)} · ${media(m.entrega)}`)),
+    el("div", {}, el("span", {}, "No prazo · indicariam"), el("b", {}, `${m.noPrazo}% · ${m.recomendam}%`))) : "";
+  const lista = d.avaliacoes.length
+    ? d.avaliacoes.map(cartaoAvaliacao)
+    : [el("p", { class: "vazio" }, "Nenhuma avaliação respondida ainda.")];
+  corpo.replaceChildren(topo,
+    aviso ? el("p", { class: "aviso-ok", role: "status" }, aviso) : "",
+    el("p", { class: "err", id: "avErro", role: "alert", hidden: "" }),
+    resumo,
+    d.aguardando ? el("p", { class: "nota" }, `${plural(d.aguardando, "cliente recebeu o pedido e ainda não respondeu", "clientes receberam o pedido e ainda não responderam")}.`) : "",
+    el("div", { class: "dlg-lista" }, ...lista));
+}
+
+function cartaoAvaliacao(v) {
+  const nota = n => el("span", { class: "estrelas-txt", role: "img", "aria-label": `${n} de 5 estrelas` }, estrelas(n));
+  const botao = (acao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-av": acao, "data-id": v.id }, texto);
+  const situacao = v.publicada ? el("span", { class: "selo-sinal sim" }, "Publicada no site")
+    : !v.pode ? el("span", { class: "selo-sinal nao" }, "Cliente não autorizou o site")
+    : v.nota < 4 ? el("span", { class: "selo-sinal alerta" }, "Abaixo de 4 estrelas: não vai para o site")
+    : v.decidida ? el("span", { class: "selo-sinal nao" }, "Não publicada")
+    : el("span", { class: "selo-sinal nao" }, "Nova: decidir");
+  const acoes = v.publicada ? [botao("esconder", "Tirar do site")]
+    : v.publicavel ? [botao("publicar", "Publicar no site", "mini mini-ok"), v.decidida ? "" : botao("esconder", "Não publicar")]
+    : v.decidida ? [] : [botao("lida", "Marcar como lida")];
+  return el("div", { class: "aval-card" + (v.decidida ? "" : " nova") },
+    el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, v.cliente), situacao),
+    el("span", { class: "sub" }, [v.telefone, v.carro, v.servico, v.data ? dataCurta(v.data) : "", `respondeu em ${quandoTexto(v.respondida)}`].filter(Boolean).join(" · ")),
+    el("div", { class: "aval-notas" },
+      el("span", {}, "Resultado: ", nota(v.resultado)),
+      el("span", {}, "Prazo: ", el("b", {}, v.prazo)),
+      el("span", {}, "Recepção: ", nota(v.recepcao)),
+      el("span", {}, "Entrega: ", nota(v.entrega)),
+      el("span", {}, "Indicaria: ", el("b", {}, v.recomenda ? "Sim" : "Não"))),
+    v.comentario ? el("blockquote", {}, `“${v.comentario}”`) : el("span", { class: "sub" }, "Sem comentário."),
+    acoes.filter(Boolean).length ? el("div", { class: "ag-acoes" }, ...acoes) : "");
+}
+
+$("#agAvaliacoes").addEventListener("click", abrirAvaliacoes);
+$("#dlgAval").addEventListener("click", async e => {
+  if (e.target === $("#dlgAval")) return $("#dlgAval").close();
+  const b = e.target.closest("[data-av]");
+  if (!b || AV.ocupado) return;
+  if (b.dataset.av === "fechar") return $("#dlgAval").close();
+  const publicar = b.dataset.av === "publicar";
+  AV.ocupado = true;
+  document.body.classList.add("salvando");
+  try {
+    const r = await agendaPedir("agenda_avaliacao_publicar", { avaliacao: b.dataset.id, publicar });
+    if (r && r.ok) {
+      AV.dados = r;
+      desenharAvaliacoes(publicar ? "Publicada. Já aparece na página inicial (pode levar até 10 minutos)." : b.dataset.av === "esconder" ? "Pronto. Não aparece no site." : "Marcada como lida.");
+      const novas = r.avaliacoes.filter(v => !v.decidida).length;
+      if (AG.dados) AG.dados.avaliacoesNovas = novas;
+      $("#agAvalNovas").textContent = novas;
+      $("#agAvalNovas").hidden = !novas;
+    } else {
+      mostrarErro($("#avErro"), (r && r.mensagem) || MSG_REDE);
+    }
+  } catch {
+    mostrarErro($("#avErro"), MSG_REDE);
+  } finally {
+    AV.ocupado = false;
+    document.body.classList.remove("salvando");
+  }
+});
 $("#dlgHist").addEventListener("click", e => {
   if (e.target === $("#dlgHist")) return $("#dlgHist").close();
   const item = e.target.closest("[data-hist-id]");
@@ -2245,7 +2390,7 @@ function criarDemo() {
       "Retoque": { dias: { 1: 3, 3: 2 } },
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
-    sinal: 50, avisoDias: 2, remarcacoes: 3, prazoMinutos: 5, antecedenciaDias: 1, janelaDias: 120
+    sinal: 50, avisoDias: 2, avaliacaoDias: 5, remarcacoes: 3, prazoMinutos: 5, antecedenciaDias: 1, janelaDias: 120
   };
   const hoje = hojeAqui();
   const especiais = {};
@@ -2302,6 +2447,28 @@ function criarDemo() {
       situacao: "Veículo entregue", entregueEm: `${somaDias(anterior("Retoque"), -6)} 16:40`, obs: "Retoque no para-choque traseiro" })
   ];
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
+  // Avaliações de exemplo: uma publicada, uma nova para decidir e uma abaixo de 4 estrelas.
+  const linkAval = id => new URL(`../avaliar/?t=EXEMPLO${id}`, location.href).href;
+  const avaliacoes = [
+    { id: "av1", cliente: "Diego (exemplo)", telefone: lista[8].telefone, carro: "Civic 2017 preto (RIO9A19)", servico: "Retoque", data: lista[8].data,
+      respondida: `${somaDias(hoje, -2)} 19:12`, resultado: 5, prazo: "No prazo", recepcao: 5, entrega: 5, recomenda: true,
+      comentario: "Ficou perfeito, nem dá para ver onde era o arranhão. Atendimento nota 10.", pode: true, publicada: true, decidida: true },
+    { id: "av2", cliente: "Marcos (exemplo)", telefone: "(21) 90000-0077", carro: "Gol 2014 branco", servico: "Pintura geral", data: somaDias(hoje, -12),
+      respondida: `${somaDias(hoje, -1)} 10:05`, resultado: 5, prazo: "Atrasou um pouco", recepcao: 4, entrega: 5, recomenda: true,
+      comentario: "Carro ficou novo! Atrasou um dia, mas avisaram antes.", pode: true, publicada: false, decidida: false },
+    { id: "av3", cliente: "Rita (exemplo)", telefone: "(21) 90000-0078", carro: "Fiesta 2011 prata", servico: "Retoque", data: somaDias(hoje, -15),
+      respondida: `${somaDias(hoje, -3)} 08:40`, resultado: 3, prazo: "Atrasou muito", recepcao: 4, entrega: 2, recomenda: false,
+      comentario: "O retoque ficou bom, mas demorou e ninguém me avisou.", pode: false, publicada: false, decidida: false }
+  ].map(v => Object.assign(v, { nota: Math.round((v.resultado + v.recepcao + v.entrega) / 3) }));
+  avaliacoes.forEach(v => { v.publicavel = v.pode && v.nota >= 4; });
+  lista[8].avaliacao = { link: linkAval("av1"), enviado: `${somaDias(hoje, -3)} 08:00`, respondida: avaliacoes[0].respondida, nota: 5 };
+  const painelAval = () => {
+    const r = avaliacoes;
+    const med = k => Math.round(r.reduce((t, v) => t + v[k], 0) / r.length * 10) / 10;
+    const pct = f => Math.round(r.filter(f).length / r.length * 100);
+    return { ok: true, avaliacoes: r.slice().sort((x, y) => (x.respondida < y.respondida ? 1 : -1)), aguardando: 1,
+      medias: { resultado: med("resultado"), recepcao: med("recepcao"), entrega: med("entrega"), recomendam: pct(v => v.recomenda), noPrazo: pct(v => v.prazo === "No prazo") } };
+  };
   // Um carro pago daqui a 1 ou 2 dias aparece em "Ligar para confirmar".
   const perto = [somaDias(hoje, 1), somaDias(hoje, 2)].find(x => ofertasDoDia(regras, especiais, x).length);
   if (perto) lista.push(novo(perto, ofertasDoDia(regras, especiais, perto)[0].servico, "Bruno (exemplo)", "Uno 2012 branco", true, { obs: "Ligar para confirmar" }));
@@ -2312,7 +2479,8 @@ function criarDemo() {
   const ativo = id => comSit().find(a => a.id === id && ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
-    forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "" });
+    forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
+    avaliacao: a.avaliacao || null });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
   const credito = (a, nivel, motivo) => creditos.push({ id: "cr" + (++seq), cliente: a.cliente, email: a.email, telefone: a.telefone,
@@ -2334,6 +2502,7 @@ function criarDemo() {
     const porData = (a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
     return Object.assign({
       ok: true, mes: m, hoje, agora: agora(), regras, dias, mp: true, taxaCartao: 5, site: new URL("../agendar/", location.href).href,
+      avaliacoesNovas: avaliacoes.filter(v => !v.decidida).length,
       agendamentos: vis.filter(a => a.data >= ini && a.data <= fim).map(publico).sort(porData),
       proximos: [hoje, somaDias(hoje, 1)].map(data => Object.assign(info(data), { agendamentos: vis.filter(a => a.data === data).map(publico) })),
       confirmar: c.filter(a => a.data > hoje && a.data <= somaDias(hoje, regras.avisoDias) && !a.presenca).map(publico).sort(porData),
@@ -2403,13 +2572,22 @@ function criarDemo() {
       const h = comSit().filter(a => ["confirmado", "entregue", "nao_veio"].indexOf(a.sit) !== -1).map(publico);
       return { ok: true, hoje, agendamentos: h.sort((x, y) => (x.data < y.data ? 1 : x.data > y.data ? -1 : 0)) };
     }
+    if (acao === "agenda_avaliacoes") return painelAval();
+    if (acao === "agenda_avaliacao_publicar") {
+      const v = avaliacoes.find(x => x.id === extra.avaliacao);
+      if (!v) return falha("nao_encontrado", "Essa avaliação não existe mais.");
+      if (extra.publicar && !v.publicavel) return falha("nao_publicavel", "Só avaliações de 4 ou 5 estrelas vão para o site.");
+      Object.assign(v, { publicada: !!extra.publicar, decidida: true });
+      return painelAval();
+    }
     if (acao === "agenda_entregue") {
       const a = comSit().find(x => x.id === extra.id);
       if (!a) return naoAchou();
       if (extra.desfazer) Object.assign(a, { situacao: "Confirmado", entregueEm: "" });
       else if (a.sit !== "confirmado") return falha("situacao", "Só dá para marcar como entregue um carro com sinal pago.");
       else if (a.data > hoje) return falha("futuro", "Esse dia ainda não chegou.");
-      else Object.assign(a, { situacao: "Veículo entregue", entregueEm: agora() });
+      else Object.assign(a, { situacao: "Veículo entregue", entregueEm: agora(),
+        avaliacao: a.avaliacao || { link: linkAval(a.id), enviado: "", respondida: "", nota: 0 } });
       return mes(m);
     }
     if (acao === "agenda_naoveio") {

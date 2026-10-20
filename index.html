@@ -139,6 +139,15 @@ input[aria-invalid=true]{border-color:var(--err)}
 
 /* Informações */
 .bloco h2{margin:0 0 14px;font:italic 800 1.375rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+
+/* Avaliações dos clientes (só as que a oficina aprovou) */
+.avals{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.aval{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:14px 16px;display:grid;gap:6px;min-width:0}
+.aval .est{color:var(--gold);letter-spacing:.12em;font-size:1rem;line-height:1}
+.aval blockquote{margin:0;font-size:1rem;overflow-wrap:anywhere}
+.aval .quem{font-size:.8125rem;color:var(--muted)}
+.aval .quem b{color:var(--fg);font-weight:600}
+.mais-avals{margin-top:10px}
 .passos{list-style:none;margin:0;padding:0;display:grid;gap:14px;counter-reset:p}
 .passos li{display:grid;grid-template-columns:36px 1fr;column-gap:12px;counter-increment:p}
 .passos li::before{content:counter(p);grid-row:span 2;font:italic 800 2rem/1 var(--display);font-stretch:75%;color:var(--red)}
@@ -286,6 +295,12 @@ address span{color:var(--muted);font-size:.9375rem}
   </form>
 
   <aside class="info">
+    <section class="bloco" id="avaliacoes" aria-labelledby="avTitulo" hidden>
+      <h2 id="avTitulo">O que os clientes dizem</h2>
+      <ul class="avals" id="avLista"></ul>
+      <button type="button" class="btn btn-line btn-sm mais-avals" id="avMais" hidden>Ver mais avaliações</button>
+    </section>
+
     <section class="bloco">
       <h2>Como funciona</h2>
       <ol class="passos">
@@ -568,6 +583,47 @@ document.querySelectorAll("[data-copy]").forEach(btn => {
     }
   });
 });
+
+// Avaliações aprovadas no painel. Sem avaliação publicada (ou sem a planilha), a seção fica escondida.
+function itemAvaliacao(a) {
+  const li = document.createElement("li");
+  li.className = "aval";
+  const est = document.createElement("span");
+  est.className = "est";
+  est.setAttribute("role", "img");
+  est.setAttribute("aria-label", `${a.nota} de 5 estrelas`);
+  est.textContent = "★".repeat(a.nota) + "☆".repeat(5 - a.nota);
+  li.append(est);
+  if (a.comentario) {
+    const q = document.createElement("blockquote");
+    q.textContent = `“${a.comentario}”`;
+    li.append(q);
+  }
+  const quem = document.createElement("span");
+  quem.className = "quem";
+  const nome = document.createElement("b");
+  nome.textContent = a.nome;
+  quem.append(nome, ` · ${[a.carro, a.servico.toLowerCase(), a.quando].filter(Boolean).join(" · ")}`);
+  li.append(quem);
+  return li;
+}
+
+if (RASTRO.url) {
+  fetch(`${RASTRO.url}?acao=avaliacoes`, { cache: "no-store" }).then(r => r.json()).then(d => {
+    const lista = d && d.ok && Array.isArray(d.avaliacoes) ? d.avaliacoes.filter(a => a.nota >= 4 && a.nota <= 5) : [];
+    if (!lista.length) return;
+    const ul = $("#avLista");
+    ul.replaceChildren(...lista.slice(0, 3).map(itemAvaliacao));
+    if (lista.length > 3) {
+      $("#avMais").hidden = false;
+      $("#avMais").addEventListener("click", () => {
+        ul.replaceChildren(...lista.map(itemAvaliacao));
+        $("#avMais").hidden = true;
+      }, { once: true });
+    }
+    $("#avaliacoes").hidden = false;
+  }).catch(() => {});
+}
 
 document.querySelectorAll(".numero").forEach(el => { el.textContent = numeroBonito(WHATSAPP); });
 document.querySelectorAll(".se-numero").forEach(el => { el.hidden = !WHATSAPP; });

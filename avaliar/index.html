@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Avaliação · Blin Car</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Conte para a Blin Car como foi o serviço no seu carro.">
+<meta name="theme-color" content="#0f1012">
+<link rel="icon" href="../favicon.ico" sizes="32x32">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta property="og:title" content="Como ficou o seu carro? · Blin Car">
+<meta property="og:description" content="São 5 perguntas rápidas sobre o serviço. Leva 1 minuto.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://blincarleiloes.github.io/blincar/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logo da Blin Car Leilões">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
+<style>
+/* Mesma identidade do site de agendamento. Uma coluna só, pensada para o celular. */
+:root{
+  --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--fg:#f2f0ec;--muted:#a3a2a7;
+  --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
+  --ok-bg:#12301f;--ok-fg:#5fd896;--gold-bg:#2e2512;
+  --wa:#25d366;--wa-ink:#062a17;
+  --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --ok-bg:#e3f5ea;--ok-fg:#11703a;--gold-bg:#fbf1db;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
+  --ok-bg:#e3f5ea;--ok-fg:#11703a;--gold-bg:#fbf1db;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--body);-webkit-text-size-adjust:100%}
+a{color:inherit}
+h1,h2,h3{text-wrap:balance}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.bar{border-bottom:1px solid var(--line)}
+.bar-in{max-width:720px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mark{display:grid;text-decoration:none;line-height:1}
+.mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
+.mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
+.mark .word b{color:var(--red);font-weight:800}
+.mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+
+.page{max-width:720px;margin:0 auto;padding-block:32px 56px;display:grid;gap:24px}
+h1{margin:0;font:italic 800 clamp(2.25rem,9vw,3.25rem)/.92 var(--display);font-stretch:72%;text-transform:uppercase}
+.lede{margin:12px 0 0;color:var(--muted);font-size:1.0625rem}
+.lede b{color:var(--fg)}
+
+.cartao{border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:22px;display:grid;gap:26px}
+.pergunta{border:0;margin:0;padding:0;display:grid;gap:10px;min-width:0}
+.pergunta legend,.pergunta > label{padding:0;font-weight:700;font-size:1.0625rem}
+.pergunta .num{color:var(--red);font:italic 800 1.125rem/1 var(--display);font-stretch:75%;margin-right:6px}
+.err{margin:0;color:var(--err);font-size:.875rem;font-weight:600}
+
+/* Estrelas: cada uma é um radio. As escolhidas ficam douradas. */
+.estrelas{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.estrelas label{position:relative;display:grid;place-items:center;width:52px;height:52px;border-radius:12px;cursor:pointer;font-size:2.25rem;line-height:1;color:var(--line);transition:color .12s}
+.estrelas input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}
+.estrelas label:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:1px}
+.estrelas[data-valor="1"] label:nth-child(-n+1),.estrelas[data-valor="2"] label:nth-child(-n+2),
+.estrelas[data-valor="3"] label:nth-child(-n+3),.estrelas[data-valor="4"] label:nth-child(-n+4),
+.estrelas[data-valor="5"] label:nth-child(-n+5){color:var(--gold)}
+.estrelas .rotulo{margin-left:8px;font-weight:600;color:var(--muted);min-width:6em}
+@media (prefers-reduced-motion:reduce){.estrelas label{transition:none}}
+
+.opcoes{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.opcao{position:relative;display:block}
+.opcao input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.opcao span{display:block;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-weight:600}
+.opcao input:checked+span{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.opcao input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+
+textarea{width:100%;min-height:104px;resize:vertical;font:400 16px/1.45 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px}
+textarea:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.conta{margin:0;font-size:.8125rem;color:var(--muted);text-align:right}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:.9375rem;cursor:pointer}
+.check input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--red)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:12px 20px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);font:600 1.0625rem/1.2 var(--body);text-decoration:none;cursor:pointer;text-align:center}
+.btn-red{background:var(--red);color:var(--on-red)}
+.btn-wa{background:var(--wa);color:var(--wa-ink)}
+.btn[disabled]{background:var(--line);color:var(--muted);cursor:not-allowed}
+.btn:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.largura{width:100%}
+.msg{margin:0;padding:10px 12px;border-radius:10px;border:1px solid var(--err);color:var(--err);font-size:.9375rem;font-weight:600}
+
+.resultado{border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:24px;display:grid;gap:14px}
+.resultado h2{margin:0;font:italic 800 1.75rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+.resultado p{margin:0;color:var(--muted);font-size:1.0625rem}
+.selo{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--ok-bg);color:var(--ok-fg)}
+.selo svg{width:30px;height:30px}
+.selo.ruim{background:transparent;border:2px solid var(--err);color:var(--err)}
+.acoes{display:flex;flex-wrap:wrap;gap:10px}
+
+.rodape{border-top:1px solid var(--line)}
+.rodape p{max-width:720px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in gutter">
+    <span class="mark" aria-label="Blin Car, estética automotiva">
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <span class="word">BLIN <b>CAR</b></span>
+      <span class="tag">Estética automotiva</span>
+    </span>
+  </div>
+</header>
+
+<main class="page gutter">
+  <section>
+    <h1>Como ficou o seu carro?</h1>
+    <p class="lede" id="ola">São 5 perguntas rápidas sobre o serviço. Leva 1 minuto.</p>
+  </section>
+
+  <p class="lede" id="carregando" role="status">Carregando…</p>
+
+  <form class="cartao" id="fAval" novalidate hidden>
+    <fieldset class="pergunta" aria-describedby="resultado-err">
+      <legend><span class="num">1</span>Como ficou o resultado no carro?</legend>
+      <div class="estrelas" data-nome="resultado"></div>
+      <p class="err" id="resultado-err" hidden>Escolha de 1 a 5 estrelas.</p>
+    </fieldset>
+    <fieldset class="pergunta" aria-describedby="prazo-err">
+      <legend><span class="num">2</span>O carro foi entregue no prazo combinado?</legend>
+      <div class="opcoes">
+        <label class="opcao"><input type="radio" name="prazo" value="no_prazo"><span>Sim, no prazo</span></label>
+        <label class="opcao"><input type="radio" name="prazo" value="atrasou_pouco"><span>Atrasou um pouco</span></label>
+        <label class="opcao"><input type="radio" name="prazo" value="atrasou_muito"><span>Atrasou muito</span></label>
+      </div>
+      <p class="err" id="prazo-err" hidden>Escolha uma opção.</p>
+    </fieldset>
+    <fieldset class="pergunta" aria-describedby="recepcao-err">
+      <legend><span class="num">3</span>Como você foi atendido quando deixou o carro?</legend>
+      <div class="estrelas" data-nome="recepcao"></div>
+      <p class="err" id="recepcao-err" hidden>Escolha de 1 a 5 estrelas.</p>
+    </fieldset>
+    <fieldset class="pergunta" aria-describedby="entrega-err">
+      <legend><span class="num">4</span>E na hora de buscar o carro?</legend>
+      <div class="estrelas" data-nome="entrega"></div>
+      <p class="err" id="entrega-err" hidden>Escolha de 1 a 5 estrelas.</p>
+    </fieldset>
+    <fieldset class="pergunta" aria-describedby="recomenda-err">
+      <legend><span class="num">5</span>Você indicaria a Blin Car para um amigo?</legend>
+      <div class="opcoes">
+        <label class="opcao"><input type="radio" name="recomenda" value="sim"><span>Sim</span></label>
+        <label class="opcao"><input type="radio" name="recomenda" value="nao"><span>Não</span></label>
+      </div>
+      <p class="err" id="recomenda-err" hidden>Escolha sim ou não.</p>
+    </fieldset>
+    <div class="pergunta">
+      <label for="comentario">Quer contar mais alguma coisa? (opcional)</label>
+      <textarea id="comentario" maxlength="600" placeholder="O que você achou do serviço, do atendimento, do resultado…"></textarea>
+      <p class="conta" id="conta" aria-live="polite">0/600</p>
+      <label class="check"><input type="checkbox" id="publicar">Pode mostrar minha avaliação no site da Blin Car (só com o meu primeiro nome e o modelo do carro).</label>
+    </div>
+    <p class="msg" id="envioErro" role="alert" hidden></p>
+    <button class="btn btn-red largura" type="submit" id="enviar">Enviar avaliação</button>
+  </form>
+
+  <section class="resultado" id="fim" hidden aria-live="polite"></section>
+</main>
+
+<footer class="rodape"><p class="gutter">Blin Car · Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM</p></footer>
+
+<script src="../config.js?v=2"></script>
+<script>
+const CONFIG = window.BLINCAR || {};
+const API = String(CONFIG.metricas || "").trim();
+const WHATSAPP = String(CONFIG.whatsapp || "").replace(/\D/g, "");
+const TOKEN = new URLSearchParams(location.search).get("t") || "";
+const ROTULOS = ["", "Muito ruim", "Ruim", "Regular", "Bom", "Excelente"];
+const PERGUNTAS = ["resultado", "prazo", "recepcao", "entrega", "recomenda"];
+const MSG_REDE = "Não consegui enviar. Confira a internet e tente de novo.";
+let nome = "";
+
+const $ = s => document.querySelector(s);
+
+// Monta elementos com textContent: nada que vem da planilha vira HTML.
+function el(tag, props = {}, ...filhos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else e.setAttribute(k, v);
+  }
+  for (const f of filhos) if (f !== "" && f != null) e.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return e;
+}
+
+const ICONE = {
+  ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  ruim: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 7v6M12 17h.01"/></svg>'
+};
+function selo(tipo) {
+  const s = el("span", { class: "selo" + (tipo === "ruim" ? " ruim" : ""), "aria-hidden": "true" });
+  s.innerHTML = ICONE[tipo];
+  return s;
+}
+
+function zap(texto) {
+  return WHATSAPP ? `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}` : "";
+}
+
+// As 5 estrelas de cada pergunta. O rótulo ao lado diz o que a nota quer dizer.
+document.querySelectorAll(".estrelas").forEach(caixa => {
+  const nomeCampo = caixa.dataset.nome;
+  const rotulo = el("span", { class: "rotulo", "aria-hidden": "true" });
+  for (let n = 1; n <= 5; n++) {
+    caixa.append(el("label", {}, el("input", { type: "radio", name: nomeCampo, value: String(n) }),
+      el("span", { "aria-hidden": "true" }, "★"), el("span", { class: "sr" }, `${n} ${n === 1 ? "estrela" : "estrelas"}: ${ROTULOS[n]}`)));
+  }
+  caixa.append(rotulo);
+  caixa.addEventListener("change", e => {
+    caixa.dataset.valor = e.target.value;
+    rotulo.textContent = ROTULOS[Number(e.target.value)];
+  });
+});
+
+document.querySelectorAll("#fAval input[type=radio]").forEach(i => i.addEventListener("change", () => {
+  const erro = $(`#${i.name}-err`);
+  if (erro) erro.hidden = true;
+}));
+
+$("#comentario").addEventListener("input", () => {
+  $("#conta").textContent = `${$("#comentario").value.length}/600`;
+});
+
+const marcado = nomeCampo => (document.querySelector(`#fAval input[name="${nomeCampo}"]:checked`) || {}).value || "";
+
+function mostrarFim(tipo, titulo, texto, extra) {
+  $("#fAval").hidden = true;
+  $("#carregando").hidden = true;
+  const ajuda = zap("Olá! Vim pela avaliação da Blin Car.");
+  $("#fim").replaceChildren(selo(tipo), el("h2", {}, titulo), el("p", {}, texto),
+    extra && ajuda ? el("div", { class: "acoes" }, el("a", { class: "btn btn-wa", href: ajuda, target: "_blank", rel: "noopener" }, "Falar com a Blin Car no WhatsApp")) : "");
+  $("#fim").hidden = false;
+  window.scrollTo({ top: 0 });
+}
+
+$("#fAval").addEventListener("submit", async e => {
+  e.preventDefault();
+  const faltando = PERGUNTAS.filter(p => !marcado(p));
+  PERGUNTAS.forEach(p => { $(`#${p}-err`).hidden = !faltando.includes(p); });
+  if (faltando.length) {
+    const primeiro = document.querySelector(`#fAval input[name="${faltando[0]}"]`);
+    primeiro.closest("fieldset").scrollIntoView({ block: "center" });
+    return primeiro.focus();
+  }
+  const botao = $("#enviar");
+  botao.disabled = true;
+  botao.textContent = "Enviando…";
+  $("#envioErro").hidden = true;
+  try {
+    const respostas = {
+      resultado: Number(marcado("resultado")), prazo: marcado("prazo"), recepcao: Number(marcado("recepcao")),
+      entrega: Number(marcado("entrega")), recomenda: marcado("recomenda") === "sim",
+      comentario: $("#comentario").value.trim(), publicar: $("#publicar").checked
+    };
+    const r = await (await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ acao: "cliente_avaliar", t: TOKEN, respostas }) })).json();
+    if (r && r.ok) {
+      return r.nota >= 4
+        ? mostrarFim("ok", `Obrigado${nome ? ", " + nome : ""}!`, "Que bom que você gostou. A sua avaliação chegou para a equipe da Blin Car.")
+        : mostrarFim("ok", `Obrigado${nome ? ", " + nome : ""}!`, "A sua avaliação chegou para a equipe da Blin Car. Vamos usar a sua opinião para melhorar. Se quiser conversar com a gente:", true);
+    }
+    if (r && r.erro === "respondida") return mostrarFim("ok", "Você já avaliou", "Essa avaliação já foi respondida. Obrigado!");
+    $("#envioErro").textContent = (r && r.mensagem) || MSG_REDE;
+    $("#envioErro").hidden = false;
+  } catch {
+    $("#envioErro").textContent = MSG_REDE;
+    $("#envioErro").hidden = false;
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Enviar avaliação";
+  }
+});
+
+// Abre o link: confere de quem é e se já foi respondido.
+(async () => {
+  if (!API || TOKEN.length < 20) {
+    return mostrarFim("ruim", "Link incompleto", "Abra de novo o link que a Blin Car mandou por e-mail ou WhatsApp.", true);
+  }
+  try {
+    const r = await (await fetch(`${API}?acao=avaliacao&t=${encodeURIComponent(TOKEN)}`, { cache: "no-store" })).json();
+    if (!r || !r.ok) return mostrarFim("ruim", "Não achamos essa avaliação", (r && r.mensagem) || "Abra de novo o link que a Blin Car mandou.", true);
+    nome = r.cliente || "";
+    if (r.respondida) return mostrarFim("ok", "Você já avaliou", "Essa avaliação já foi respondida. Obrigado pela confiança!");
+    $("#ola").replaceChildren(`Olá, ${nome}! Conta pra gente como foi o serviço no seu `, el("b", {}, r.carro), ". São 5 perguntas rápidas, leva 1 minuto.");
+    $("#carregando").hidden = true;
+    $("#fAval").hidden = false;
+  } catch {
+    mostrarFim("ruim", "Não consegui abrir", "Confira a internet e abra o link de novo.", true);
+  }
+})();
+</script>
+</body>
+</html>
