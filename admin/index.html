@@ -309,6 +309,10 @@ button.cel:hover{border-color:var(--muted)}
 .aval-card blockquote{margin:0;padding:8px 12px;border-left:3px solid var(--line);font-size:.9375rem;overflow-wrap:anywhere}
 .aval-notas{display:grid;gap:2px 16px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));font-size:.875rem;color:var(--muted)}
 .aval-notas b{color:var(--fg);font-weight:600}
+.pag-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:start;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);min-width:0}
+.pag-item b{overflow-wrap:anywhere}
+.pag-item .sub{grid-column:1/-1;font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
+.pag-item .feito{grid-column:1/-1;font-size:.875rem;font-weight:600}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
 .selo-sinal.alerta{background:var(--lotado-bg);color:var(--err)}
 .ag-aguardando{border-style:dashed}
@@ -513,6 +517,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>
           Avaliações <span class="contador" id="agAvalNovas" hidden></span>
         </button>
+        <button type="button" class="mini mini-icone" id="agPagamentos" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/></svg>
+          Pagamentos
+        </button>
       </div>
     </div>
     <p class="selo" id="agExemplo" hidden><b>Agenda de exemplo.</b> Os clientes são inventados e nada vai para a planilha. Pode testar à vontade. Aqui, "Conferir pagamento" faz de conta que o cliente pagou o Pix.</p>
@@ -565,6 +573,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg dlg-largo" id="dlgAval" aria-labelledby="avalTitulo">
   <div class="dlg-corpo" id="avalCorpo"></div>
+</dialog>
+
+<dialog class="dlg dlg-largo" id="dlgPag" aria-labelledby="pagTitulo">
+  <div class="dlg-corpo" id="pagCorpo"></div>
 </dialog>
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
@@ -2326,6 +2338,85 @@ function cartaoAvaliacao(v) {
 }
 
 $("#agAvaliacoes").addEventListener("click", abrirAvaliacoes);
+
+/* ---------- Registro dos pagamentos: tudo o que o Mercado Pago avisou ---------- */
+
+const PG = { lista: null, hoje: "", erro: "", busca: "" };
+
+async function abrirPagamentos() {
+  Object.assign(PG, { lista: null, erro: "" });
+  desenharPagamentos();
+  if (!$("#dlgPag").open) $("#dlgPag").showModal();
+  try {
+    const r = await agendaPedir("agenda_pagamentos");
+    if (r && r.ok && Array.isArray(r.pagamentos)) Object.assign(PG, { lista: r.pagamentos, hoje: r.hoje });
+    else if (r && r.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else PG.erro = r && r.erro !== "acao" && r.mensagem ? r.mensagem : MSG_VERSAO;
+  } catch {
+    PG.erro = MSG_REDE;
+  }
+  desenharPagamentos();
+  const busca = $("#pagBusca");
+  if (busca) busca.focus();
+}
+
+// Verde: aprovado. Amarelo: esperando (Pix gerado, em análise). Vermelho: recusado, cancelado, vencido, devolvido.
+function chipPagamento(p) {
+  const tipo = /^aprovado/i.test(p.situacao) ? "sim" : /^(pendente|em análise|autorizado)/i.test(p.situacao) ? "nao" : "alerta";
+  return el("span", { class: "selo-sinal " + tipo }, p.situacao || "?");
+}
+
+function desenharPagamentos() {
+  const topo = el("div", { class: "dlg-topo" },
+    el("div", {}, el("h2", { id: "pagTitulo" }, "Pagamentos"),
+      el("p", { class: "sub" }, "Tudo o que o Mercado Pago avisou: Pix gerado, pago, vencido, cartão recusado e o que a agenda fez. Os mais novos primeiro.")),
+    el("button", { type: "button", class: "mini", "data-pag": "fechar" }, "Fechar"));
+  const corpo = $("#pagCorpo");
+  if (!PG.lista) {
+    return corpo.replaceChildren(topo, PG.erro ? el("p", { class: "err", role: "alert" }, PG.erro) : el("p", { class: "nota" }, "Carregando os pagamentos…"));
+  }
+  const deHoje = PG.lista.filter(p => p.quando.slice(0, 10) === PG.hoje);
+  const aprovados = deHoje.filter(p => /^aprovado/i.test(p.situacao));
+  const problemas = deHoje.filter(p => /^(recusado|cancelado|devolvido|contestado)/i.test(p.situacao));
+  const resumo = el("div", { class: "hist-resumo" },
+    el("div", {}, el("span", {}, "Aprovados hoje"), el("b", {}, `${aprovados.length} · ${reais(aprovados.reduce((t, p) => t + p.valor, 0))}`)),
+    el("div", {}, el("span", {}, "Recusados ou vencidos hoje"), el("b", {}, String(problemas.length))));
+  const busca = el("input", { type: "search", class: "hist-busca", id: "pagBusca", value: PG.busca, autocomplete: "off",
+    placeholder: "Buscar pelo nome do cliente", "aria-label": "Buscar nos pagamentos" });
+  const lista = el("div", { class: "dlg-lista", id: "pagLista", "aria-live": "polite" });
+  busca.addEventListener("input", () => {
+    PG.busca = busca.value;
+    desenharListaPag(lista);
+  });
+  corpo.replaceChildren(topo, resumo, busca, lista);
+  desenharListaPag(lista);
+}
+
+function desenharListaPag(caixa) {
+  const termo = semAcento(PG.busca.trim());
+  const achados = PG.lista.filter(p => !termo || semAcento(p.cliente).includes(termo));
+  if (!achados.length) {
+    return caixa.replaceChildren(el("p", { class: "vazio" }, PG.lista.length ? "Nenhum pagamento desse cliente."
+      : "Nenhum pagamento registrado ainda. O registro começa com o código novo da planilha, no próximo Pix ou cartão."));
+  }
+  const dias = [];
+  achados.forEach(p => {
+    const d = p.quando.slice(0, 10);
+    if (!dias.length || dias[dias.length - 1].dia !== d) dias.push({ dia: d, lista: [] });
+    dias[dias.length - 1].lista.push(p);
+  });
+  caixa.replaceChildren(...dias.map(g => el("section", { class: "hist-mes" },
+    el("h3", {}, /^\d{4}-\d{2}-\d{2}$/.test(g.dia) ? dataLonga(g.dia) : g.dia, el("span", {}, plural(g.lista.length, "aviso", "avisos"))),
+    ...g.lista.map(p => el("div", { class: "pag-item" },
+      el("b", {}, `${p.quando.slice(11, 16)} · ${p.cliente || "Cliente sem nome"}`), chipPagamento(p),
+      el("span", { class: "sub" }, [p.forma, p.valor ? reais(p.valor) : "", p.detalhe].filter(Boolean).join(" · ")),
+      p.resultado ? el("span", { class: "feito" }, p.resultado) : "")))));
+}
+
+$("#agPagamentos").addEventListener("click", abrirPagamentos);
+$("#dlgPag").addEventListener("click", e => {
+  if (e.target === $("#dlgPag") || e.target.closest("[data-pag='fechar']")) $("#dlgPag").close();
+});
 $("#dlgAval").addEventListener("click", async e => {
   if (e.target === $("#dlgAval")) return $("#dlgAval").close();
   const b = e.target.closest("[data-av]");
@@ -2573,6 +2664,16 @@ function criarDemo() {
       return { ok: true, hoje, agendamentos: h.sort((x, y) => (x.data < y.data ? 1 : x.data > y.data ? -1 : 0)) };
     }
     if (acao === "agenda_avaliacoes") return painelAval();
+    if (acao === "agenda_pagamentos") {
+      const h = n => `${hoje} ${n}`;
+      return { ok: true, hoje, pagamentos: [
+        { quando: h("11:42"), pagamento: "1300000003", cliente: "Marina (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" },
+        { quando: h("10:15"), pagamento: "1300000002", cliente: "Paula (exemplo)", forma: "Cartão de crédito", valor: 55, situacao: "Aprovado", detalhe: "Pago", resultado: "Confirmou o agendamento" },
+        { quando: h("10:12"), pagamento: "1300000001", cliente: "Paula (exemplo)", forma: "Cartão de crédito", valor: 55, situacao: "Recusado", detalhe: "Cartão sem limite", resultado: "" },
+        { quando: `${somaDias(hoje, -1)} 18:31`, pagamento: "1299999999", cliente: "Rafael (exemplo)", forma: "Pix", valor: 50, situacao: "Cancelado", detalhe: "Pix vencido (não foi pago no prazo)", resultado: "" },
+        { quando: `${somaDias(hoje, -1)} 18:20`, pagamento: "1299999998", cliente: "Rafael (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" }
+      ] };
+    }
     if (acao === "agenda_avaliacao_publicar") {
       const v = avaliacoes.find(x => x.id === extra.avaliacao);
       if (!v) return falha("nao_encontrado", "Essa avaliação não existe mais.");
