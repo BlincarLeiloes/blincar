@@ -1083,6 +1083,15 @@ const pad2 = n => String(n).padStart(2, "0");
 const maiuscula = s => s.charAt(0).toUpperCase() + s.slice(1);
 const juntar = itens => (itens.length > 1 ? `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}` : itens[0] || "");
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+// "1.250,50", "1250,5", "1250.50" ou número: o valor em reais (0 se não der para ler).
+function valorReais(v) {
+  if (typeof v === "number") return Number.isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : 0;
+  let s = String(v || "").replace(/[^\d,.]/g, "");
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+}
 // "Pintura geral" vira "PG", "Retoque" vira "R": aparece nas bolinhas do calendário no celular.
 const sigla = nome => String(nome).trim().split(/\s+/).map(p => p.charAt(0).toUpperCase()).join("").slice(0, 2);
 
@@ -1552,6 +1561,7 @@ function itemAgendamento(a, comData) {
   const info = el("div", { class: "ag-info" },
     comData ? el("span", { class: "ag-dia" }, dataLonga(a.data)) : "",
     el("span", {}, `${a.servico} · ${a.carro}${a.placa ? ` · placa ${a.placa}` : ""}`),
+    a.orcamento ? el("span", {}, "Orçamento: ", el("b", {}, reais(a.orcamento))) : "",
     el("span", {}, a.telefone, zap ? " · " : "", zap ? el("a", { href: zap, target: "_blank", rel: "noopener" }, "abrir WhatsApp") : ""),
     a.email ? el("span", {}, a.email) : "",
     a.nascimento ? el("span", {}, `Nascimento: ${a.nascimento}`) : "",
@@ -1838,11 +1848,13 @@ function formulario(dia, ag) {
       campo("fPlaca", "Placa (opcional)", entrada("fPlaca", { type: "text", value: v.placa || "", placeholder: "ABC1D23", autocapitalize: "characters", maxlength: "8", autocomplete: "off" })),
       campo("fDia", "Dia", inDia),
       campo("fServico", "Serviço", inServico),
-      campo("fSinal", "Valor do sinal (R$)", entrada("fSinal", { type: "number", min: "0", step: "0.01", inputmode: "decimal", value: String(v.sinal) }))),
+      campo("fSinal", "Valor do sinal (R$)", entrada("fSinal", { type: "number", min: "0", step: "0.01", inputmode: "decimal", value: String(v.sinal) })),
+      campo("fOrcamento", "Valor do orçamento (R$, opcional)", entrada("fOrcamento", { type: "text", inputmode: "decimal", placeholder: "Ex.: 850,00", autocomplete: "off",
+        value: v.orcamento ? v.orcamento.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "" }))),
     limite,
     el("label", { class: "check" }, pago, "O sinal já foi pago (dinheiro ou Pix na chave)"),
     el("p", { class: "nota" }, d.mp && novo
-      ? `Sem marcar acima, o agendamento ganha um link de Pix do Mercado Pago para mandar ao cliente. O link vale ${d.regras.prazoMinutos ?? d.regras.prazoSiteMinutos} minutos: sem o pagamento, a reserva sai da agenda.`
+      ? `Sem marcar acima, o agendamento ganha ${d.taxaCartao != null ? "os links do Mercado Pago (Pix e cartão)" : "um link de Pix do Mercado Pago"} para mandar ao cliente. ${d.taxaCartao != null ? "Os links valem" : "O link vale"} ${d.regras.prazoMinutos ?? d.regras.prazoSiteMinutos} minutos: sem o pagamento, a reserva sai da agenda.`
       : "Sem marcar acima, o agendamento fica aguardando o sinal até 23h59 de hoje e não segura a vaga."),
     campo("fObs", "Observações", el("textarea", { id: "fObs", name: "fObs", rows: "2", placeholder: "Ex.: arranhão na porta, cliente traz o carro às 8h" }, v.obs || "")),
     el("p", { class: "err", id: "fErro", role: "alert", hidden: "" }),
@@ -1869,6 +1881,7 @@ async function salvarFormulario(ag) {
     carro: val("fCarro"),
     placa: val("fPlaca").toUpperCase(),
     sinal: Number(String($("#fSinal").value).replace(",", ".")) || 0,
+    orcamento: val("fOrcamento"),
     pago: $("#fPago").checked,
     obs: val("fObs")
   };
@@ -2078,6 +2091,7 @@ function criarDemo() {
   const novo = (data, servico, cliente, carro, pago, extra = {}) => {
     const id = "ex" + (++seq);
     return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, placa: `RIO${seq}A${pad2(seq + 10)}`, email: "", sinal: 50, pago, obs: "",
+      orcamento: servico === "Pintura geral" ? 3500 : 350 + (seq % 4) * 150,
       situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : daquiPrazo(),
       link: pago ? "" : linkFalso(id), linkCartao: pago ? "" : linkFalso(id + "-cartao"), presenca: false, origem: "Painel", remarcacao: 0,
       forma: pago ? "Pix" : "", ...extra };
@@ -2108,7 +2122,7 @@ function criarDemo() {
   const visiveis = () => comSit().filter(a => VISIVEIS.indexOf(a.sit) !== -1);
   const ativo = id => comSit().find(a => a.id === id && ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
-    sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao,
+    sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59` });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
@@ -2142,7 +2156,8 @@ function criarDemo() {
   }
   function salvar(dados, m) {
     const ag = { ...dados, servico: String(dados.servico || "").trim(), cliente: String(dados.cliente || "").trim(), carro: String(dados.carro || "").trim(),
-      telefone: telefone(dados.telefone), email: String(dados.email || "").trim().toLowerCase(), placa: String(dados.placa || "").toUpperCase(), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago };
+      telefone: telefone(dados.telefone), email: String(dados.email || "").trim().toLowerCase(), placa: String(dados.placa || "").toUpperCase(), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago,
+      orcamento: valorReais(dados.orcamento) };
     if (!ag.servico) return falha("dados", "Escolha o serviço.");
     if (!ag.cliente || !ag.carro) return falha("dados", "Preencha o nome do cliente e o carro.");
     if (ag.telefone.replace(/\D/g, "").length < 10) return falha("dados", "Coloque o telefone com DDD.");
