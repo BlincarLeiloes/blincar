@@ -1510,12 +1510,19 @@ function prazoTexto(a) {
   return `até ${hora} de ${data === AG.dados.hoje ? "hoje" : dataCurta(data)}`;
 }
 
+// Valor do sinal no cartão de crédito (sinal + taxa do cartão).
+const valorCartao = a => a.sinal + (AG.dados.taxaCartao ?? 5);
+
 function mensagemSinal(a) {
   const nome = a.cliente.split(" ")[0];
+  const pagar = a.linkCartao
+    ? `Para garantir a vaga, pague o sinal ${prazoTexto(a)} (depois desse horário os links não valem mais):\n\n` +
+      `Pix (${reais(a.sinal)}):\n${a.link}\n\n` +
+      `Cartão de crédito, só à vista (${reais(valorCartao(a))}, com a taxa do cartão):\n${a.linkCartao}\n\n`
+    : `Para garantir a vaga, pague o sinal de ${reais(a.sinal)} ${prazoTexto(a)} por este link (depois desse horário ele não vale mais):\n${a.link}\n\n`;
   return `Olá, ${nome}! Aqui é da Blin Car.\n\n` +
-    `Separamos ${a.servico.toLowerCase()} para ${dataLonga(a.data).toLowerCase()} (${a.carro}).\n\n` +
-    `Para garantir a vaga, pague o sinal de ${reais(a.sinal)} ${prazoTexto(a)} por este link (depois desse horário ele não vale mais):\n${a.link}\n\n` +
-    "A vaga só fica garantida depois do pagamento. O sinal é descontado do valor do serviço. Se você não puder vir, o sinal vira crédito para remarcar.";
+    `Separamos ${a.servico.toLowerCase()} para ${dataLonga(a.data).toLowerCase()} (${a.carro}).\n\n` + pagar +
+    `A vaga só fica garantida depois do pagamento. O sinal de ${reais(a.sinal)} é descontado do valor do serviço. Se você não puder vir, o sinal vira crédito para remarcar.`;
 }
 
 function mensagemPresenca(a) {
@@ -1525,7 +1532,8 @@ function mensagemPresenca(a) {
 
 function seloSituacao(a) {
   if (a.sit === "confirmado") {
-    return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito" : `Confirmado · sinal pago ${reais(a.sinal)}`);
+    return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito"
+      : `Confirmado · sinal pago ${reais(a.sinal)}${a.forma === "Cartão" ? " no cartão" : ""}`);
   }
   if (a.sit === "pago_sem_vaga") return el("span", { class: "selo-sinal alerta" }, `Pagou ${reais(a.sinal)}, mas o dia lotou`);
   if (a.sit === "nao_veio") return el("span", { class: "selo-sinal alerta" }, "Não veio");
@@ -1574,9 +1582,14 @@ function itemAgendamento(a, comData) {
     if (a.link) {
       const msg = linkZap(a.telefone, mensagemSinal(a));
       pagar.push(el("div", { class: "link-pag" },
-        el("span", {}, "Link de pagamento: "), el("a", { href: a.link, target: "_blank", rel: "noopener" }, a.link)));
-      if (msg && a.origem !== "Site") pagar.push(el("a", { class: "mini mini-wa", href: msg, target: "_blank", rel: "noopener" }, "Mandar link no WhatsApp"));
-      pagar.push(botao("copiar", "Copiar link"));
+        el("span", {}, a.linkCartao ? `Link do Pix (${reais(a.sinal)}): ` : "Link de pagamento: "), el("a", { href: a.link, target: "_blank", rel: "noopener" }, a.link)));
+      if (a.linkCartao) {
+        pagar.push(el("div", { class: "link-pag" },
+          el("span", {}, `Link do cartão, à vista (${reais(valorCartao(a))}): `), el("a", { href: a.linkCartao, target: "_blank", rel: "noopener" }, a.linkCartao)));
+      }
+      if (msg && a.origem !== "Site") pagar.push(el("a", { class: "mini mini-wa", href: msg, target: "_blank", rel: "noopener" }, a.linkCartao ? "Mandar links no WhatsApp" : "Mandar link no WhatsApp"));
+      pagar.push(botao("copiar", a.linkCartao ? "Copiar link Pix" : "Copiar link"));
+      if (a.linkCartao) pagar.push(botao("copiar-cartao", "Copiar link cartão"));
       pagar.push(botao("conferir", "Conferir pagamento"));
     }
     acoes = el("div", { class: "ag-acoes" }, ...pagar, botao("pago", "Marcar sinal pago"), botao("editar", "Editar"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
@@ -1972,6 +1985,7 @@ document.addEventListener("click", e => {
   if (!a) return;
   if (acao === "editar") return abrirDia(a.data, "form", a);
   if (acao === "copiar") return copiarTexto(a.link, b);
+  if (acao === "copiar-cartao") return copiarTexto(a.linkCartao, b);
   if (acao === "pago") return executar("agenda_pago", { id: a.id, pago: true }, "Sinal marcado como pago. Vaga confirmada.");
   if (acao === "despagar") return executar("agenda_pago", { id: a.id, pago: false }, "Voltou para aguardando sinal, com link de Pix novo.");
   if (acao === "presenca" || acao === "presenca-nao") {
@@ -2065,7 +2079,8 @@ function criarDemo() {
     const id = "ex" + (++seq);
     return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, placa: `RIO${seq}A${pad2(seq + 10)}`, email: "", sinal: 50, pago, obs: "",
       situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : daquiPrazo(),
-      link: pago ? "" : linkFalso(id), presenca: false, origem: "Painel", remarcacao: 0, forma: pago ? "Pix" : "", ...extra };
+      link: pago ? "" : linkFalso(id), linkCartao: pago ? "" : linkFalso(id + "-cartao"), presenca: false, origem: "Painel", remarcacao: 0,
+      forma: pago ? "Pix" : "", ...extra };
   };
   const site = { origem: "Site", email: "" };
   const seg = proximo("Retoque"), qua = proximo("Retoque", 0, somaDias(seg, 1));
@@ -2093,7 +2108,7 @@ function criarDemo() {
   const visiveis = () => comSit().filter(a => VISIVEIS.indexOf(a.sit) !== -1);
   const ativo = id => comSit().find(a => a.id === id && ["confirmado", "aguardando", "pago_sem_vaga"].indexOf(a.sit) !== -1);
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
-    sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao,
+    sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59` });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
@@ -2115,7 +2130,7 @@ function criarDemo() {
     const noMes = sit => comSit().filter(a => a.sit === sit && a.data >= ini && a.data <= fim).length;
     const porData = (a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
     return Object.assign({
-      ok: true, mes: m, hoje, agora: agora(), regras, dias, mp: true, site: new URL("../agendar/", location.href).href,
+      ok: true, mes: m, hoje, agora: agora(), regras, dias, mp: true, taxaCartao: 5, site: new URL("../agendar/", location.href).href,
       agendamentos: vis.filter(a => a.data >= ini && a.data <= fim).map(publico).sort(porData),
       proximos: [hoje, somaDias(hoje, 1)].map(data => Object.assign(info(data), { agendamentos: vis.filter(a => a.data === data).map(publico) })),
       confirmar: c.filter(a => a.data > hoje && a.data <= somaDias(hoje, regras.avisoDias) && !a.presenca).map(publico).sort(porData),
@@ -2143,10 +2158,11 @@ function criarDemo() {
     if (antigo) {
       const criado = antigo.pago && !ag.pago ? agora() : antigo.criado;
       Object.assign(antigo, ag, { situacao, criado, prazo: ag.pago || criado === antigo.criado ? antigo.prazo : daquiPrazo(),
-        link: ag.pago ? "" : antigo.link || linkFalso(antigo.id), forma: ag.pago ? antigo.forma || "Manual" : "" });
+        link: ag.pago ? "" : antigo.link || linkFalso(antigo.id), linkCartao: ag.pago ? "" : antigo.linkCartao || linkFalso(antigo.id + "-cartao"),
+        forma: ag.pago ? antigo.forma || "Manual" : "" });
     } else {
       id = "ex" + (++seq);
-      lista.push({ ...ag, id, situacao, criado: agora(), prazo: ag.pago ? "" : daquiPrazo(), link: ag.pago ? "" : linkFalso(id), presenca: false,
+      lista.push({ ...ag, id, situacao, criado: agora(), prazo: ag.pago ? "" : daquiPrazo(), link: ag.pago ? "" : linkFalso(id), linkCartao: ag.pago ? "" : linkFalso(id + "-cartao"), presenca: false,
         origem: "Painel", remarcacao: 0, forma: ag.pago ? "Manual" : "" });
     }
     if (ag.pago) fecharPendentes();
@@ -2212,7 +2228,8 @@ function criarDemo() {
       fecharPendentes();
     }
     if (acao === "agenda_pago" && !extra.pago) {
-      Object.assign(a, { pago: false, situacao: "Aguardando pagamento", criado: agora(), prazo: daquiPrazo(), link: linkFalso(a.id), forma: "" });
+      Object.assign(a, { pago: false, situacao: "Aguardando pagamento", criado: agora(), prazo: daquiPrazo(), link: linkFalso(a.id),
+        linkCartao: linkFalso(a.id + "-cartao"), forma: "" });
     }
     if (acao === "agenda_conferir") return mes(m, { conferido: a.sit === "aguardando" ? pagou(a) : a.sit });
     return mes(m);

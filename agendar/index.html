@@ -11,7 +11,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <meta property="og:title" content="Agende seu serviço · Blin Car">
-<meta property="og:description" content="Escolha retoque ou pintura geral, veja as datas livres e garanta a vaga com o sinal pelo Pix.">
+<meta property="og:description" content="Escolha retoque ou pintura geral, veja as datas livres e garanta a vaga com o sinal.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://blincarleiloes.github.io/blincar/og.jpg">
 <meta property="og:image:width" content="1200">
@@ -94,6 +94,8 @@ h1{margin:0;font:italic 800 clamp(2.25rem,8vw,3.5rem)/.92 var(--display);font-st
 .linha-val b{font-variant-numeric:tabular-nums}
 .linha-val.total{font-size:1.0625rem;font-weight:700}
 .linha-val s{color:var(--muted)}
+.formas{border:0;margin:0;padding:0;display:grid;gap:8px}
+.formas legend{padding:0;margin-bottom:6px;font-size:.9375rem;font-weight:600}
 .resumo .nota{margin:0}
 details.mais summary{cursor:pointer;font-size:.875rem;font-weight:600;color:var(--muted);list-style-position:inside}
 details.mais summary:hover{color:var(--fg)}
@@ -216,7 +218,7 @@ address{font-style:normal}
 <main class="page gutter">
   <section>
     <h1>Agende seu serviço</h1>
-    <p class="lede">Confira a disponibilidade e agende a data que for melhor para você. A vaga é garantida com o sinal pelo Pix.</p>
+    <p class="lede">Confira a disponibilidade e agende a data que for melhor para você. A vaga é garantida com o sinal, no Pix ou no cartão de crédito.</p>
   </section>
 
   <ol class="etapas" aria-label="Etapas do agendamento">
@@ -285,7 +287,8 @@ address{font-style:normal}
       </dl>
       <div class="pagamento">
         <h3>Informações de pagamento</h3>
-        <div class="linha-val"><span>Sinal pelo Pix</span><b class="valSinal">R$ 50,00</b></div>
+        <div class="linha-val"><span>Sinal no Pix</span><b class="valSinal">R$ 50,00</b></div>
+        <div class="linha-val" id="linhaCartao" hidden><span>No cartão de crédito (à vista)</span><b id="valCartao">R$ 55,00</b></div>
         <p class="nota">O sinal garante a vaga e é descontado do valor do serviço. Se não puder vir, ele vira crédito para remarcar.</p>
       </div>
       <p class="nota">Seus dados ficam só com a Blin Car e são usados para o seu agendamento.</p>
@@ -388,7 +391,7 @@ const digitos = s => String(s || "").replace(/\D/g, "");
 const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim());
 const suave = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
-const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", mes: "", verificado: false };
+const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", mes: "", verificado: false, forma: "pix" };
 
 // Nome, celular, e-mail, carro e placa ficam lembrados neste aparelho; o nascimento, só até fechar a aba.
 function lembrar(acao, valor) {
@@ -717,27 +720,49 @@ function desenharResumo() {
   const sinal = E.dados ? E.dados.sinal : 50;
   const remarcacoes = E.dados ? E.dados.remarcacoes : 3;
   const prazo = E.dados ? E.dados.prazoMinutos : 5;
+  const taxa = E.dados ? E.dados.taxaCartao ?? null : null;
+  if (taxa == null) E.forma = "pix";
+  const apagar = E.forma === "cartao" ? sinal + taxa : sinal;
   const pag = $("#rPagamento");
   if (E.credito) {
     pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
       el("div", { class: "linha-val" }, el("span", {}, "Sinal"), el("b", {}, reais(E.credito.valor))),
       el("div", { class: "linha-val" }, el("span", {}, "Seu crédito"), el("b", {}, "− " + reais(E.credito.valor))),
       el("div", { class: "linha-val total" }, el("span", {}, "A pagar agora"), el("b", {}, reais(0))));
+  } else if (taxa != null) {
+    // Pix ou cartão de crédito à vista (com a taxa). O sinal descontado do serviço é o mesmo.
+    const opcao = (valor, titulo, detalhe) => el("label", { class: "opcao" },
+      el("input", { type: "radio", name: "forma", value: valor, ...(E.forma === valor ? { checked: "" } : {}) }),
+      el("span", {}, el("b", {}, titulo), el("small", {}, detalhe)));
+    const formas = el("fieldset", { class: "formas" }, el("legend", {}, "Forma de pagamento"),
+      opcao("pix", "Pix", reais(sinal)),
+      opcao("cartao", "Cartão de crédito", `${reais(sinal + taxa)} · só à vista (taxa de ${reais(taxa)})`));
+    formas.addEventListener("change", e => {
+      E.forma = e.target.value;
+      desenharResumo();
+      document.querySelector(`#rPagamento input[value="${E.forma}"]`).focus();
+    });
+    pag.replaceChildren(el("h3", {}, "Informações de pagamento"), formas,
+      el("div", { class: "linha-val total" }, el("span", {}, "A pagar agora"), el("b", {}, reais(apagar))),
+      el("p", { class: "nota" }, `Descontado do valor do serviço: ${reais(sinal)}.`));
   } else {
     pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
-      el("div", { class: "linha-val total" }, el("span", {}, "Sinal pelo Pix"), el("b", {}, reais(sinal))),
+      el("div", { class: "linha-val total" }, el("span", {}, "Sinal no Pix"), el("b", {}, reais(sinal))),
       el("p", { class: "nota" }, "Descontado do valor do serviço."));
   }
   const regras = E.credito
     ? [`O crédito de ${reais(E.credito.valor)} vale como sinal deste agendamento. Não precisa pagar de novo.`]
     : [`O sinal de ${reais(sinal)} garante a sua vaga e é descontado do valor do serviço.`,
-      `Depois de tocar em agendar, você tem ${prazo} minutos para pagar o Pix. Se não pagar a tempo, a reserva é cancelada e você precisa agendar de novo.`];
+      `Depois de tocar em agendar, você tem ${prazo} minutos para pagar. Se não pagar a tempo, a reserva é cancelada e você precisa agendar de novo.`];
+  if (!E.credito && taxa != null) {
+    regras.push(`No cartão de crédito, só à vista, o sinal fica ${reais(sinal + taxa)}: os ${reais(taxa)} são a taxa do cartão e não são descontados do serviço.`);
+  }
   regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${remarcacoes} vezes).`);
   regras.push("O endereço e a confirmação chegam no seu e-mail. No dia, você recebe um lembrete.");
   $("#regras").replaceChildren(...regras.map(t => el("li", {}, t)));
   const botao = $("#agendar");
   if (botao.dataset.enviando) return;
-  botao.textContent = E.credito ? "Remarcar com meu crédito" : `Agendar e pagar ${reais(sinal)}`;
+  botao.textContent = E.credito ? "Remarcar com meu crédito" : `Agendar e pagar ${reais(apagar)}`;
   if (pronto) botao.removeAttribute("aria-disabled");
   else botao.setAttribute("aria-disabled", "true");
 }
@@ -757,7 +782,7 @@ $("#agendar").addEventListener("click", async () => {
   botao.textContent = E.credito ? "Remarcando…" : "Abrindo o pagamento…";
   let indo = false;
   try {
-    const r = await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, servico: E.servico });
+    const r = await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, servico: E.servico, forma: E.forma });
     if (r && r.ok && r.tipo === "pagar") {
       indo = true;
       location.href = r.link;
@@ -832,7 +857,7 @@ function recomecar() {
   }
 }
 
-// Contagem regressiva do Pix na tela "Ainda não recebemos o pagamento".
+// Contagem regressiva do pagamento na tela "Ainda não recebemos o pagamento".
 let contagem = 0;
 
 function mostrarResultado(a, tipo, extra) {
@@ -857,7 +882,8 @@ function mostrarResultado(a, tipo, extra) {
       el("p", { class: "nota" }, "Enviamos a confirmação para o seu e-mail. No dia, você recebe um lembrete. Se não puder vir, o sinal vira crédito para remarcar."),
       el("div", { class: "acoes" }, mapa)];
   } else if (tipo === "aguardando") {
-    const pagar = a.link ? el("a", { class: "btn btn-red", href: a.link }, "Voltar para o pagamento") : "";
+    const pagar = a.link ? el("a", { class: "btn btn-red", href: a.link }, a.linkCartao ? `Pagar no Pix · ${reais(a.sinal)}` : "Voltar para o pagamento") : "";
+    const cartao = a.linkCartao ? el("a", { class: "btn btn-line", href: a.linkCartao }, `Pagar no cartão · ${reais(a.valorCartao)}`) : "";
     const conferir = el("button", { type: "button", class: "btn btn-line" }, "Já paguei, conferir de novo");
     conferir.addEventListener("click", () => acompanhar(a.id, 1));
     // O prazo vem no horário de Brasília ("aaaa-mm-dd hh:mm") e vale até o fim daquele minuto.
@@ -878,17 +904,17 @@ function mostrarResultado(a, tipo, extra) {
     filhos = [selo("espera"),
       el("h2", {}, extra === "conferindo" ? "Confirmando o pagamento…" : "Ainda não recebemos o pagamento"),
       extra === "conferindo"
-        ? el("p", { class: "lede" }, "Isso leva alguns segundos depois do Pix. Pode deixar esta página aberta.")
+        ? el("p", { class: "lede" }, "Isso leva alguns segundos depois do pagamento. Pode deixar esta página aberta.")
         : fim
-          ? el("p", { class: "lede" }, "A vaga só fica garantida depois do Pix. Faltam ", relogio,
+          ? el("p", { class: "lede" }, "A vaga só fica garantida depois do pagamento. Faltam ", relogio,
             " para pagar. Se o tempo acabar, a reserva é cancelada e você precisa agendar de novo.")
-          : el("p", { class: "lede" }, "A vaga só fica garantida depois do Pix."),
+          : el("p", { class: "lede" }, "A vaga só fica garantida depois do pagamento."),
       detalhes,
-      extra === "conferindo" ? "" : el("div", { class: "acoes" }, pagar, conferir)];
+      extra === "conferindo" ? "" : el("div", { class: "acoes" }, pagar, cartao, conferir)];
   } else if (tipo === "credito") {
     const textos = {
-      atrasado: ["O pagamento chegou depois do prazo", "O Pix caiu depois do tempo para pagar, e a reserva já tinha sido cancelada."],
-      desmarcado: ["Essa reserva já tinha sido cancelada", "O Pix caiu numa reserva que não estava mais valendo."]
+      atrasado: ["O pagamento chegou depois do prazo", "O pagamento caiu depois do tempo para pagar, e a reserva já tinha sido cancelada."],
+      desmarcado: ["Essa reserva já tinha sido cancelada", "O pagamento caiu numa reserva que não estava mais valendo."]
     }[a.motivo] || ["O dia lotou enquanto você pagava", "Outra pessoa pagou a última vaga um pouco antes."];
     filhos = [selo("espera"),
       el("h2", {}, textos[0]),
@@ -896,7 +922,7 @@ function mostrarResultado(a, tipo, extra) {
       el("div", { class: "acoes" }, botaoNovo())];
   } else if (tipo === "vencido" || tipo === "sem_vaga" || tipo === "desmarcado") {
     const textos = {
-      vencido: ["O tempo para pagar acabou", "O Pix não foi pago a tempo, então a reserva foi cancelada. Faça o agendamento de novo."],
+      vencido: ["O tempo para pagar acabou", "O sinal não foi pago a tempo, então a reserva foi cancelada. Faça o agendamento de novo."],
       sem_vaga: ["Outra pessoa garantiu a vaga antes", "Esse dia lotou antes do seu pagamento. Escolha outra data."],
       desmarcado: ["Essa reserva foi trocada", "Você escolheu outra data depois desta. Se quiser, agende de novo."]
     }[tipo];
@@ -953,6 +979,10 @@ if (!API) {
     if (!d || !d.ok || E.dados) return;
     E.dados = d;
     document.querySelectorAll(".valSinal").forEach(x => { x.textContent = reais(d.sinal); });
+    if (d.taxaCartao != null) {
+      $("#valCartao").textContent = reais(d.sinal + d.taxaCartao);
+      $("#linhaCartao").hidden = false;
+    }
     const nomes = d.servicos.map(s => s.nome.toLowerCase());
     $("#r1Servicos").textContent = (nomes.length > 1 ? `${nomes.slice(0, -1).join(", ")} e ${nomes[nomes.length - 1]}` : nomes[0] || "").replace(/^./, c => c.toUpperCase());
   }).catch(() => {});
