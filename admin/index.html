@@ -313,6 +313,9 @@ button.cel:hover{border-color:var(--muted)}
 .pag-item b{overflow-wrap:anywhere}
 .pag-item .sub{grid-column:1/-1;font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
 .pag-item .feito{grid-column:1/-1;font-size:.875rem;font-weight:600}
+.pag-item.pago{border-color:var(--ok-fg)}
+.pag-colunas{display:grid;gap:16px;align-items:start}
+@media (min-width:720px){.pag-colunas{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
 .selo-sinal.alerta{background:var(--lotado-bg);color:var(--err)}
 .ag-aguardando{border-style:dashed}
@@ -2366,51 +2369,74 @@ function chipPagamento(p) {
   return el("span", { class: "selo-sinal " + tipo }, p.situacao || "?");
 }
 
+// Um pagamento por agendamento (o registro da planilha guarda todos os avisos, um por um).
+// Se foi aprovado, fica só o concluído. Se não, fica o último aviso (Pix gerado, vencido, recusado).
+// Reserva não paga de quem pagou outra depois (mesmo nome) não aparece em "Aguardando".
+function juntarPagamentos(lista) {
+  const grupos = new Map();
+  lista.slice().sort((x, y) => (x.quando < y.quando ? -1 : x.quando > y.quando ? 1 : 0)).forEach(p => {
+    const chave = p.agendamento || "pg:" + p.pagamento;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(p);
+  });
+  const todos = [...grupos.values()].map(avisos => {
+    const ultimo = avisos[avisos.length - 1];
+    const desfeito = /^(devolvido|contestado)/i.test(ultimo.situacao);
+    const aprovado = desfeito ? null : avisos.filter(p => /^aprovado/i.test(p.situacao)).pop();
+    return { ...(aprovado || ultimo), pago: !!aprovado };
+  });
+  const nome = p => semAcento(p.cliente).trim();
+  const desc = (x, y) => (x.quando < y.quando ? 1 : x.quando > y.quando ? -1 : 0);
+  const pagos = todos.filter(p => p.pago).sort(desc);
+  const abertos = todos.filter(p => !p.pago && !pagos.some(x => nome(x) && nome(x) === nome(p) && x.quando >= p.quando)).sort(desc);
+  return { pagos, abertos };
+}
+
 function desenharPagamentos() {
   const topo = el("div", { class: "dlg-topo" },
     el("div", {}, el("h2", { id: "pagTitulo" }, "Pagamentos"),
-      el("p", { class: "sub" }, "Tudo o que o Mercado Pago avisou: Pix gerado, pago, vencido, cartão recusado e o que a agenda fez. Os mais novos primeiro.")),
+      el("p", { class: "sub" }, "Um por cliente: aparece \"Pendente\" assim que o Pix ou o cartão é gerado e, quando o cliente paga, passa para \"Pagos\".")),
     el("button", { type: "button", class: "mini", "data-pag": "fechar" }, "Fechar"));
   const corpo = $("#pagCorpo");
   if (!PG.lista) {
     return corpo.replaceChildren(topo, PG.erro ? el("p", { class: "err", role: "alert" }, PG.erro) : el("p", { class: "nota" }, "Carregando os pagamentos…"));
   }
-  const deHoje = PG.lista.filter(p => p.quando.slice(0, 10) === PG.hoje);
-  const aprovados = deHoje.filter(p => /^aprovado/i.test(p.situacao));
-  const problemas = deHoje.filter(p => /^(recusado|cancelado|devolvido|contestado)/i.test(p.situacao));
+  const { pagos, abertos } = juntarPagamentos(PG.lista);
+  const pagosHoje = pagos.filter(p => p.quando.slice(0, 10) === PG.hoje);
+  const esperando = abertos.filter(p => /^(pendente|em análise|autorizado)/i.test(p.situacao));
   const resumo = el("div", { class: "hist-resumo" },
-    el("div", {}, el("span", {}, "Aprovados hoje"), el("b", {}, `${aprovados.length} · ${reais(aprovados.reduce((t, p) => t + p.valor, 0))}`)),
-    el("div", {}, el("span", {}, "Recusados ou vencidos hoje"), el("b", {}, String(problemas.length))));
+    el("div", {}, el("span", {}, "Pagos hoje"), el("b", {}, `${pagosHoje.length} · ${reais(pagosHoje.reduce((t, p) => t + p.valor, 0))}`)),
+    el("div", {}, el("span", {}, "Aguardando pagamento agora"), el("b", {}, String(esperando.length))));
   const busca = el("input", { type: "search", class: "hist-busca", id: "pagBusca", value: PG.busca, autocomplete: "off",
     placeholder: "Buscar pelo nome do cliente", "aria-label": "Buscar nos pagamentos" });
-  const lista = el("div", { class: "dlg-lista", id: "pagLista", "aria-live": "polite" });
+  const colunas = el("div", { class: "pag-colunas", id: "pagLista", "aria-live": "polite" });
   busca.addEventListener("input", () => {
     PG.busca = busca.value;
-    desenharListaPag(lista);
+    desenharListaPag(colunas, pagos, abertos);
   });
-  corpo.replaceChildren(topo, resumo, busca, lista);
-  desenharListaPag(lista);
+  corpo.replaceChildren(topo, resumo, busca, colunas,
+    el("p", { class: "nota" }, "Todos os avisos do Mercado Pago, um por um, ficam na aba \"Pagamentos\" da planilha."));
+  desenharListaPag(colunas, pagos, abertos);
 }
 
-function desenharListaPag(caixa) {
+function itemPagamento(p) {
+  return el("div", { class: "pag-item" + (p.pago ? " pago" : "") },
+    el("b", {}, p.cliente || "Cliente sem nome"), p.pago ? el("span", { class: "selo-sinal sim" }, "Pago") : chipPagamento(p),
+    el("span", { class: "sub" }, [quandoTexto(p.quando), p.forma, p.valor ? reais(p.valor) : ""].filter(Boolean).join(" · ")),
+    !p.pago && p.detalhe ? el("span", { class: "sub" }, p.detalhe) : "",
+    p.pago && p.resultado ? el("span", { class: "feito" }, p.resultado) : "");
+}
+
+function desenharListaPag(caixa, pagos, abertos) {
   const termo = semAcento(PG.busca.trim());
-  const achados = PG.lista.filter(p => !termo || semAcento(p.cliente).includes(termo));
-  if (!achados.length) {
-    return caixa.replaceChildren(el("p", { class: "vazio" }, PG.lista.length ? "Nenhum pagamento desse cliente."
-      : "Nenhum pagamento registrado ainda. O registro começa com o código novo da planilha, no próximo Pix ou cartão."));
-  }
-  const dias = [];
-  achados.forEach(p => {
-    const d = p.quando.slice(0, 10);
-    if (!dias.length || dias[dias.length - 1].dia !== d) dias.push({ dia: d, lista: [] });
-    dias[dias.length - 1].lista.push(p);
-  });
-  caixa.replaceChildren(...dias.map(g => el("section", { class: "hist-mes" },
-    el("h3", {}, /^\d{4}-\d{2}-\d{2}$/.test(g.dia) ? dataLonga(g.dia) : g.dia, el("span", {}, plural(g.lista.length, "aviso", "avisos"))),
-    ...g.lista.map(p => el("div", { class: "pag-item" },
-      el("b", {}, `${p.quando.slice(11, 16)} · ${p.cliente || "Cliente sem nome"}`), chipPagamento(p),
-      el("span", { class: "sub" }, [p.forma, p.valor ? reais(p.valor) : "", p.detalhe].filter(Boolean).join(" · ")),
-      p.resultado ? el("span", { class: "feito" }, p.resultado) : "")))));
+  const filtra = l => l.filter(p => !termo || semAcento(p.cliente).includes(termo));
+  const a = filtra(abertos), pg = filtra(pagos);
+  const coluna = (titulo, lista, vazio) => el("section", { class: "hist-mes" },
+    el("h3", {}, titulo, el("span", {}, String(lista.length))),
+    ...(lista.length ? lista.map(itemPagamento) : [el("p", { class: "vazio" }, termo ? "Nenhum desse cliente." : vazio)]));
+  caixa.replaceChildren(
+    coluna("Aguardando ou não concluídos", a, "Ninguém aguardando pagamento."),
+    coluna("Pagos", pg, PG.lista.length ? "Nenhum pagamento concluído ainda." : "Nenhum pagamento registrado ainda. O registro começa com o código novo da planilha, no próximo Pix ou cartão."));
 }
 
 $("#agPagamentos").addEventListener("click", abrirPagamentos);
@@ -2667,11 +2693,14 @@ function criarDemo() {
     if (acao === "agenda_pagamentos") {
       const h = n => `${hoje} ${n}`;
       return { ok: true, hoje, pagamentos: [
-        { quando: h("11:42"), pagamento: "1300000003", cliente: "Marina (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" },
-        { quando: h("10:15"), pagamento: "1300000002", cliente: "Paula (exemplo)", forma: "Cartão de crédito", valor: 55, situacao: "Aprovado", detalhe: "Pago", resultado: "Confirmou o agendamento" },
-        { quando: h("10:12"), pagamento: "1300000001", cliente: "Paula (exemplo)", forma: "Cartão de crédito", valor: 55, situacao: "Recusado", detalhe: "Cartão sem limite", resultado: "" },
-        { quando: `${somaDias(hoje, -1)} 18:31`, pagamento: "1299999999", cliente: "Rafael (exemplo)", forma: "Pix", valor: 50, situacao: "Cancelado", detalhe: "Pix vencido (não foi pago no prazo)", resultado: "" },
-        { quando: `${somaDias(hoje, -1)} 18:20`, pagamento: "1299999998", cliente: "Rafael (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" }
+        { quando: h("11:42"), pagamento: "1300000004", agendamento: "ex2", cliente: "Marina (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" },
+        { quando: h("10:15"), pagamento: "1300000002", agendamento: "ex4", cliente: "Paula (exemplo)", forma: "Cartão de crédito", valor: 55, situacao: "Aprovado", detalhe: "Pago", resultado: "Confirmou o agendamento" },
+        { quando: h("10:12"), pagamento: "1300000001", agendamento: "ex4", cliente: "Paula (exemplo)", forma: "Cartão de crédito", valor: 55, situacao: "Recusado", detalhe: "Cartão sem limite", resultado: "" },
+        { quando: h("09:31"), pagamento: "1300000000", agendamento: "ex4", cliente: "Paula (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" },
+        { quando: `${somaDias(hoje, -1)} 18:31`, pagamento: "1299999999", agendamento: "ex99", cliente: "Rafael (exemplo)", forma: "Pix", valor: 50, situacao: "Cancelado", detalhe: "Pix vencido (não foi pago no prazo)", resultado: "" },
+        { quando: `${somaDias(hoje, -1)} 18:20`, pagamento: "1299999999", agendamento: "ex99", cliente: "Rafael (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" },
+        { quando: `${somaDias(hoje, -1)} 15:02`, pagamento: "1299999990", agendamento: "ex3", cliente: "Jorge (exemplo)", forma: "Pix", valor: 50, situacao: "Aprovado", detalhe: "Pago", resultado: "Confirmou o agendamento" },
+        { quando: `${somaDias(hoje, -1)} 15:00`, pagamento: "1299999990", agendamento: "ex3", cliente: "Jorge (exemplo)", forma: "Pix", valor: 50, situacao: "Pendente", detalhe: "Pix gerado, aguardando o cliente pagar", resultado: "" }
       ] };
     }
     if (acao === "agenda_avaliacao_publicar") {
