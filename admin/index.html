@@ -6,6 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0f1012">
+<script>
+// Modo claro ou escuro escolhido neste aparelho (sem escolha, segue o celular ou o computador).
+try {
+  const tema = localStorage.getItem("blincar:tema");
+  if (tema === "light" || tema === "dark") document.documentElement.dataset.theme = tema;
+} catch {}
+</script>
 <link rel="icon" href="../favicon.ico" sizes="32x32">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
@@ -17,7 +24,7 @@
 :root{
   --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--grid:#25272b;--fg:#f2f0ec;--muted:#a3a2a7;
   --red:#ec3a3f;--on-red:#ffffff;--gold:#e3b54c;--err:#ff8f80;
-  --c-vis:#8b8d94;--c-wa:#1aa851;
+  --c-vis:#8b8d94;--c-wa:#1aa851;--on-wa:#062a17;
   --lotado-bg:#2b1517;--ok-bg:#12301f;--ok-fg:#5fd896;--pend-bg:#33290f;--pend-fg:#f0c45c;
   --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -26,14 +33,14 @@
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
   --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--grid:#ecebe7;--fg:#16171a;--muted:#5f5e63;
   --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
-  --c-vis:#8a8c93;--c-wa:#178f45;
+  --c-vis:#8a8c93;--c-wa:#178f45;--on-wa:#ffffff;
   --lotado-bg:#fdecec;--ok-bg:#e3f5ea;--ok-fg:#11703a;--pend-bg:#fbf1db;--pend-fg:#7f5600;
   color-scheme:light;
 }}
 :root[data-theme="light"]{
   --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--grid:#ecebe7;--fg:#16171a;--muted:#5f5e63;
   --red:#cf1f26;--on-red:#ffffff;--gold:#9a6d0c;--err:#b3261e;
-  --c-vis:#8a8c93;--c-wa:#178f45;
+  --c-vis:#8a8c93;--c-wa:#178f45;--on-wa:#ffffff;
   --lotado-bg:#fdecec;--ok-bg:#e3f5ea;--ok-fg:#11703a;--pend-bg:#fbf1db;--pend-fg:#7f5600;
   color-scheme:light;
 }
@@ -52,7 +59,10 @@ h1,h2{text-wrap:balance}
 .mark .word b{color:var(--red);font-weight:800}
 .mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
 .bar-acoes{display:flex;align-items:center;gap:8px}
-.link{font-size:.875rem;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 4px}
+.link{font-size:.875rem;font-weight:600;color:var(--muted);text-decoration:none;padding:8px 4px;white-space:nowrap}
+#tema .ico-lua,#tema.claro .ico-sol{display:none}
+#tema.claro .ico-lua{display:block}
+@media (max-width:420px){#temaTxt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
 .link:hover{color:var(--fg)}
 
 .page{max-width:1120px;margin:0 auto;padding-block:28px 56px}
@@ -274,7 +284,7 @@ button.cel:hover{border-color:var(--muted)}
 .ag-obs{margin:0;font-size:.875rem;overflow-wrap:anywhere}
 .ag-acoes{display:flex;flex-wrap:wrap;gap:6px}
 .mini.perigo{color:var(--err);border-color:var(--err)}
-.mini-wa{background:var(--c-wa);border-color:var(--c-wa);color:#062a17;text-decoration:none;display:inline-flex;align-items:center}
+.mini-wa{background:var(--c-wa);border-color:var(--c-wa);color:var(--on-wa);text-decoration:none;display:inline-flex;align-items:center}
 .mini-forte{background:var(--fg);border-color:var(--fg);color:var(--bg)}
 .mini-ok{background:var(--ok-fg);border-color:var(--ok-fg);color:var(--bg);font-weight:700}
 .mini-icone{display:inline-flex;align-items:center;gap:6px}
@@ -367,6 +377,11 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <span class="tag">Painel dos administradores</span>
     </a>
     <div class="bar-acoes">
+      <button type="button" class="mini mini-icone" id="tema" aria-label="Mudar para o modo claro">
+        <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+        <svg class="ico-lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+        <span id="temaTxt">Modo claro</span>
+      </button>
       <a class="link" href="../" target="_blank" rel="noopener">Ver o site</a>
       <button type="button" class="mini" id="sair" hidden>Sair</button>
     </div>
@@ -588,6 +603,26 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 <script>
 const CONFIG = window.BLINCAR || {};
 const URL_METRICAS = String(CONFIG.metricas || "").trim();
+
+// Botão do topo: troca entre modo claro e escuro e lembra neste aparelho.
+const temaDoSistema = window.matchMedia("(prefers-color-scheme: light)");
+const temaAtual = () => document.documentElement.dataset.theme || (temaDoSistema.matches ? "light" : "dark");
+function mostrarTema() {
+  const claro = temaAtual() === "light";
+  const botao = document.getElementById("tema");
+  botao.classList.toggle("claro", claro);
+  document.getElementById("temaTxt").textContent = claro ? "Modo escuro" : "Modo claro";
+  botao.setAttribute("aria-label", claro ? "Mudar para o modo escuro" : "Mudar para o modo claro");
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", claro ? "#f4f3f0" : "#0f1012");
+}
+document.getElementById("tema").addEventListener("click", () => {
+  const novo = temaAtual() === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = novo;
+  try { localStorage.setItem("blincar:tema", novo); } catch {}
+  mostrarTema();
+});
+temaDoSistema.addEventListener("change", mostrarTema);
+mostrarTema();
 
 const $ = s => document.querySelector(s);
 const nf = new Intl.NumberFormat("pt-BR");
