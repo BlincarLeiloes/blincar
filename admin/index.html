@@ -1430,7 +1430,8 @@ function desenharProximos(d) {
       el("b", {}, titulo),
       p.ofertas.length ? el("span", { class: "sub" }, resumoVagas(p)) : "",
       ...ags.slice(0, 3).map(a => el("span", { class: "prox-ag" + (a.sit === "aguardando" ? " pend" : "") },
-        `${a.cliente} · ${a.servico} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : a.sit === "nao_veio" ? " · não veio" : ""}`)));
+        `${a.cliente} · ${a.servico} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : a.sit === "nao_veio" ? " · não veio"
+          : a.sit === "entregue" ? " · entregue" : a.recebidoEm ? " · na oficina" : ""}`)));
   };
   $("#agProximos").replaceChildren(cartao("Hoje", d.proximos[0]), cartao("Amanhã", d.proximos[1]));
 }
@@ -1637,6 +1638,7 @@ function botaoPedirAvaliacao(a) {
 }
 
 function seloSituacao(a) {
+  if (a.sit === "confirmado" && a.recebidoEm) return el("span", { class: "selo-sinal sim" }, "Na oficina");
   if (a.sit === "confirmado") {
     return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito"
       : `Confirmado · sinal pago ${reais(a.sinal)}${a.forma === "Cartão" ? " no cartão" : ""}`);
@@ -1664,7 +1666,8 @@ function itemAgendamento(a, comData) {
     a.email ? el("span", {}, a.email) : "",
     a.nascimento ? el("span", {}, `Nascimento: ${a.nascimento}`) : "",
     etiquetas.length ? el("span", {}, maiuscula(etiquetas.join(" · "))) : "",
-    a.sit === "confirmado" ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
+    a.sit === "confirmado" && !a.recebidoEm ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
+    a.recebidoEm ? el("span", { class: "ok-txt" }, `Carro recebido na oficina em ${quandoTexto(a.recebidoEm)}`) : "",
     a.sit === "entregue" && a.entregueEm ? el("span", { class: "ok-txt" }, `Entregue em ${quandoTexto(a.entregueEm)}`) : "",
     a.sit === "entregue" ? situacaoAvaliacao(a) : "",
     a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
@@ -1712,9 +1715,12 @@ function itemAgendamento(a, comData) {
   } else {
     const lembrar = linkZap(a.telefone, mensagemPresenca(a));
     const chegou = a.data <= AG.dados.hoje;
+    // No dia: primeiro "Carro recebido" (o cliente deixou o carro); depois "Veículo entregue".
     acoes = el("div", { class: "ag-acoes" },
-      chegou ? botao("entregue", "Veículo entregue", "mini mini-ok") : "",
-      chegou ? botao("pedir-naoveio", "Não veio") : "",
+      chegou && !a.recebidoEm ? botao("recebido", "Carro recebido", "mini mini-ok") : "",
+      chegou && a.recebidoEm ? botao("entregue", "Veículo entregue", "mini mini-ok") : "",
+      chegou && a.recebidoEm ? botao("desfazer-recebido", "Desfazer recebido") : "",
+      chegou && !a.recebidoEm ? botao("pedir-naoveio", "Não veio") : "",
       !chegou ? (a.presenca ? botao("presenca-nao", "Desfazer presença") : botao("presenca", "Cliente confirmou presença")) : "",
       !chegou && !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
       botao("editar", "Editar"), botao("despagar", "Desfazer sinal pago"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
@@ -2123,6 +2129,8 @@ document.addEventListener("click", e => {
       : "Marcado: não veio. O sinal não virou crédito (já tinha usado as remarcações).");
   }
   if (acao === "desfazer-naoveio") return executar("agenda_naoveio", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
+  if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina.`);
+  if (acao === "desfazer-recebido") return executar("agenda_recebido", { id: a.id, desfazer: true }, "Desfeito: o carro voltou para \"não recebido\".");
   if (acao === "entregue") return executar("agenda_entregue", { id: a.id }, `Veículo de ${a.cliente} entregue. Está no histórico.`);
   if (acao === "desfazer-entregue") return executar("agenda_entregue", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
 });
@@ -2259,6 +2267,7 @@ function detalheHist(a, fechar) {
       linha("Orçamento", a.orcamento ? reais(a.orcamento) : ""),
       linha("Sinal", a.sinal ? `${reais(a.sinal)} ${forma}`.trim() : ""),
       linha("Agendado em", a.criado ? quandoTexto(a.criado) + (a.origem === "Site" ? " · pelo site" : " · pelo painel") : ""),
+      linha("Carro recebido em", a.recebidoEm ? quandoTexto(a.recebidoEm) : ""),
       linha("Entregue em", a.entregueEm ? quandoTexto(a.entregueEm) : ""),
       linha("O que foi feito / observações", a.obs, true),
       a.sit === "entregue" && a.avaliacao ? linha("Avaliação", situacaoAvaliacao(a), true) : ""),
@@ -2597,6 +2606,7 @@ function criarDemo() {
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
+    recebidoEm: a.recebidoEm || "",
     avaliacao: a.avaliacao || null });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
@@ -2710,6 +2720,15 @@ function criarDemo() {
       Object.assign(v, { publicada: !!extra.publicar, decidida: true });
       return painelAval();
     }
+    if (acao === "agenda_recebido") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (extra.desfazer) a.recebidoEm = "";
+      else if (a.sit !== "confirmado") return falha("situacao", "Só dá para marcar como recebido um carro com sinal pago.");
+      else if (a.data > hoje) return falha("futuro", "Esse dia ainda não chegou.");
+      else if (!a.recebidoEm) a.recebidoEm = agora();
+      return mes(m);
+    }
     if (acao === "agenda_entregue") {
       const a = comSit().find(x => x.id === extra.id);
       if (!a) return naoAchou();
@@ -2731,6 +2750,7 @@ function criarDemo() {
         return mes(m);
       }
       if (a.data > hoje) return falha("futuro", "Esse dia ainda não chegou.");
+      if (a.recebidoEm) return falha("recebido", "O carro já foi recebido na oficina. Se foi engano, toque em \"Desfazer recebido\" antes.");
       if (a.remarcacao + 1 > regras.remarcacoes) {
         a.situacao = "Não veio (sem crédito)";
         return mes(m, { credito: "sem" });
