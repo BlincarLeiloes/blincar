@@ -327,6 +327,38 @@ button.cel:hover{border-color:var(--muted)}
 .pag-colunas{display:grid;gap:16px;align-items:start}
 @media (min-width:720px){.pag-colunas{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
+.mini[aria-busy="true"]{opacity:.6;cursor:progress}
+
+/* Fechamento do mês: soma dos orçamentos */
+.fech-tit{display:grid;gap:2px}
+.fech-resumo{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.fech-resumo > div{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px;background:var(--bg);min-width:0}
+.fech-resumo span{font-size:.8125rem;color:var(--muted)}
+.fech-resumo b{font-size:1.375rem;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.fech-resumo .bruto{border-color:var(--fg)}
+.fech-resumo .bruto b{font-size:1.75rem}
+.fech-lista{display:grid;gap:16px}
+.fech-dia{display:grid;gap:6px}
+.fech-dia h3{display:flex;justify-content:space-between;align-items:baseline;gap:2px 12px;flex-wrap:wrap;margin:0;font-size:.9375rem}
+.fech-dia h3 span{font-size:.8125rem;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.fech-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.fech-item.sem-orc{border-color:var(--pend-fg)}
+.fech-quem{display:grid;gap:2px;min-width:0}
+.fech-quem b{overflow-wrap:anywhere}
+.fech-quem .sub{font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
+.fech-valor{display:flex;align-items:center;justify-content:flex-end;gap:4px 10px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.fech-valor .sem{color:var(--pend-fg);font-size:.875rem;font-weight:600}
+.fech-valor .linkbtn{font-size:.875rem;color:var(--muted);padding:6px 0}
+.fech-form{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fech-form label{font-size:.875rem;font-weight:600}
+.fech-form input{flex:1 1 140px;max-width:220px;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
+.fech-form input:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.fech-total{display:flex;justify-content:space-between;align-items:baseline;gap:4px 16px;flex-wrap:wrap;border-top:2px solid var(--fg);padding-top:12px;font-weight:600}
+.fech-total b{font-size:1.375rem;font-variant-numeric:tabular-nums}
+@media (max-width:519px){
+  .fech-item{grid-template-columns:minmax(0,1fr);gap:4px}
+  .fech-valor{justify-content:flex-start}
+}
 .selo-sinal.alerta{background:var(--lotado-bg);color:var(--err)}
 .ag-aguardando{border-style:dashed}
 .ag-pago_sem_vaga{border-color:var(--err)}
@@ -558,6 +590,13 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     <p class="estado" id="agContagem"></p>
     <div class="kpis kpis-4" id="agResumo"></div>
     <section class="bloco">
+      <div class="bloco-head">
+        <h2 id="agCalTitulo">Calendário do mês</h2>
+        <button type="button" class="mini mini-icone" data-pdf>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
+          <span>Baixar PDF do mês</span>
+        </button>
+      </div>
       <div class="cal-wrap" id="agCalWrap">
         <div class="cal" id="agCal"></div>
         <div class="dica-cal" id="agDica" hidden></div>
@@ -572,6 +611,25 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
         <span id="agSiglas"></span>
         <span>Toque no dia para ver os carros, agendar ou mudar as vagas.</span>
       </p>
+    </section>
+    <section class="bloco" id="agFech" aria-labelledby="fechTitulo">
+      <div class="bloco-head">
+        <div class="fech-tit">
+          <h2 id="fechTitulo">Fechamento do mês</h2>
+          <p class="nota">Soma dos orçamentos dos carros com sinal pago. É o valor bruto, antes dos gastos.</p>
+        </div>
+        <div class="ag-acoes">
+          <button type="button" class="mini" id="fechAbrir" aria-expanded="false" aria-controls="fechLista">Ver carro por carro</button>
+          <button type="button" class="mini mini-icone" data-pdf>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
+            <span>Baixar PDF</span>
+          </button>
+        </div>
+      </div>
+      <div class="fech-resumo" id="fechResumo"></div>
+      <p class="nota" id="fechNota" hidden></p>
+      <p class="err" id="fechErro" role="alert" hidden></p>
+      <div class="fech-lista" id="fechLista" hidden></div>
     </section>
     <section class="bloco">
       <h2>Regras das vagas</h2>
@@ -1329,6 +1387,7 @@ function agendaReceber(d, alvoErro) {
   }
   let msg = MSG_VERSAO;
   if (d && d.erro === "senha_nao_configurada") msg = "Falta trocar a senha no código da planilha (SENHA_ADMIN) e implantar de novo.";
+  else if (d && d.erro === "acao") msg = MSG_VERSAO;
   else if (d && d.mensagem) msg = d.mensagem;
   mostrarErro(alvoErro, msg);
   return false;
@@ -1352,7 +1411,7 @@ async function agendaCarregar() {
 // Não atrapalha quem está preenchendo um agendamento ou editando o dia.
 setInterval(() => {
   const d = AG.dados;
-  if (abaAtual !== "agenda" || !d || AG.ocupado || document.hidden || ($("#dlgDia").open && AG.modo !== "lista")) return;
+  if (abaAtual !== "agenda" || !d || AG.ocupado || FECH.editando || document.hidden || ($("#dlgDia").open && AG.modo !== "lista")) return;
   const todas = d.agendamentos.concat(...d.proximos.map(p => p.agendamentos || []));
   if (todas.some(a => a.sit === "aguardando" && a.prazo && Date.parse(a.prazo.replace(" ", "T") + ":59-03:00") < Date.now())) agendaCarregar();
 }, 20000);
@@ -1443,6 +1502,7 @@ function agendaDesenhar() {
   if (AG.vista === "mes") desenharGrade(d, porDia);
   else desenharListaDias(d, porDia);
   desenharLegenda(d);
+  desenharFechamento(d);
   desenharRegras(d);
   if ($("#dlgDia").open) desenharDialogo();
 }
@@ -1608,6 +1668,476 @@ function desenharLegenda(d) {
   $("#agSiglas").textContent = "No celular, cada bolinha é uma vaga (cheia = paga)" +
     (nomes.length ? ": " + nomes.map(n => `${sigla(n)} = ${n.toLowerCase()}`).join(", ") : "") + ".";
 }
+
+/* ---------- Fechamento do mês: soma dos orçamentos dos carros com sinal pago ---------- */
+
+const FECH = { aberto: false, editando: null };
+try { FECH.aberto = localStorage.getItem("blincar:fechamento") === "aberto"; } catch {}
+
+const somaOrcamentos = lista => lista.reduce((t, a) => t + (a.orcamento || 0), 0);
+const nomeDoMes = mes => MESES[Number(mes.slice(5, 7)) - 1];
+
+// Carros de um dia na ordem dos serviços do dia (retoque, depois pintura geral) e por nome.
+function ordemDoDia(d, ags) {
+  const dia = d.dias.find(x => x.data === (ags[0] || {}).data) || { ofertas: [] };
+  const pos = a => {
+    const i = dia.ofertas.findIndex(o => mesmoServico(o.servico, a.servico));
+    return i === -1 ? 99 : i;
+  };
+  return ags.slice().sort((x, y) => pos(x) - pos(y) || x.cliente.localeCompare(y.cliente, "pt-BR", { numeric: true }));
+}
+
+// Contam no fechamento os carros com sinal pago (confirmados e entregues). Reserva sem sinal e "não veio" ficam de fora.
+function fechamentoDe(d) {
+  const carros = d.agendamentos.filter(PAGO);
+  const porDia = {};
+  carros.forEach(a => { (porDia[a.data] = porDia[a.data] || []).push(a); });
+  Object.keys(porDia).forEach(k => { porDia[k] = ordemDoDia(d, porDia[k]); });
+  const entregues = carros.filter(a => a.sit === "entregue");
+  const fazer = carros.filter(a => a.sit !== "entregue");
+  return { carros, porDia, entregues, fazer, bruto: somaOrcamentos(carros),
+    semOrcamento: carros.filter(a => !a.orcamento).length,
+    aguardando: d.agendamentos.filter(a => a.sit === "aguardando").length };
+}
+
+const situacaoFech = a => a.sit === "entregue" ? `entregue${a.entregueEm ? " em " + dm(a.entregueEm) : ""}`
+  : a.recebidoEm ? `na oficina desde ${dm(a.recebidoEm)}` : "";
+
+function itemFechamento(a) {
+  const sit = situacaoFech(a);
+  const quem = el("div", { class: "fech-quem" }, el("b", {}, a.cliente),
+    el("span", { class: "sub" }, `${a.servico} · ${a.carro}${a.placa ? ` · ${a.placa}` : ""} · ${String(a.telefone || "").replace(/ /g, "\u00a0")}${sit ? ` · ${sit}` : ""}`));
+  if (FECH.editando === a.id) {
+    return el("div", { class: "fech-item", "data-fech": a.id }, quem,
+      el("form", { class: "fech-form", "data-fech-form": a.id, novalidate: "" },
+        el("label", { for: "fechValor" }, "Orçamento (R$)"),
+        el("input", { id: "fechValor", type: "text", inputmode: "decimal", autocomplete: "off", placeholder: "Ex.: 850,00",
+          value: a.orcamento ? a.orcamento.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "" }),
+        el("button", { type: "submit", class: "mini mini-forte" }, "Salvar"),
+        el("button", { type: "button", class: "mini", "data-fech-cancelar": "" }, "Cancelar")));
+  }
+  const valor = a.orcamento
+    ? el("div", { class: "fech-valor" }, el("b", {}, reais(a.orcamento)),
+      el("button", { type: "button", class: "linkbtn", "data-fech-editar": a.id, "aria-label": `Mudar o orçamento de ${a.cliente}` }, "mudar"))
+    : el("div", { class: "fech-valor" }, el("span", { class: "sem" }, "Sem orçamento"),
+      el("button", { type: "button", class: "mini", "data-fech-editar": a.id, "aria-label": `Pôr o orçamento de ${a.cliente}` }, "Pôr valor"));
+  return el("div", { class: "fech-item" + (a.orcamento ? "" : " sem-orc"), "data-fech": a.id }, quem, valor);
+}
+
+function desenharFechamento(d) {
+  const f = fechamentoDe(d);
+  const mes = nomeDoMes(d.mes);
+  if (FECH.editando && !f.carros.some(a => a.id === FECH.editando)) FECH.editando = null;
+  $("#agCalTitulo").textContent = `Calendário de ${mes}`;
+  $("#fechTitulo").textContent = `Fechamento de ${mes}`;
+  const caixa = (rot, valor, det, classe) => el("div", classe ? { class: classe } : {}, el("span", {}, rot), el("b", {}, valor), el("span", {}, det));
+  $("#fechResumo").replaceChildren(
+    caixa("Bruto do mês", reais(f.bruto), plural(f.carros.length, "carro com sinal pago", "carros com sinal pago"), "bruto"),
+    caixa("Já entregues", reais(somaOrcamentos(f.entregues)), plural(f.entregues.length, "carro", "carros")),
+    caixa("Falta entregar", reais(somaOrcamentos(f.fazer)), plural(f.fazer.length, "carro", "carros")));
+  const notas = [];
+  if (!f.carros.length) notas.push(`Nenhum carro com sinal pago em ${mes}.`);
+  if (f.semOrcamento) {
+    notas.push(`${plural(f.semOrcamento, "carro está", "carros estão")} sem orçamento e não ${f.semOrcamento === 1 ? "entra" : "entram"} na soma.` +
+      (FECH.aberto ? "" : " Toque em Ver carro por carro para pôr o valor."));
+  }
+  if (f.aguardando) notas.push(`${plural(f.aguardando, "reserva aguardando sinal só entra", "reservas aguardando sinal só entram")} depois de pagar.`);
+  $("#fechNota").textContent = notas.join(" ");
+  $("#fechNota").hidden = !notas.length;
+  const botao = $("#fechAbrir");
+  botao.hidden = !f.carros.length;
+  botao.textContent = FECH.aberto ? "Fechar a lista" : "Ver carro por carro";
+  botao.setAttribute("aria-expanded", String(FECH.aberto));
+  const lista = $("#fechLista");
+  lista.hidden = !FECH.aberto || !f.carros.length;
+  if (lista.hidden) return lista.replaceChildren();
+  lista.replaceChildren(...Object.keys(f.porDia).sort().map(data => el("div", { class: "fech-dia" },
+    el("h3", {}, maiuscula(dataCurta(data)), el("span", {}, `${plural(f.porDia[data].length, "carro", "carros")} · ${reais(somaOrcamentos(f.porDia[data]))}`)),
+    ...f.porDia[data].map(itemFechamento))),
+  el("div", { class: "fech-total" }, el("span", {}, `Total bruto de ${mes} · ${plural(f.carros.length, "carro", "carros")}`), el("b", {}, reais(f.bruto))));
+}
+
+function cancelarFechamento() {
+  const id = FECH.editando;
+  FECH.editando = null;
+  $("#fechErro").hidden = true;
+  desenharFechamento(AG.dados);
+  focar(`[data-fech-editar="${id}"]`);
+}
+
+$("#fechAbrir").addEventListener("click", () => {
+  FECH.aberto = !FECH.aberto;
+  FECH.editando = null;
+  try { localStorage.setItem("blincar:fechamento", FECH.aberto ? "aberto" : "fechado"); } catch {}
+  if (AG.dados) desenharFechamento(AG.dados);
+});
+$("#fechLista").addEventListener("click", e => {
+  const editar = e.target.closest("[data-fech-editar]");
+  if (editar && !AG.ocupado) {
+    FECH.editando = editar.dataset.fechEditar;
+    $("#fechErro").hidden = true;
+    desenharFechamento(AG.dados);
+    return focar("#fechValor");
+  }
+  if (e.target.closest("[data-fech-cancelar]")) cancelarFechamento();
+});
+$("#fechLista").addEventListener("keydown", e => {
+  if (e.key === "Escape" && e.target.id === "fechValor") cancelarFechamento();
+});
+$("#fechLista").addEventListener("submit", async e => {
+  e.preventDefault();
+  const form = e.target.closest("[data-fech-form]");
+  if (!form || AG.ocupado) return;
+  const id = form.dataset.fechForm;
+  const texto = $("#fechValor").value.trim();
+  const valor = valorReais(texto);
+  if (texto && !valor) return mostrarErro($("#fechErro"), "Confira o valor (ex.: 850,00) ou deixe em branco.");
+  if (valor > 200000) return mostrarErro($("#fechErro"), "Confira o valor do orçamento.");
+  $("#fechErro").hidden = true;
+  const a = AG.dados.agendamentos.find(x => x.id === id);
+  const nome = a ? a.cliente : "cliente";
+  const deu = await executar("agenda_orcamento", { id, orcamento: valor },
+    valor ? `Orçamento de ${nome}: ${reais(valor)}.` : `Orçamento de ${nome} apagado.`, $("#fechErro"), () => { FECH.editando = null; });
+  if (deu) focar(`[data-fech-editar="${id}"]`);
+});
+
+/* ---------- PDF do mês: calendário detalhado e fechamento, para imprimir ---------- */
+
+// A biblioteca do PDF (jsPDF) fica junto do painel e só é baixada quando alguém pede o PDF.
+let carregandoPdf = null;
+function bibliotecaPdf() {
+  if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
+  if (!carregandoPdf) {
+    carregandoPdf = new Promise((ok, falhou) => {
+      const s = el("script", { src: "vendor/jspdf-4.2.1.umd.min.js" });
+      s.onload = () => (window.jspdf ? ok(window.jspdf.jsPDF) : falhou(new Error("jspdf")));
+      s.onerror = () => {
+        carregandoPdf = null;
+        s.remove();
+        falhou(new Error("rede"));
+      };
+      document.head.append(s);
+    });
+  }
+  return carregandoPdf;
+}
+
+// A fonte do PDF só tem as letras do português e alguns sinais: emoji e símbolos saem do texto.
+const SINAIS_PDF = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+const textoPdf = s => String(s || "").normalize("NFC").replace(/[^\x20-\xff]/gu, c => (SINAIS_PDF.includes(c) ? c : " ")).replace(/\s+/g, " ").trim();
+
+const COR_PDF = { tinta: [22, 23, 26], cinza: [95, 94, 99], linha: [214, 211, 205], fundo: [244, 243, 240], lotado: [253, 236, 236],
+  vermelho: [207, 31, 38], verde: [17, 112, 58], ambar: [150, 100, 0], apagado: [150, 148, 152], branco: [255, 255, 255] };
+const NO_CALENDARIO_PDF = ["confirmado", "entregue", "nao_veio"];
+
+function pdfDoMes(JsPDF, d) {
+  const doc = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  const L = 297, A = 210, M = 10, LARG = L - 2 * M, FIM = A - M - 4;
+  const mes = nomeMes(d.mes).toLowerCase();
+  const f = fechamentoDe(d);
+  const t = new Date();
+  const gerado = `${pad2(t.getDate())}/${pad2(t.getMonth() + 1)}/${t.getFullYear()} às ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
+  doc.setLineHeightFactor(1.2);
+  const fonte = (tam, estilo = "normal") => { doc.setFont("helvetica", estilo); doc.setFontSize(tam); };
+  const cor = c => doc.setTextColor(...COR_PDF[c]);
+  const traco = (c, esp) => { doc.setDrawColor(...COR_PDF[c]); doc.setLineWidth(esp); };
+  const altLinha = tam => tam * 0.3528 * 1.2;
+  const quebrar = (texto, larg, tam, estilo) => { fonte(tam, estilo); return doc.splitTextToSize(textoPdf(texto), larg); };
+  // Escreve linhas com o topo em "y" e devolve onde terminou.
+  const escrever = (linhas, x, y, tam, estilo, c, opcoes) => {
+    fonte(tam, estilo);
+    cor(c);
+    doc.text(linhas.map(textoPdf), x, y + tam * 0.3528 * 0.92, opcoes);
+    return y + linhas.length * altLinha(tam);
+  };
+
+  const marca = (x, y, tam) => {
+    fonte(tam, "bolditalic");
+    cor("tinta");
+    doc.text("BLIN", x, y);
+    const w = doc.getTextWidth("BLIN ");
+    cor("vermelho");
+    doc.text("CAR", x + w, y);
+    return x + w + doc.getTextWidth("CAR");
+  };
+  const cabecalho = (titulo, sub, comResumo) => {
+    marca(M, M + 4, 11);
+    escrever([titulo], M, M + 7, 18, "bold", "tinta");
+    escrever(quebrar(sub, comResumo ? LARG - 80 : LARG, 8.5, "normal"), M, M + 15.5, 8.5, "normal", "cinza");
+    if (comResumo) {
+      escrever(["Bruto do mês (soma dos orçamentos)"], L - M, M + 2, 8, "normal", "cinza", { align: "right" });
+      escrever([reais(f.bruto)], L - M, M + 6.5, 16, "bold", "tinta", { align: "right" });
+      escrever([plural(f.carros.length, "carro com sinal pago", "carros com sinal pago")], L - M, M + 14, 8, "normal", "cinza", { align: "right" });
+    }
+    return M + 24;
+  };
+  const continuacao = titulo => {
+    const x = marca(M, M + 4, 9);
+    escrever([titulo + " (continuação)"], x + 4, M + 0.8, 9, "bold", "tinta");
+    return M + 9;
+  };
+
+  /* Calendário: uma linha por semana; a altura cresce com os carros do dia. */
+  const porDia = {};
+  d.agendamentos.filter(a => NO_CALENDARIO_PDF.indexOf(a.sit) !== -1).forEach(a => { (porDia[a.data] = porDia[a.data] || []).push(a); });
+  Object.keys(porDia).forEach(k => { porDia[k] = ordemDoDia(d, porDia[k]); });
+  // Dia da semana com carro no mês ganha coluna larga; sem carro, estreita.
+  const comCarro = SEMANA_CURTA.map((_, dow) => d.dias.some(x => diaSemana(x.data) === dow && porDia[x.data]));
+  const largas = comCarro.filter(Boolean).length;
+  const ESTREITA = 24;
+  const largura = comCarro.map(c => (!largas || largas === 7 ? LARG / 7 : c ? (LARG - ESTREITA * (7 - largas)) / largas : ESTREITA));
+  const xCol = [];
+  largura.reduce((x, w, i) => { xCol[i] = x; return x + w; }, M);
+  const PAD = 1.8, CAB_SEMANA = 6, MIN_LINHA = 20;
+
+  const blocoCarro = (a, w) => {
+    const partes = [];
+    const parte = (texto, tam, estilo, c) => { if (textoPdf(texto)) partes.push({ l: quebrar(texto, w, tam, estilo), tam, estilo, c }); };
+    parte(a.cliente, 7.6, "bold", a.sit === "nao_veio" ? "apagado" : "tinta");
+    parte(`${a.carro}${a.placa ? " · " + a.placa : ""}`, 7, "normal", "tinta");
+    parte(a.telefone, 7, "normal", "tinta");
+    // Serviço e orçamento na mesma linha quando cabem.
+    const valor = a.orcamento ? reais(a.orcamento) : "sem orçamento";
+    fonte(7, "normal");
+    const wServ = doc.getTextWidth(textoPdf(a.servico));
+    fonte(7, a.orcamento ? "bold" : "italic");
+    const wValor = doc.getTextWidth(valor);
+    const juntos = wServ + wValor + 2 <= w;
+    partes.push({ servico: true, juntos, valor, l: juntos ? [textoPdf(a.servico)] : quebrar(a.servico, w, 7, "normal"), tam: 7 });
+    if (!juntos) partes.push({ l: [valor], tam: 7, estilo: a.orcamento ? "bold" : "italic", c: a.orcamento ? "tinta" : "cinza" });
+    const sit = a.sit === "nao_veio" ? ["Não veio", "vermelho"] : a.sit === "entregue" ? [maiuscula(situacaoFech(a)), "verde"]
+      : a.recebidoEm ? [maiuscula(situacaoFech(a)), "ambar"] : a.presenca ? ["Presença confirmada", "cinza"] : null;
+    if (sit) parte(sit[0], 6.6, "bold", sit[1]);
+    if (a.obs) {
+      const l = quebrar(a.obs, w, 6.3, "italic");
+      partes.push({ l: l.length > 2 ? [l[0], l[1].replace(/\s*\S*$/, "") + "..."] : l, tam: 6.3, estilo: "italic", c: "cinza" });
+    }
+    const altura = partes.reduce((h, p) => h + p.l.length * altLinha(p.tam), 0) + 0.8;
+    const barra = a.sit === "nao_veio" ? "apagado" : a.sit === "entregue" ? "verde" : a.recebidoEm ? "ambar" : "vermelho";
+    return {
+      altura,
+      desenhar(x, y) {
+        doc.setFillColor(...COR_PDF[barra]);
+        doc.rect(x - 1.6, y + 0.3, 0.7, altura - 0.6, "F");
+        let yy = y;
+        partes.forEach(p => {
+          if (p.servico) {
+            escrever(p.l, x, yy, 7, "normal", "cinza");
+            if (p.juntos) escrever([p.valor], x + w, yy, 7, a.orcamento ? "bold" : "italic", a.orcamento ? "tinta" : "cinza", { align: "right" });
+          } else escrever(p.l, x, yy, p.tam, p.estilo, p.c);
+          yy += p.l.length * altLinha(p.tam);
+        });
+      }
+    };
+  };
+
+  // Monta uma célula; "maxAltura" corta os carros que não cabem numa página (eles continuam no fechamento).
+  const celula = (dia, w, maxAltura) => {
+    const ags = porDia[dia.data] || [];
+    const interno = w - 2 * PAD - 1.6;
+    const resumo = dia.ofertas.length ? dia.ofertas.map(o => `${o.servico} ${o.ocupadas}/${o.vagas}`).join(" · ") : ags.length ? "" : "Fechado para clientes";
+    const linhasResumo = resumo ? quebrar(resumo, w - 2 * PAD, 6.3, "normal") : [];
+    let altura = PAD + 4.4 + linhasResumo.length * altLinha(6.3) + 1.2;
+    const blocos = [];
+    let cortados = 0;
+    ags.forEach((a, i) => {
+      const b = blocoCarro(a, interno);
+      const reserva = i < ags.length - 1 ? 4 : 0;
+      if (cortados || (maxAltura && altura + b.altura + reserva + PAD > maxAltura)) return cortados++;
+      blocos.push(b);
+      altura += b.altura + 1.6;
+    });
+    if (cortados) altura += 3.6;
+    altura += PAD;
+    const est = estadoDia(dia, d.hoje);
+    return {
+      altura,
+      desenhar(x, y, h) {
+        if (est === "fechado" && !ags.length) doc.setFillColor(...COR_PDF.fundo);
+        else if (est === "lotado") doc.setFillColor(...COR_PDF.lotado);
+        else doc.setFillColor(...COR_PDF.branco);
+        traco("linha", 0.25);
+        doc.rect(x, y, w, h, "FD");
+        const num = String(Number(dia.data.slice(8)));
+        if (dia.data === d.hoje) {
+          fonte(9, "bold");
+          doc.setFillColor(...COR_PDF.vermelho);
+          doc.roundedRect(x + PAD - 0.8, y + PAD - 0.4, doc.getTextWidth(num) + 1.6, 4.4, 1.2, 1.2, "F");
+          escrever([num], x + PAD, y + PAD, 9, "bold", "branco");
+        } else escrever([num], x + PAD, y + PAD, 9, "bold", dia.data < d.hoje ? "cinza" : "tinta");
+        if (est === "lotado") escrever(["LOTADO"], x + w - PAD, y + PAD + 0.6, 6.3, "bold", "vermelho", { align: "right" });
+        let yy = y + PAD + 4.4;
+        if (linhasResumo.length) yy = escrever(linhasResumo, x + PAD, yy, 6.3, "normal", "cinza");
+        yy += 1.2;
+        blocos.forEach(b => {
+          b.desenhar(x + PAD + 1.6, yy);
+          yy += b.altura + 1.6;
+        });
+        if (cortados) escrever([`+${plural(cortados, "carro", "carros")} (veja o fechamento)`], x + PAD, yy, 6.6, "bold", "vermelho");
+      }
+    };
+  };
+
+  const cabSemana = y => {
+    SEMANA_CURTA.forEach((n, i) => escrever([n.toUpperCase()], xCol[i] + largura[i] / 2, y + 1, 7, "bold", "cinza", { align: "center" }));
+    return y + CAB_SEMANA;
+  };
+
+  let y = cabecalho(`Agenda de ${mes}`, `Carros com sinal pago, com carro, placa, telefone e orçamento. Gerado em ${gerado}.`, true);
+  y = cabSemana(y);
+  const maxAltura = FIM - (M + 9 + CAB_SEMANA);
+  const semanas = [];
+  let semana = new Array(diaSemana(d.dias[0].data)).fill(null);
+  d.dias.forEach(dia => {
+    semana.push(dia);
+    if (semana.length === 7) { semanas.push(semana); semana = []; }
+  });
+  if (semana.length) semanas.push(semana.concat(new Array(7 - semana.length).fill(null)));
+  semanas.forEach(s => {
+    const cels = s.map((dia, i) => (dia ? celula(dia, largura[i], maxAltura) : null));
+    const h = Math.max(MIN_LINHA, ...cels.map(c => (c ? c.altura : 0)));
+    if (y + h > FIM) {
+      doc.addPage();
+      y = cabSemana(continuacao(`Agenda de ${mes}`));
+    }
+    cels.forEach((c, i) => { if (c) c.desenhar(xCol[i], y, h); });
+    y += h;
+  });
+  y += 3;
+  if (y + 6 < FIM) {
+    const leg = [["vermelho", "agendado"], ["ambar", "carro na oficina"], ["verde", "entregue"], ["apagado", "não veio"]];
+    let x = M;
+    leg.forEach(([c, txt]) => {
+      doc.setFillColor(...COR_PDF[c]);
+      doc.rect(x, y + 0.6, 0.9, 3, "F");
+      fonte(7);
+      escrever([txt], x + 2.2, y + 0.4, 7, "normal", "cinza");
+      x += 2.2 + doc.getTextWidth(txt) + 6;
+    });
+    escrever(["Reservas aguardando sinal não aparecem: elas ainda não seguram a vaga."], x + 2, y + 0.4, 7, "normal", "cinza");
+    y += 6;
+  }
+
+  /* Fechamento: carro por carro, com o total bruto do mês. Começa embaixo do calendário quando cabe. */
+  const SUB_FECH = "Soma dos orçamentos dos carros com sinal pago no mês. É o valor bruto, antes dos gastos.";
+  if (FIM - y >= 85) {
+    y += 4;
+    traco("linha", 0.3);
+    doc.line(M, y, L - M, y);
+    escrever([`Fechamento de ${mes}`], M, y + 4, 14, "bold", "tinta");
+    escrever([SUB_FECH], M, y + 10.5, 8.5, "normal", "cinza");
+    y += 17;
+  } else {
+    doc.addPage();
+    y = cabecalho(`Fechamento de ${mes}`, SUB_FECH, false);
+  }
+  const caixas = [
+    ["Bruto do mês", reais(f.bruto), plural(f.carros.length, "carro com sinal pago", "carros com sinal pago"), true],
+    ["Já entregues", reais(somaOrcamentos(f.entregues)), plural(f.entregues.length, "carro", "carros")],
+    ["Falta entregar", reais(somaOrcamentos(f.fazer)), plural(f.fazer.length, "carro", "carros")]
+  ];
+  caixas.forEach(([rot, valor, det, forte], i) => {
+    const x = M + i * 66;
+    traco(forte ? "tinta" : "linha", forte ? 0.45 : 0.3);
+    doc.roundedRect(x, y, 62, 19, 2, 2, "S");
+    escrever([rot], x + 4, y + 2.6, 7.5, "normal", "cinza");
+    escrever([valor], x + 4, y + 6.4, 13, "bold", "tinta");
+    escrever([det], x + 4, y + 13.2, 7, "normal", "cinza");
+  });
+  y += 25;
+
+  const COLS = [["Dia", 24], ["Cliente", 52], ["Telefone", 30], ["Carro / placa", 62], ["Serviço", 32], ["Situação", 41], ["Orçamento", 36]];
+  const xTab = [];
+  COLS.reduce((x, c, i) => { xTab[i] = x; return x + c[1]; }, M);
+  const cabTabela = yy => {
+    COLS.forEach(([nome, w], i) => escrever([nome.toUpperCase()], i === COLS.length - 1 ? xTab[i] + w : xTab[i], yy, 6.8, "bold", "cinza",
+      i === COLS.length - 1 ? { align: "right" } : undefined));
+    traco("tinta", 0.35);
+    doc.line(M, yy + 4.2, L - M, yy + 4.2);
+    return yy + 5.6;
+  };
+  y = cabTabela(y);
+  if (!f.carros.length) y = escrever([`Nenhum carro com sinal pago em ${mes}.`], M, y + 1, 9, "normal", "cinza") + 2;
+  Object.keys(f.porDia).sort().forEach((data, iDia) => {
+    f.porDia[data].forEach((a, i) => {
+      const sit = a.sit === "entregue" ? maiuscula(situacaoFech(a)) : a.recebidoEm ? maiuscula(situacaoFech(a))
+        : a.presenca ? "Agendado · presença confirmada" : "Agendado";
+      const cel = [
+        quebrar(maiuscula(dataCurta(data)), COLS[0][1] - 2, 8, "bold"),
+        quebrar(a.cliente, COLS[1][1] - 3, 8, "bold"),
+        quebrar(a.telefone, COLS[2][1] - 3, 8, "normal"),
+        quebrar(`${a.carro}${a.placa ? " · " + a.placa : ""}`, COLS[3][1] - 3, 8, "normal"),
+        quebrar(a.servico, COLS[4][1] - 3, 8, "normal"),
+        quebrar(sit, COLS[5][1] - 3, 8, "normal")
+      ];
+      const h = Math.max(...cel.map(l => l.length), 1) * altLinha(8) + 2.6;
+      let mostrarDia = i === 0;
+      if (y + h > FIM) {
+        doc.addPage();
+        y = cabTabela(continuacao(`Fechamento de ${mes}`) + 1);
+        mostrarDia = true;
+      } else if (i === 0 && iDia > 0) {
+        traco("cinza", 0.3);
+        doc.line(M, y, L - M, y);
+      }
+      const yt = y + 1.3;
+      cel.forEach((l, k) => { if (k || mostrarDia) escrever(l, xTab[k], yt, 8, k <= 1 ? "bold" : "normal", k === 5 && a.sit === "entregue" ? "verde" : "tinta"); });
+      const fim = xTab[6] + COLS[6][1];
+      if (a.orcamento) escrever([reais(a.orcamento)], fim, yt, 8.5, "bold", "tinta", { align: "right" });
+      else escrever(["sem orçamento"], fim, yt, 8, "italic", "cinza", { align: "right" });
+      y += h;
+      if (i < f.porDia[data].length - 1) {
+        traco("linha", 0.2);
+        doc.line(xTab[1], y, L - M, y);
+      }
+    });
+  });
+  if (y + 24 > FIM) {
+    doc.addPage();
+    y = continuacao(`Fechamento de ${mes}`) + 2;
+  }
+  traco("tinta", 0.6);
+  doc.line(M, y + 1, L - M, y + 1);
+  escrever([`Total bruto de ${mes} · ${plural(f.carros.length, "carro", "carros")}`], M, y + 3.2, 10, "bold", "tinta");
+  escrever([reais(f.bruto)], L - M, y + 2.6, 13, "bold", "tinta", { align: "right" });
+  y += 10;
+  const notas = [`Já entregues: ${reais(somaOrcamentos(f.entregues))} (${plural(f.entregues.length, "carro", "carros")}). ` +
+    `Falta entregar: ${reais(somaOrcamentos(f.fazer))} (${plural(f.fazer.length, "carro", "carros")}).`];
+  if (f.semOrcamento) notas.push(`${plural(f.semOrcamento, "carro está", "carros estão")} sem orçamento e não ${f.semOrcamento === 1 ? "entra" : "entram"} na soma.`);
+  notas.push("Reservas aguardando sinal e carros que não vieram não entram na soma.");
+  escrever(quebrar(notas.join(" "), LARG, 8, "normal"), M, y, 8, "normal", "cinza");
+
+  // Rodapé com o número da página.
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    escrever([`Blin Car · Agenda de ${mes} · gerado em ${gerado}`], M, A - M + 1, 7, "normal", "cinza");
+    escrever([`Página ${p} de ${total}`], L - M, A - M + 1, 7, "normal", "cinza", { align: "right" });
+  }
+  return doc;
+}
+
+async function baixarPdf(botao) {
+  const d = AG.dados;
+  if (!d || botao.getAttribute("aria-busy") === "true" || $("#agenda").classList.contains("carregando")) return;
+  const rotulo = botao.querySelector("span");
+  const antes = rotulo.textContent;
+  const alvoErro = botao.closest("#agFech") ? $("#fechErro") : $("#agErro");
+  botao.setAttribute("aria-busy", "true");
+  rotulo.textContent = "Gerando o PDF…";
+  try {
+    const JsPDF = await bibliotecaPdf();
+    pdfDoMes(JsPDF, d).save(`agenda-blincar-${d.mes}.pdf`);
+    alvoErro.hidden = true;
+    aviso(`PDF de ${nomeDoMes(d.mes)} baixado.`);
+  } catch {
+    mostrarErro(alvoErro, "Não deu para gerar o PDF. Confira a internet e tente de novo.");
+  } finally {
+    botao.removeAttribute("aria-busy");
+    rotulo.textContent = antes;
+  }
+}
+document.querySelectorAll("[data-pdf]").forEach(b => b.addEventListener("click", () => baixarPdf(b)));
 
 function numeroWhatsApp(telefone) {
   const n = String(telefone || "").replace(/\D/g, "");
@@ -2597,7 +3127,7 @@ function criarDemo() {
   const lista = [
     novo(seg, "Retoque", "Carlos (exemplo)", "Onix 2019 prata", true, { ...site, email: "carlos@exemplo.com", obs: "Arranhão na porta traseira", presenca: true }),
     novo(seg, "Retoque", "Marina (exemplo)", "HB20 2021 branco", false, { ...site, email: "marina@exemplo.com" }),
-    novo(qua, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true),
+    novo(qua, "Retoque", "Jorge (exemplo)", "Gol 2015 preto", true, { orcamento: 0 }),
     novo(qua, "Retoque", "Paula (exemplo)", "Kwid 2020 vermelho", true, { ...site, email: "paula@exemplo.com" }),
     novo(proximo("Pintura geral"), "Pintura geral", "Rafael (exemplo)", "Meriva 2010 prata", true, { ...site, email: "rafael@exemplo.com" }),
     novo(quinta, "Retoque", "Vera (exemplo)", "Corolla 2018 cinza", true, { ...site, email: "vera@exemplo.com", obs: "Preço do dia: R$ 200,00" }),
@@ -2693,6 +3223,7 @@ function criarDemo() {
     if (antigo) {
       const criado = antigo.pago && !ag.pago ? agora() : antigo.criado;
       Object.assign(antigo, ag, { situacao, criado, prazo: ag.pago || criado === antigo.criado ? antigo.prazo : daquiPrazo(),
+        recebidoEm: antigo.recebidoEm && !diaNovo && ag.pago ? antigo.recebidoEm : "",
         link: ag.pago ? "" : antigo.link || linkFalso(antigo.id), linkCartao: ag.pago ? "" : antigo.linkCartao || linkFalso(antigo.id + "-cartao"),
         forma: ag.pago ? antigo.forma || "Manual" : "" });
     } else {
@@ -2754,6 +3285,12 @@ function criarDemo() {
       if (extra.publicar && !v.publicavel) return falha("nao_publicavel", "Só avaliações de 4 ou 5 estrelas vão para o site.");
       Object.assign(v, { publicada: !!extra.publicar, decidida: true });
       return painelAval();
+    }
+    if (acao === "agenda_orcamento") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      a.orcamento = valorReais(extra.orcamento);
+      return mes(m);
     }
     if (acao === "agenda_recebido") {
       const a = comSit().find(x => x.id === extra.id);
