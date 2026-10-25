@@ -2264,6 +2264,17 @@ function contaCarro(a) {
     el("span", { class: "sub" }, conta));
 }
 
+// Como o sinal foi pago: no Pix ou no cartão quem confirma é o Mercado Pago; "à mão" é alguém que marcou no painel.
+function textoSinal(a) {
+  if (!a.sinal) return "Agendado sem sinal (R$ 0,00)";
+  const v = reais(a.sinal);
+  if (a.forma === "Pix") return `Sinal de ${v} pago no Pix (o Mercado Pago confirmou)`;
+  if (a.forma === "Cartão") return `Sinal de ${v} pago no cartão (o Mercado Pago confirmou)`;
+  if (a.forma === "Manual") return `Sinal de ${v} marcado como pago à mão no painel`;
+  if (a.forma === "Crédito") return `Sinal de ${v} pago antes, usado como crédito`;
+  return `Sinal de ${v} pago`;
+}
+
 // "comData": mostra o dia junto (nos quadros fora do calendário).
 function itemAgendamento(a, comData) {
   const max = AG.dados.regras.remarcacoes;
@@ -2277,6 +2288,7 @@ function itemAgendamento(a, comData) {
     comData ? el("span", { class: "ag-dia" }, dataLonga(a.data)) : "",
     el("span", {}, `${a.servico} · ${a.carro}${a.placa ? ` · placa ${a.placa}` : ""}`),
     a.orcamento && !comEntrada(a) ? el("span", {}, "Orçamento: ", el("b", {}, reais(a.orcamento))) : "",
+    PAGO(a) ? el("span", { class: a.sinal ? "ok-txt" : "" }, a.sinal ? "✓ " : "", textoSinal(a)) : "",
     el("span", {}, a.telefone, zap ? " · " : "", zap ? el("a", { href: zap, target: "_blank", rel: "noopener" }, "abrir WhatsApp") : ""),
     a.email ? el("span", {}, a.email) : "",
     a.nascimento ? el("span", {}, `Nascimento: ${a.nascimento}`) : "",
