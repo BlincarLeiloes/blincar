@@ -235,6 +235,12 @@ button.cel:hover{border-color:var(--muted)}
 .cel.passou{opacity:.5}
 .cel.editado::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--gold)}
 .cel .quem.falta{color:var(--err);text-decoration:line-through}
+/* Carro entregue com pagamento pendente: bolinha vermelha no dia e no nome */
+.cel .ponto-pag{position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px var(--bg)}
+.cel.pag-pend.editado::after{right:21px}
+.cel.passou.pag-pend{opacity:1}
+.cel .quem.deve::before,.ponto-leg{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);flex:none}
+.cel .quem.deve::before{margin-right:5px;vertical-align:1px}
 .cal-vazio{min-height:62px}
 @media (min-width:720px){
   .cal{gap:6px}
@@ -289,6 +295,9 @@ button.cel:hover{border-color:var(--muted)}
 .conta-linha b{font-size:1.0625rem;font-variant-numeric:tabular-nums}
 .ag-conta.falta .conta-linha b{color:var(--pend-fg)}
 .ag-conta.quitado .conta-linha b{color:var(--ok-fg)}
+.ag-conta.devendo{border-color:var(--red)}
+.ag-conta.devendo .conta-linha b{color:var(--err)}
+.ag.ag-entregue.pag-pend{border-color:var(--red)}
 .ag-conta .sub{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .conta-campo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.9375rem;font-weight:600}
 .conta-campo input{flex:1 1 140px;max-width:220px;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
@@ -596,6 +605,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     <div class="proximos" id="agProximos"></div>
     <section class="bloco destaque" id="agConfirmar" hidden></section>
     <section class="bloco alerta" id="agRemarcar" hidden></section>
+    <section class="bloco alerta" id="agPendentes" hidden></section>
     <section class="bloco" id="agCreditos" hidden></section>
     <p class="estado" id="agContagem"></p>
     <div class="kpis kpis-4" id="agResumo"></div>
@@ -618,6 +628,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
         <span><span class="amostra lot" aria-hidden="true"></span>lotado no site dos clientes</span>
         <span><span class="amostra fec" aria-hidden="true"></span>fechado para clientes</span>
         <span><span class="amostra edi" aria-hidden="true"></span>dia editado</span>
+        <span><span class="ponto-leg" aria-hidden="true"></span>pagamento pendente</span>
         <span id="agSiglas"></span>
         <span>Toque no dia para ver os carros, agendar ou mudar as vagas.</span>
       </p>
@@ -1505,6 +1516,8 @@ function agendaDesenhar() {
     `Carros com sinal pago para os próximos ${d.regras.avisoDias} dias. Ligue para o cliente e marque quando ele confirmar.`);
   desenharListaAcao("#agRemarcar", d.remarcar, "Pagaram, mas o dia lotou",
     "Esses clientes pagaram o sinal depois que o agendamento foi desmarcado ou o dia lotou. Remarque para outro dia.");
+  desenharListaAcao("#agPendentes", d.pendentes || [], "Pagamento pendente",
+    "Carros que já foram entregues sem pagar tudo. Quando o cliente pagar, toque em Pagamento concluído.");
   desenharCreditos(d);
   desenharResumoMes(d);
   $("#agCalWrap").hidden = AG.vista !== "mes";
@@ -1536,7 +1549,7 @@ function desenharProximos(d) {
       p.ofertas.length ? el("span", { class: "sub" }, resumoVagas(p)) : "",
       ...ags.slice(0, 3).map(a => el("span", { class: "prox-ag" + (a.sit === "aguardando" ? " pend" : "") },
         `${a.cliente} · ${a.servico} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : a.sit === "nao_veio" ? " · não veio"
-          : a.sit === "entregue" ? " · entregue" : a.recebidoEm ? " · na oficina" : ""}`)));
+          : pendente(a) ? " · entregue, pagamento pendente" : a.sit === "entregue" ? " · entregue" : a.recebidoEm ? " · na oficina" : ""}`)));
   };
   $("#agProximos").replaceChildren(cartao("Hoje", d.proximos[0]), cartao("Amanhã", d.proximos[1]));
 }
@@ -1623,12 +1636,15 @@ function pontos(dia) {
 
 function celula(dia, ags, hoje) {
   const est = estadoDia(dia, hoje);
-  const classe = `cel ${est}${dia.data === hoje ? " hoje" : ""}${dia.editado ? " editado" : ""}`;
+  const devendo = ags.filter(pendente);
+  const classe = `cel ${est}${dia.data === hoje ? " hoje" : ""}${dia.editado ? " editado" : ""}${devendo.length ? " pag-pend" : ""}`;
   const b = el("button", { type: "button", class: classe, "data-dia": dia.data,
-    "aria-label": `${dataLonga(dia.data)}. ${resumoVagas(dia)}.${ags.length ? " " + ags.map(a => a.cliente).join(", ") + "." : ""}` },
+    "aria-label": `${dataLonga(dia.data)}. ${resumoVagas(dia)}.${ags.length ? " " + ags.map(a => a.cliente).join(", ") + "." : ""}` +
+      (devendo.length ? ` Pagamento pendente: ${devendo.map(a => a.cliente).join(", ")}.` : "") },
     el("span", { class: "num" }, Number(dia.data.slice(8))));
+  if (devendo.length) b.append(el("span", { class: "ponto-pag", "aria-hidden": "true", title: "Pagamento pendente" }));
   dia.ofertas.forEach(o => b.append(el("span", { class: "tipo" }, `${o.servico} ${o.ocupadas}/${o.vagas}`)));
-  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" + (a.sit === "aguardando" ? " pend" : a.sit === "nao_veio" ? " falta" : "") }, a.cliente)));
+  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" + (a.sit === "aguardando" ? " pend" : a.sit === "nao_veio" ? " falta" : pendente(a) ? " deve" : "") }, a.cliente)));
   if (ags.length > 3) b.append(el("span", { class: "quem" }, `+${ags.length - 3}`));
   if (!dia.ofertas.length) {
     if (ags.length) b.append(el("span", { class: "rodape-cel" }, el("span", { class: "pend-num" }, plural(ags.length, "carro", "carros"))));
@@ -1750,6 +1766,11 @@ function desenharFechamento(d) {
   if (f.semOrcamento) {
     notas.push(`${plural(f.semOrcamento, "carro está", "carros estão")} sem orçamento e não ${f.semOrcamento === 1 ? "entra" : "entram"} na soma.` +
       (FECH.aberto ? "" : " Toque em Ver carro por carro para pôr o valor."));
+  }
+  const devendo = f.carros.filter(pendente);
+  if (devendo.length) {
+    const soma = devendo.reduce((t, a) => t + (faltaReceber(a) || 0), 0);
+    notas.push(`${plural(devendo.length, "carro entregue está", "carros entregues estão")} com pagamento pendente${soma ? ` (falta receber ${reais(soma)})` : ""}.`);
   }
   if (f.aguardando) notas.push(`${plural(f.aguardando, "reserva aguardando sinal só entra", "reservas aguardando sinal só entram")} depois de pagar.`);
   $("#fechNota").textContent = notas.join(" ");
@@ -1918,7 +1939,7 @@ function pdfDoMes(JsPDF, d) {
     const sit = a.sit === "nao_veio" ? ["Não veio", "vermelho"] : a.sit === "entregue" ? [maiuscula(situacaoFech(a)), "verde"]
       : a.recebidoEm ? [maiuscula(situacaoFech(a)), "ambar"] : a.presenca ? ["Presença confirmada", "cinza"] : null;
     if (sit) parte(sit[0], 6.6, "bold", sit[1]);
-    if (textoEntrada(a)) parte(maiuscula(textoEntrada(a)), 6.6, "normal", "tinta");
+    if (textoEntrada(a)) parte(maiuscula(textoEntrada(a)), 6.6, pendente(a) ? "bold" : "normal", pendente(a) ? "vermelho" : "tinta");
     if (a.obs) {
       const l = quebrar(a.obs, w, 6.3, "italic");
       partes.push({ l: l.length > 2 ? [l[0], l[1].replace(/\s*\S*$/, "") + "..."] : l, tam: 6.3, estilo: "italic", c: "cinza" });
@@ -2219,6 +2240,7 @@ function seloSituacao(a) {
     return el("span", { class: "selo-sinal sim" }, a.forma === "Crédito" ? "Confirmado · remarcado com crédito"
       : `Confirmado · sinal pago ${reais(a.sinal)}${a.forma === "Cartão" ? " no cartão" : ""}`);
   }
+  if (pendente(a)) return el("span", { class: "selo-sinal alerta" }, "Entregue · pagamento pendente");
   if (a.sit === "entregue") return el("span", { class: "selo-sinal sim" }, "Veículo entregue");
   if (a.sit === "pago_sem_vaga") return el("span", { class: "selo-sinal alerta" }, `Pagou ${reais(a.sinal)}, mas o dia lotou`);
   if (a.sit === "nao_veio") return el("span", { class: "selo-sinal alerta" }, "Não veio");
@@ -2230,13 +2252,20 @@ function seloSituacao(a) {
 const faltaReceber = a => (a.orcamento ? Math.max(Math.round((a.orcamento - (a.sinal || 0) - (a.entrada || 0)) * 100) / 100, 0) : null);
 // A entrada só aparece depois do "Carro recebido" (e continua depois de entregue).
 const comEntrada = a => a.sit === "entregue" || (a.sit === "confirmado" && !!a.recebidoEm);
-const rotuloFalta = a => (a.sit === "entregue" ? "Restante na entrega" : "Falta receber");
+// Na entrega o painel pergunta se o restante foi pago: "pendente" fica marcado em vermelho até o "Pagamento concluído".
+const pendente = a => a.sit === "entregue" && a.restante === "pendente";
+const quitado = a => a.sit === "entregue" && a.restante === "pago";
+const rotuloFalta = a => (pendente(a) ? "Pagamento pendente" : a.sit === "entregue" ? "Restante na entrega" : "Falta receber");
 const numeroBR = v => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-// "entrada R$ 800,00 · falta R$ 1.150,00", para o fechamento e o PDF.
+// "entrada R$ 800,00 · falta R$ 1.150,00" ou "pagamento pendente: falta R$ 1.150,00", para o fechamento e o PDF.
 const textoEntrada = a => {
-  if (!comEntrada(a) || !a.entrada) return "";
+  if (!comEntrada(a)) return "";
   const falta = faltaReceber(a);
-  return `entrada ${reais(a.entrada)}${falta === null ? "" : ` · ${a.sit === "entregue" ? "restante" : "falta"} ${reais(falta)}`}`;
+  const partes = a.entrada ? [`entrada ${reais(a.entrada)}`] : [];
+  if (quitado(a)) partes.push("pago tudo");
+  else if (pendente(a)) partes.push(`pagamento pendente${falta === null ? "" : `: falta ${reais(falta)}`}`);
+  else if (a.entrada && falta !== null) partes.push(`${a.sit === "entregue" ? "restante" : "falta"} ${reais(falta)}`);
+  return partes.join(" · ");
 };
 
 // Quadro da entrada no carro: o que o cliente deu ao deixar o carro e quanto falta receber.
@@ -2257,6 +2286,13 @@ function contaCarro(a) {
   const conta = a.orcamento
     ? `${reais(a.orcamento)} de orçamento − ${reais(a.sinal || 0)} de sinal` + (a.entrada ? ` − ${reais(a.entrada)} de entrada` : " (entrada ainda não registrada)")
     : `Sinal ${reais(a.sinal || 0)} · entrada ${a.entrada ? reais(a.entrada) : "ainda não registrada"}`;
+  if (pendente(a) || quitado(a)) {
+    const pago = quitado(a);
+    return el("div", { class: "ag-conta " + (pago ? "quitado" : "devendo") },
+      el("div", { class: "conta-linha" }, el("span", {}, pago ? "Pagamento: " : "Pagamento pendente: ",
+        el("b", {}, pago ? "tudo pago ✓" : falta === null ? "falta o restante (sem orçamento)" : reais(falta)))),
+      el("span", { class: "sub" }, pago ? `Restante pago${a.restantePagoEm ? " em " + quandoTexto(a.restantePagoEm) : ""} · ${conta}` : conta));
+  }
   return el("div", { class: "ag-conta" + (falta === null ? "" : falta ? " falta" : " quitado") },
     el("div", { class: "conta-linha" },
       el("span", {}, `${rotuloFalta(a)}: `, valor),
@@ -2296,7 +2332,7 @@ function itemAgendamento(a, comData) {
     a.sit === "confirmado" && !a.recebidoEm ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
     a.recebidoEm ? el("span", { class: "ok-txt" }, `Carro recebido na oficina em ${quandoTexto(a.recebidoEm)}`) : "",
     a.sit === "entregue" && a.entregueEm ? el("span", { class: "ok-txt" }, `Entregue em ${quandoTexto(a.entregueEm)}`) : "",
-    a.sit === "entregue" ? situacaoAvaliacao(a) : "",
+    a.sit === "entregue" && !pendente(a) ? situacaoAvaliacao(a) : "",
     a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
   const obs = a.obs ? el("p", { class: "ag-obs" }, a.obs) : "";
   let acoes;
@@ -2317,6 +2353,21 @@ function itemAgendamento(a, comData) {
           (a.email ? " e o cliente recebe um e-mail com o link para remarcar." : ". Sem e-mail no cadastro: mande o link do site pelo WhatsApp.")
         : `Esse sinal já foi remarcado ${max} vezes: ele não vira crédito de novo.`)),
       el("div", { class: "ag-acoes" }, botao("manter", "Não"), botao("naoveio", "Sim, não veio", "mini perigo-cheio")));
+  } else if (AG.confirmando === "entregue:" + a.id) {
+    const falta = faltaReceber(a);
+    acoes = el("div", { class: "confirma", role: "alert" },
+      el("span", {}, `Entregar o carro de ${a.cliente}. ` + (falta === null ? "O cliente já pagou tudo o que faltava do serviço?"
+        : `O restante de ${reais(falta)} já foi pago?`)),
+      el("div", { class: "ag-acoes" }, botao("entregue-pago", "Sim, pagou tudo", "mini mini-ok"),
+        botao("entregue-pendente", "Não, ficou pendente", "mini perigo"), botao("manter", "Cancelar")));
+  } else if (pendente(a)) {
+    // Entregue sem pagar tudo: só sobra o "Pagamento concluído".
+    const falta = faltaReceber(a);
+    acoes = AG.confirmando === "restante:" + a.id
+      ? el("div", { class: "confirma", role: "alert" },
+        el("span", {}, `${a.cliente} pagou ${falta === null ? "o restante" : `os ${reais(falta)} que faltavam`}?`),
+        el("div", { class: "ag-acoes" }, botao("restante", "Sim, pagamento concluído", "mini mini-ok"), botao("manter", "Não")))
+      : el("div", { class: "ag-acoes" }, botao("pedir-restante", "Pagamento concluído", "mini mini-ok"));
   } else if (a.sit === "aguardando") {
     const pagar = [];
     if (a.link) {
@@ -2338,21 +2389,22 @@ function itemAgendamento(a, comData) {
   } else if (a.sit === "nao_veio") {
     acoes = el("div", { class: "ag-acoes" }, botao("desfazer-naoveio", "Desfazer \"não veio\""));
   } else if (a.sit === "entregue") {
-    acoes = el("div", { class: "ag-acoes" }, botaoPedirAvaliacao(a), botao("desfazer-entregue", "Desfazer \"entregue\""));
+    acoes = el("div", { class: "ag-acoes" }, botaoPedirAvaliacao(a), botao("desfazer-entregue", "Desfazer \"entregue\""),
+      quitado(a) ? botao("desfazer-restante", "Desfazer pagamento") : "");
   } else {
     const lembrar = linkZap(a.telefone, mensagemPresenca(a));
     const chegou = a.data <= AG.dados.hoje;
     // No dia: primeiro "Carro recebido" (o cliente deixou o carro); depois "Veículo entregue".
     acoes = el("div", { class: "ag-acoes" },
       chegou && !a.recebidoEm ? botao("recebido", "Carro recebido", "mini mini-ok") : "",
-      chegou && a.recebidoEm ? botao("entregue", "Veículo entregue", "mini mini-ok") : "",
+      chegou && a.recebidoEm ? botao("pedir-entregue", "Veículo entregue", "mini mini-ok") : "",
       chegou && a.recebidoEm ? botao("desfazer-recebido", "Desfazer recebido") : "",
       chegou && !a.recebidoEm ? botao("pedir-naoveio", "Não veio") : "",
       !chegou ? (a.presenca ? botao("presenca-nao", "Desfazer presença") : botao("presenca", "Cliente confirmou presença")) : "",
       !chegou && !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
       botao("editar", "Editar"), botao("despagar", "Desfazer sinal pago"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
   }
-  return el("div", { class: "ag ag-" + a.sit, "data-ag": a.id }, topo, info, obs, comEntrada(a) ? contaCarro(a) : "", acoes);
+  return el("div", { class: "ag ag-" + a.sit + (pendente(a) ? " pag-pend" : ""), "data-ag": a.id }, topo, info, obs, comEntrada(a) ? contaCarro(a) : "", acoes);
 }
 
 function desenharRegras(d) {
@@ -2729,7 +2781,7 @@ document.addEventListener("click", e => {
     if (acao === "baixa") return executar("agenda_credito_baixa", { credito: c.id }, `Baixa feita no crédito de ${c.cliente}.`);
     return;
   }
-  const todos = AG.dados.agendamentos.concat(AG.dados.confirmar, AG.dados.remarcar);
+  const todos = AG.dados.agendamentos.concat(AG.dados.confirmar, AG.dados.remarcar, AG.dados.pendentes || []);
   const a = todos.find(x => x.id === b.dataset.id);
   if (!a) return;
   if (acao === "editar") return abrirDia(a.data, "form", a);
@@ -2763,7 +2815,22 @@ document.addEventListener("click", e => {
   }
   if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina. Já dá para registrar a entrada.`);
   if (acao === "desfazer-recebido") return executar("agenda_recebido", { id: a.id, desfazer: true }, "Desfeito: o carro voltou para \"não recebido\".");
-  if (acao === "entregue") return executar("agenda_entregue", { id: a.id }, `Veículo de ${a.cliente} entregue. Está no histórico.`);
+  if (acao === "pedir-entregue" || acao === "pedir-restante") {
+    // Entrada que já cobriu tudo: entrega sem perguntar.
+    if (acao === "pedir-entregue" && faltaReceber(a) === 0) {
+      return executar("agenda_entregue", { id: a.id, restantePago: true }, `Veículo de ${a.cliente} entregue e pago. Está no histórico.`);
+    }
+    AG.confirmando = (acao === "pedir-entregue" ? "entregue:" : "restante:") + a.id;
+    agendaDesenhar();
+    return focarNaTela(`[data-acao="${acao === "pedir-entregue" ? "entregue-pago" : "restante"}"][data-id="${a.id}"]`);
+  }
+  if (acao === "entregue-pago") return executar("agenda_entregue", { id: a.id, restantePago: true }, `Veículo de ${a.cliente} entregue e pago. Está no histórico.`);
+  if (acao === "entregue-pendente") {
+    return executar("agenda_entregue", { id: a.id, restantePago: false },
+      `Veículo de ${a.cliente} entregue com pagamento pendente. Fica marcado em vermelho na agenda até o pagamento.`);
+  }
+  if (acao === "restante") return executar("agenda_restante", { id: a.id }, `Pagamento de ${a.cliente} concluído.`);
+  if (acao === "desfazer-restante") return executar("agenda_restante", { id: a.id, desfazer: true }, "Desfeito: o pagamento voltou para pendente.");
   if (acao === "desfazer-entregue") return executar("agenda_entregue", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
 });
 
@@ -2855,6 +2922,7 @@ function contagemHist(lista) {
 }
 
 function chipHist(a) {
+  if (pendente(a)) return el("span", { class: "selo-sinal alerta" }, "Entregue · pagamento pendente");
   return el("span", { class: "selo-sinal " + (a.sit === "nao_veio" ? "alerta" : a.sit === "entregue" ? "sim" : "nao") }, SIT_HIST[a.sit] || a.sit);
 }
 
@@ -2936,7 +3004,9 @@ function detalheHist(a, fechar) {
       linha("Serviço", a.servico),
       linha("Dia do agendamento", dataLonga(a.data)),
       linha("Orçamento", a.orcamento ? reais(a.orcamento) : ""),
-      linha("Entrada", a.entrada ? `${reais(a.entrada)}${faltaReceber(a) === null ? "" : ` · ${rotuloFalta(a).toLowerCase()}: ${reais(faltaReceber(a))}`}` : ""),
+      linha("Entrada", a.entrada ? `${reais(a.entrada)}${faltaReceber(a) === null || pendente(a) || quitado(a) ? "" : ` · ${rotuloFalta(a).toLowerCase()}: ${reais(faltaReceber(a))}`}` : ""),
+      linha("Pagamento", pendente(a) ? `Pendente${faltaReceber(a) ? `: falta ${reais(faltaReceber(a))}` : ""}`
+        : quitado(a) ? `Tudo pago${a.restantePagoEm ? " em " + quandoTexto(a.restantePagoEm) : ""}` : ""),
       linha("Sinal", a.sinal ? `${reais(a.sinal)} ${forma}`.trim() : ""),
       linha("Agendado em", a.criado ? quandoTexto(a.criado) + (a.origem === "Site" ? " · pelo site" : " · pelo painel") : ""),
       linha("Carro recebido em", a.recebidoEm ? quandoTexto(a.recebidoEm) : ""),
@@ -3245,7 +3315,11 @@ function criarDemo() {
       situacao: "Veículo entregue", entregueEm: `${somaDias(anterior("Retoque"), -6)} 16:40`, obs: "Retoque no para-choque traseiro" }),
     // Carro na oficina que deu entrada: mostra quanto falta receber.
     novo(somaDias(anterior("Retoque"), -7), "Retoque", "Renato (exemplo)", "Palio 2014 prata", true, { email: "renato@exemplo.com",
-      orcamento: 1800, entrada: 600, recebidoEm: `${somaDias(anterior("Retoque"), -7)} 08:20`, obs: "Retoque nas duas portas do lado direito" })
+      orcamento: 1800, entrada: 600, recebidoEm: `${somaDias(anterior("Retoque"), -7)} 08:20`, obs: "Retoque nas duas portas do lado direito" }),
+    // Carro entregue sem pagar tudo: bolinha vermelha e "Pagamento concluído".
+    novo(somaDias(anterior("Retoque"), -14), "Retoque", "Marcelo (exemplo)", "Sandero 2019 branco", true, { email: "marcelo@exemplo.com",
+      orcamento: 2500, entrada: 1000, recebidoEm: `${somaDias(anterior("Retoque"), -14)} 08:05`, situacao: "Veículo entregue",
+      entregueEm: `${somaDias(anterior("Retoque"), -12)} 17:30`, restante: "pendente", obs: "Pintura do capô e para-choque" })
   ];
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
   // Avaliações de exemplo: uma publicada, uma nova para decidir e uma abaixo de 4 estrelas.
@@ -3281,7 +3355,7 @@ function criarDemo() {
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
-    recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0,
+    recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0, restante: a.restante || "", restantePagoEm: a.restantePagoEm || "",
     avaliacao: a.avaliacao || null });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
@@ -3309,6 +3383,7 @@ function criarDemo() {
       proximos: [hoje, somaDias(hoje, 1)].map(data => Object.assign(info(data), { agendamentos: vis.filter(a => a.data === data).map(publico) })),
       confirmar: c.filter(a => a.data > hoje && a.data <= somaDias(hoje, regras.avisoDias) && !a.presenca).map(publico).sort(porData),
       remarcar: comSit().filter(a => a.sit === "pago_sem_vaga").map(publico),
+      pendentes: comSit().filter(pendente).map(publico).sort(porData),
       creditos: creditos.filter(x => x.situacao === "disponivel").map(x => ({ ...x })),
       desmarcados: noMes("desmarcado"),
       vencidos: noMes("vencido") + noMes("sem_vaga")
@@ -3396,6 +3471,14 @@ function criarDemo() {
       Object.assign(v, { publicada: !!extra.publicar, decidida: true });
       return painelAval();
     }
+    if (acao === "agenda_restante") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (a.sit !== "entregue") return falha("situacao", "Esse carro ainda não foi entregue.");
+      if (extra.desfazer) Object.assign(a, { restante: "pendente", restantePagoEm: "" });
+      else if (a.restante !== "pago") Object.assign(a, { restante: "pago", restantePagoEm: agora() });
+      return mes(m);
+    }
     if (acao === "agenda_entrada") {
       const a = comSit().find(x => x.id === extra.id);
       if (!a) return naoAchou();
@@ -3423,10 +3506,11 @@ function criarDemo() {
     if (acao === "agenda_entregue") {
       const a = comSit().find(x => x.id === extra.id);
       if (!a) return naoAchou();
-      if (extra.desfazer) Object.assign(a, { situacao: "Confirmado", entregueEm: "" });
+      if (extra.desfazer) Object.assign(a, { situacao: "Confirmado", entregueEm: "", restante: "", restantePagoEm: "" });
       else if (a.sit !== "confirmado") return falha("situacao", "Só dá para marcar como entregue um carro com sinal pago.");
       else if (a.data > hoje) return falha("futuro", "Esse dia ainda não chegou.");
       else Object.assign(a, { situacao: "Veículo entregue", entregueEm: agora(),
+        restante: extra.restantePago === true ? "pago" : extra.restantePago === false ? "pendente" : "", restantePagoEm: extra.restantePago === true ? agora() : "",
         avaliacao: a.avaliacao || { link: linkAval(a.id), enviado: "", respondida: "", nota: 0 } });
       return mes(m);
     }
