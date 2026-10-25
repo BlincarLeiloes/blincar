@@ -283,6 +283,16 @@ button.cel:hover{border-color:var(--muted)}
 .ag-info a{color:var(--fg);font-weight:600}
 .ag-obs{margin:0;font-size:.875rem;overflow-wrap:anywhere}
 .ag-acoes{display:flex;flex-wrap:wrap;gap:6px}
+/* Entrada e quanto falta receber (carro na oficina ou entregue) */
+.ag-conta{display:grid;gap:4px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);min-width:0}
+.conta-linha{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;font-size:.9375rem}
+.conta-linha b{font-size:1.0625rem;font-variant-numeric:tabular-nums}
+.ag-conta.falta .conta-linha b{color:var(--pend-fg)}
+.ag-conta.quitado .conta-linha b{color:var(--ok-fg)}
+.ag-conta .sub{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.conta-campo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.9375rem;font-weight:600}
+.conta-campo input{flex:1 1 140px;max-width:220px;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
+.conta-campo input:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
 .mini.perigo{color:var(--err);border-color:var(--err)}
 .mini-wa{background:var(--c-wa);border-color:var(--c-wa);color:var(--on-wa);text-decoration:none;display:inline-flex;align-items:center}
 .mini-forte{background:var(--fg);border-color:var(--fg);color:var(--bg)}
@@ -1350,7 +1360,7 @@ function vagaDe(dia, servico) {
 
 /* Fim das funções iguais às da planilha. */
 
-const AG = { mes: hojeAqui().slice(0, 7), vista: "mes", dados: null, demo: null, dia: null, modo: "lista", editando: null, confirmando: null, ocupado: false };
+const AG = { mes: hojeAqui().slice(0, 7), vista: "mes", dados: null, demo: null, dia: null, modo: "lista", editando: null, confirmando: null, entrada: null, ocupado: false };
 try { if (localStorage.getItem("blincar:vista") === "dias") AG.vista = "dias"; } catch {}
 
 async function agendaPedir(acao, extra = {}) {
@@ -1411,7 +1421,7 @@ async function agendaCarregar() {
 // Não atrapalha quem está preenchendo um agendamento ou editando o dia.
 setInterval(() => {
   const d = AG.dados;
-  if (abaAtual !== "agenda" || !d || AG.ocupado || FECH.editando || document.hidden || ($("#dlgDia").open && AG.modo !== "lista")) return;
+  if (abaAtual !== "agenda" || !d || AG.ocupado || FECH.editando || AG.entrada || document.hidden || ($("#dlgDia").open && AG.modo !== "lista")) return;
   const todas = d.agendamentos.concat(...d.proximos.map(p => p.agendamentos || []));
   if (todas.some(a => a.sit === "aguardando" && a.prazo && Date.parse(a.prazo.replace(" ", "T") + ":59-03:00") < Date.now())) agendaCarregar();
 }, 20000);
@@ -1704,7 +1714,7 @@ const situacaoFech = a => a.sit === "entregue" ? `entregue${a.entregueEm ? " em 
   : a.recebidoEm ? `na oficina desde ${dm(a.recebidoEm)}` : "";
 
 function itemFechamento(a) {
-  const sit = situacaoFech(a);
+  const sit = [situacaoFech(a), textoEntrada(a)].filter(Boolean).join(" · ");
   const quem = el("div", { class: "fech-quem" }, el("b", {}, a.cliente),
     el("span", { class: "sub" }, `${a.servico} · ${a.carro}${a.placa ? ` · ${a.placa}` : ""} · ${String(a.telefone || "").replace(/ /g, "\u00a0")}${sit ? ` · ${sit}` : ""}`));
   if (FECH.editando === a.id) {
@@ -1908,6 +1918,7 @@ function pdfDoMes(JsPDF, d) {
     const sit = a.sit === "nao_veio" ? ["Não veio", "vermelho"] : a.sit === "entregue" ? [maiuscula(situacaoFech(a)), "verde"]
       : a.recebidoEm ? [maiuscula(situacaoFech(a)), "ambar"] : a.presenca ? ["Presença confirmada", "cinza"] : null;
     if (sit) parte(sit[0], 6.6, "bold", sit[1]);
+    if (textoEntrada(a)) parte(maiuscula(textoEntrada(a)), 6.6, "normal", "tinta");
     if (a.obs) {
       const l = quebrar(a.obs, w, 6.3, "italic");
       partes.push({ l: l.length > 2 ? [l[0], l[1].replace(/\s*\S*$/, "") + "..."] : l, tam: 6.3, estilo: "italic", c: "cinza" });
@@ -2060,8 +2071,8 @@ function pdfDoMes(JsPDF, d) {
   if (!f.carros.length) y = escrever([`Nenhum carro com sinal pago em ${mes}.`], M, y + 1, 9, "normal", "cinza") + 2;
   Object.keys(f.porDia).sort().forEach((data, iDia) => {
     f.porDia[data].forEach((a, i) => {
-      const sit = a.sit === "entregue" ? maiuscula(situacaoFech(a)) : a.recebidoEm ? maiuscula(situacaoFech(a))
-        : a.presenca ? "Agendado · presença confirmada" : "Agendado";
+      const sit = (a.sit === "entregue" || a.recebidoEm ? maiuscula(situacaoFech(a))
+        : a.presenca ? "Agendado · presença confirmada" : "Agendado") + (textoEntrada(a) ? ` · ${textoEntrada(a)}` : "");
       const cel = [
         quebrar(maiuscula(dataCurta(data)), COLS[0][1] - 2, 8, "bold"),
         quebrar(a.cliente, COLS[1][1] - 3, 8, "bold"),
@@ -2214,6 +2225,45 @@ function seloSituacao(a) {
   return el("span", { class: "selo-sinal nao" }, `Aguardando sinal de ${reais(a.sinal)} ${prazoTexto(a)}`);
 }
 
+// Quanto falta receber de um carro: orçamento menos o sinal (descontado do serviço) e a entrada.
+// Sem orçamento não dá para calcular (null).
+const faltaReceber = a => (a.orcamento ? Math.max(Math.round((a.orcamento - (a.sinal || 0) - (a.entrada || 0)) * 100) / 100, 0) : null);
+// A entrada só aparece depois do "Carro recebido" (e continua depois de entregue).
+const comEntrada = a => a.sit === "entregue" || (a.sit === "confirmado" && !!a.recebidoEm);
+const rotuloFalta = a => (a.sit === "entregue" ? "Restante na entrega" : "Falta receber");
+const numeroBR = v => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// "entrada R$ 800,00 · falta R$ 1.150,00", para o fechamento e o PDF.
+const textoEntrada = a => {
+  if (!comEntrada(a) || !a.entrada) return "";
+  const falta = faltaReceber(a);
+  return `entrada ${reais(a.entrada)}${falta === null ? "" : ` · ${a.sit === "entregue" ? "restante" : "falta"} ${reais(falta)}`}`;
+};
+
+// Quadro da entrada no carro: o que o cliente deu ao deixar o carro e quanto falta receber.
+function contaCarro(a) {
+  if (AG.entrada === a.id) {
+    return el("form", { class: "ag-conta", "data-entrada-form": a.id, novalidate: "" },
+      el("label", { class: "conta-campo" }, "Entrada (R$)",
+        el("input", { type: "text", inputmode: "decimal", autocomplete: "off", placeholder: "Ex.: 800,00", value: a.entrada ? numeroBR(a.entrada) : "" })),
+      el("span", { class: "sub" }, "Quanto o cliente deu ao deixar o carro. Fica descontado do orçamento, junto com o sinal."),
+      el("p", { class: "err", role: "alert", hidden: "" }),
+      el("div", { class: "ag-acoes" },
+        el("button", { type: "submit", class: "mini mini-forte" }, "Salvar entrada"),
+        el("button", { type: "button", class: "mini", "data-acao": "entrada-cancelar", "data-id": a.id }, "Cancelar")));
+  }
+  const falta = faltaReceber(a);
+  const valor = falta === null ? el("span", { class: "sub" }, "ponha o orçamento para calcular")
+    : el("b", {}, falta ? reais(falta) : "R$ 0,00 (pago tudo)");
+  const conta = a.orcamento
+    ? `${reais(a.orcamento)} de orçamento − ${reais(a.sinal || 0)} de sinal` + (a.entrada ? ` − ${reais(a.entrada)} de entrada` : " (entrada ainda não registrada)")
+    : `Sinal ${reais(a.sinal || 0)} · entrada ${a.entrada ? reais(a.entrada) : "ainda não registrada"}`;
+  return el("div", { class: "ag-conta" + (falta === null ? "" : falta ? " falta" : " quitado") },
+    el("div", { class: "conta-linha" },
+      el("span", {}, `${rotuloFalta(a)}: `, valor),
+      el("button", { type: "button", class: "mini", "data-acao": "entrada", "data-id": a.id }, a.entrada ? "Mudar entrada" : "Registrar entrada")),
+    el("span", { class: "sub" }, conta));
+}
+
 // "comData": mostra o dia junto (nos quadros fora do calendário).
 function itemAgendamento(a, comData) {
   const max = AG.dados.regras.remarcacoes;
@@ -2226,7 +2276,7 @@ function itemAgendamento(a, comData) {
   const info = el("div", { class: "ag-info" },
     comData ? el("span", { class: "ag-dia" }, dataLonga(a.data)) : "",
     el("span", {}, `${a.servico} · ${a.carro}${a.placa ? ` · placa ${a.placa}` : ""}`),
-    a.orcamento ? el("span", {}, "Orçamento: ", el("b", {}, reais(a.orcamento))) : "",
+    a.orcamento && !comEntrada(a) ? el("span", {}, "Orçamento: ", el("b", {}, reais(a.orcamento))) : "",
     el("span", {}, a.telefone, zap ? " · " : "", zap ? el("a", { href: zap, target: "_blank", rel: "noopener" }, "abrir WhatsApp") : ""),
     a.email ? el("span", {}, a.email) : "",
     a.nascimento ? el("span", {}, `Nascimento: ${a.nascimento}`) : "",
@@ -2290,7 +2340,7 @@ function itemAgendamento(a, comData) {
       !chegou && !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
       botao("editar", "Editar"), botao("despagar", "Desfazer sinal pago"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
   }
-  return el("div", { class: "ag ag-" + a.sit, "data-ag": a.id }, topo, info, obs, acoes);
+  return el("div", { class: "ag ag-" + a.sit, "data-ag": a.id }, topo, info, obs, comEntrada(a) ? contaCarro(a) : "", acoes);
 }
 
 function desenharRegras(d) {
@@ -2694,7 +2744,12 @@ document.addEventListener("click", e => {
       : "Marcado: não veio. O sinal não virou crédito (já tinha usado as remarcações).");
   }
   if (acao === "desfazer-naoveio") return executar("agenda_naoveio", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
-  if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina.`);
+  if (acao === "entrada" || acao === "entrada-cancelar") {
+    AG.entrada = acao === "entrada" ? a.id : null;
+    agendaDesenhar();
+    return acao === "entrada" ? focarNaTela(`[data-entrada-form="${a.id}"] input`) : focarNaTela(`[data-acao="entrada"][data-id="${a.id}"]`);
+  }
+  if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina. Já dá para registrar a entrada.`);
   if (acao === "desfazer-recebido") return executar("agenda_recebido", { id: a.id, desfazer: true }, "Desfeito: o carro voltou para \"não recebido\".");
   if (acao === "entregue") return executar("agenda_entregue", { id: a.id }, `Veículo de ${a.cliente} entregue. Está no histórico.`);
   if (acao === "desfazer-entregue") return executar("agenda_entregue", { id: a.id, desfazer: true }, "Desfeito. O agendamento voltou para confirmado.");
@@ -2704,10 +2759,49 @@ $("#dlgDia").addEventListener("close", () => {
   AG.dia = null;
   AG.modo = "lista";
   AG.editando = null;
-  if (AG.confirmando) {
+  if (AG.confirmando || AG.entrada) {
     AG.confirmando = null;
+    AG.entrada = null;
     agendaDesenhar();
   }
+});
+
+// O mesmo carro pode estar na lista "Dia a dia" e na janela do dia: o foco vai para o que está na frente.
+function focarNaTela(seletor) {
+  const alvo = ($("#dlgDia").open ? $("#dlgDia") : document).querySelector(seletor);
+  if (alvo) alvo.focus();
+}
+
+document.addEventListener("submit", async e => {
+  const form = e.target.closest("[data-entrada-form]");
+  if (!form) return;
+  e.preventDefault();
+  if (AG.ocupado || !AG.dados) return;
+  const id = form.dataset.entradaForm;
+  const a = AG.dados.agendamentos.find(x => x.id === id);
+  const erroForm = form.querySelector(".err");
+  const texto = form.querySelector("input").value.trim();
+  const valor = valorReais(texto);
+  if (texto && !valor) return mostrarErro(erroForm, "Confira o valor (ex.: 800,00) ou deixe em branco.");
+  if (valor > 200000) return mostrarErro(erroForm, "Confira o valor da entrada.");
+  if (a && a.orcamento && valor > a.orcamento) return mostrarErro(erroForm, `A entrada passa do valor do orçamento (${reais(a.orcamento)}).`);
+  erroForm.hidden = true;
+  const msg = d => {
+    const novo = d.agendamentos.find(x => x.id === id);
+    const falta = novo ? faltaReceber(novo) : null;
+    return (valor ? `Entrada de ${reais(valor)} registrada.` : "Entrada apagada.") + (falta === null ? "" : ` ${rotuloFalta(novo)}: ${reais(falta)}.`);
+  };
+  const deu = await executar("agenda_entrada", { id, entrada: valor }, msg, erroForm, () => { AG.entrada = null; });
+  if (deu) focarNaTela(`[data-acao="entrada"][data-id="${id}"]`);
+});
+document.addEventListener("keydown", e => {
+  const form = e.key === "Escape" && e.target.closest && e.target.closest("[data-entrada-form]");
+  if (!form) return;
+  e.preventDefault();
+  const id = form.dataset.entradaForm;
+  AG.entrada = null;
+  agendaDesenhar();
+  focarNaTela(`[data-acao="entrada"][data-id="${id}"]`);
 });
 $("#dlgDia").addEventListener("click", e => {
   if (e.target === $("#dlgDia")) $("#dlgDia").close();
@@ -2830,6 +2924,7 @@ function detalheHist(a, fechar) {
       linha("Serviço", a.servico),
       linha("Dia do agendamento", dataLonga(a.data)),
       linha("Orçamento", a.orcamento ? reais(a.orcamento) : ""),
+      linha("Entrada", a.entrada ? `${reais(a.entrada)}${faltaReceber(a) === null ? "" : ` · ${rotuloFalta(a).toLowerCase()}: ${reais(faltaReceber(a))}`}` : ""),
       linha("Sinal", a.sinal ? `${reais(a.sinal)} ${forma}`.trim() : ""),
       linha("Agendado em", a.criado ? quandoTexto(a.criado) + (a.origem === "Site" ? " · pelo site" : " · pelo painel") : ""),
       linha("Carro recebido em", a.recebidoEm ? quandoTexto(a.recebidoEm) : ""),
@@ -3135,7 +3230,10 @@ function criarDemo() {
     novo(somaDias(anterior("Retoque"), -2), "Retoque", "Luana (exemplo)", "Fiesta 2013 preto", true, { ...site, email: "luana@exemplo.com", situacao: "Não veio (virou crédito)" }),
     // Carro já entregue: aparece no histórico.
     novo(somaDias(anterior("Retoque"), -7), "Retoque", "Diego (exemplo)", "Civic 2017 preto", true, { email: "diego@exemplo.com",
-      situacao: "Veículo entregue", entregueEm: `${somaDias(anterior("Retoque"), -6)} 16:40`, obs: "Retoque no para-choque traseiro" })
+      situacao: "Veículo entregue", entregueEm: `${somaDias(anterior("Retoque"), -6)} 16:40`, obs: "Retoque no para-choque traseiro" }),
+    // Carro na oficina que deu entrada: mostra quanto falta receber.
+    novo(somaDias(anterior("Retoque"), -7), "Retoque", "Renato (exemplo)", "Palio 2014 prata", true, { email: "renato@exemplo.com",
+      orcamento: 1800, entrada: 600, recebidoEm: `${somaDias(anterior("Retoque"), -7)} 08:20`, obs: "Retoque nas duas portas do lado direito" })
   ];
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
   // Avaliações de exemplo: uma publicada, uma nova para decidir e uma abaixo de 4 estrelas.
@@ -3171,7 +3269,7 @@ function criarDemo() {
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
-    recebidoEm: a.recebidoEm || "",
+    recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0,
     avaliacao: a.avaliacao || null });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
@@ -3285,6 +3383,15 @@ function criarDemo() {
       if (extra.publicar && !v.publicavel) return falha("nao_publicavel", "Só avaliações de 4 ou 5 estrelas vão para o site.");
       Object.assign(v, { publicada: !!extra.publicar, decidida: true });
       return painelAval();
+    }
+    if (acao === "agenda_entrada") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (!(a.sit === "entregue" || (a.sit === "confirmado" && a.recebidoEm))) return falha("situacao", "A entrada só pode ser registrada depois do \"Carro recebido\".");
+      const entrada = valorReais(extra.entrada);
+      if (a.orcamento && entrada > a.orcamento) return falha("dados", `A entrada passa do valor do orçamento (${reais(a.orcamento)}).`);
+      a.entrada = entrada;
+      return mes(m);
     }
     if (acao === "agenda_orcamento") {
       const a = comSit().find(x => x.id === extra.id);
