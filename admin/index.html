@@ -198,7 +198,26 @@ tr:last-child td{border-bottom:0}
 
 /* Agenda */
 .mesnav{display:flex;align-items:center;gap:6px}
-.mesnav strong{min-width:8.5em;text-align:center;font-weight:600;font-size:.9375rem}
+.mes-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:9.5em;min-height:36px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--fg);font:600 .9375rem/1 var(--body);cursor:pointer}
+.mes-btn:hover{border-color:var(--line)}
+.mes-btn svg{width:14px;height:14px;flex:none;color:var(--muted)}
+.meses-ano{display:flex;align-items:center;justify-content:center;gap:14px}
+.meses-ano b{font-size:1.125rem;min-width:4ch;text-align:center;font-variant-numeric:tabular-nums}
+.meses-lista{display:grid;gap:8px}
+.mes-linha{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:6px 10px 6px 6px;background:var(--surface)}
+.mes-linha.atual{border-color:var(--fg)}
+.mes-ir{display:grid;gap:1px;min-width:0;min-height:44px;align-content:center;padding:6px 8px;border:0;border-radius:8px;background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.mes-ir:hover{background:var(--bg)}
+.mes-ir .sub{font-size:.8125rem;color:var(--muted)}
+.mes-site{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px 10px}
+.mes-sit{display:grid;gap:2px;justify-items:end}
+.mes-linha .confirma{grid-column:1/-1}
+@media (max-width:519px){
+  .mes-linha{grid-template-columns:minmax(0,1fr)}
+  .mes-site{justify-content:space-between;padding:0 4px 4px 8px}
+  .mes-sit{justify-items:start}
+  .mes-linha.passou{grid-template-columns:minmax(0,1fr) auto}
+}
 .proximos{display:grid;gap:10px}
 @media (min-width:640px){.proximos{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .prox{display:grid;gap:3px;align-content:start;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
@@ -569,7 +588,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <div class="filtros">
         <div class="mesnav">
           <button type="button" class="mini" id="agAntes" aria-label="Mês anterior">‹</button>
-          <strong id="agMes" aria-live="polite"></strong>
+          <button type="button" class="mes-btn" id="agMesBtn" aria-haspopup="dialog" title="Escolher o mês">
+            <span id="agMes" aria-live="polite"></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
           <button type="button" class="mini" id="agDepois" aria-label="Próximo mês">›</button>
         </div>
         <button type="button" class="mini" id="agHoje">Hoje</button>
@@ -674,6 +696,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg dlg-largo" id="dlgPag" aria-labelledby="pagTitulo">
   <div class="dlg-corpo" id="pagCorpo"></div>
+</dialog>
+
+<dialog class="dlg" id="dlgMeses" aria-labelledby="mesesTitulo">
+  <div class="dlg-corpo" id="mesesCorpo"></div>
 </dialog>
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
@@ -1362,7 +1388,8 @@ function vagasDoDia(regras, especiais, confirmados, data, ignorar) {
     const ocupadas = doDia.filter(a => mesmoServico(a.servico, o.servico)).length;
     return { servico: o.servico, vagas: o.vagas, preco: o.preco || 0, ocupadas, livres: Math.max(o.vagas - ocupadas, 0) };
   });
-  return { data, editado: !!especiais[data], ofertas, ocupadas: doDia.length };
+  const mesFechado = !!(especiais[data] && especiais[data].mesFechado);
+  return { data, editado: !!especiais[data] && !mesFechado, mesFechado, ofertas, ocupadas: doDia.length };
 }
 
 function vagaDe(dia, servico) {
@@ -1467,7 +1494,7 @@ async function executar(acao, extra, msgOk, alvoErro, aoDarCerto) {
 
 let avisoTimer;
 function aviso(msg) {
-  const alvo = $("#dlgDia").open ? $("#dlgAviso") : $("#agAviso");
+  const alvo = $("#dlgDia").open ? $("#dlgAviso") : $("#dlgMeses").open ? $("#mesesAviso") : $("#agAviso");
   if (!alvo || !msg) return;
   alvo.textContent = msg;
   alvo.hidden = false;
@@ -1488,7 +1515,7 @@ function resumoVagas(dia) {
   const extras = [];
   if (dia.aguardando) extras.push(plural(dia.aguardando, "aguardando sinal", "aguardando sinal"));
   if (dia.editado) extras.push("dia editado");
-  const base = dia.ofertas.length ? dia.ofertas.map(textoOferta).join(" · ") : "Fechado para clientes";
+  const base = dia.ofertas.length ? dia.ofertas.map(textoOferta).join(" · ") : dia.mesFechado ? "Fechado para clientes (mês fechado)" : "Fechado para clientes";
   return [base].concat(extras).join(" · ");
 }
 
@@ -1528,6 +1555,7 @@ function agendaDesenhar() {
   desenharFechamento(d);
   desenharRegras(d);
   if ($("#dlgDia").open) desenharDialogo();
+  if ($("#dlgMeses").open) desenharMeses();
 }
 
 function desenharSite(d) {
@@ -1602,13 +1630,21 @@ function desenharResumoMes(d) {
   const extras = [];
   if (d.desmarcados) extras.push(plural(d.desmarcados, "desmarcado", "desmarcados"));
   if (d.vencidos) extras.push(plural(d.vencidos, "reserva perdeu a vaga sem pagar", "reservas perderam a vaga sem pagar"));
-  const abertos = d.dias.filter(x => x.ofertas.length).length;
-  $("#agContagem").textContent = `${nomeMes(d.mes)}: ${plural(abertos, "dia aberto", "dias abertos")} no site dos clientes.` +
-    (extras.length ? ` No mês: ${juntar(extras)}.` : "");
+  const sit = situacaoMes(d, d.mes);
+  const abertos = d.dias.filter(x => x.ofertas.length && abertoNoSite(d, x.data)).length;
+  const situacao = sit.estado === "passou" ? (d.mes < d.hoje.slice(0, 7) ? `${nomeMes(d.mes)}: mês que já passou.`
+    : `${nomeMes(d.mes)}: o site dos clientes já não aceita agendamentos neste mês.`)
+    : sit.estado === "fechado" ? (sit.escolhido ? `${nomeMes(d.mes)} está fechado no site dos clientes (vocês fecharam).`
+      : `${nomeMes(d.mes)} ainda não abriu no site dos clientes: abre sozinho em ${dm(sit.abreEm)}.`)
+    : `${nomeMes(d.mes)}: ${plural(abertos, "dia aberto", "dias abertos")} no site dos clientes${sit.ate ? ` (até ${dm(sit.ate)})` : ""}.`;
+  $("#agContagem").replaceChildren(situacao + (extras.length ? ` No mês: ${juntar(extras)}.` : "") + " ",
+    sit.estado === "passou" ? "" : el("button", { type: "button", class: "linkbtn", "data-abrir-meses": "" }, "Abrir ou fechar meses"));
   const tile = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
   // Quantas vagas ainda dá para marcar no mês (de hoje em diante) e quantas já estão marcadas (sinal pago).
   const tileServico = nome => {
     const lista = d.dias.map(x => ({ data: x.data, o: vagaDe(x, nome) })).filter(x => x.o);
+    // Mês (ou serviço) sem nenhum dia aberto: conta os carros marcados pelo painel.
+    if (!lista.length) return tile(nome, "Fechado no site", `${plural(d.agendamentos.filter(a => PAGO(a) && mesmoServico(a.servico, nome)).length, "marcada", "marcadas")} no mês`);
     const marcadas = soma(lista, x => x.o.ocupadas);
     const futuro = lista.filter(x => x.data >= d.hoje);
     const livres = soma(futuro, x => x.o.livres);
@@ -2561,7 +2597,8 @@ function editorDia(dia) {
   const f = el("form", { class: "ag-form", id: "diaForm", novalidate: "" },
     el("h3", {}, "Serviços e vagas deste dia"),
     el("p", { class: "nota" }, `É o que os clientes veem no site de agendamento. O padrão deste dia é ${textoPadrao}.` +
-      (dia.editado ? " Este dia já está diferente do padrão." : "")),
+      (dia.editado ? " Este dia já está diferente do padrão." : "") +
+      (dia.mesFechado ? " Atenção: este mês está fechado no site, então o dia só aparece para os clientes quando abrir o mês." : "")),
     linhas,
     el("p", { class: "vazio", id: "dVazio", ...(dia.ofertas.length ? { hidden: "" } : {}) }, "Nenhum serviço: o dia fica fechado para os clientes."),
     el("div", {}, el("button", { type: "button", class: "mini", "data-acao": "dia-adicionar" }, "+ Adicionar serviço")),
@@ -2733,6 +2770,7 @@ document.addEventListener("click", e => {
   const editarDia = e.target.closest("[data-editar-dia]");
   if (editarDia) return abrirDia(editarDia.dataset.editarDia, "dia");
   if (e.target.closest("#agSiteCopiar") && AG.dados) return copiarTexto(AG.dados.site, e.target.closest("#agSiteCopiar"));
+  if (e.target.closest("[data-abrir-meses]")) return abrirMeses();
   const b = e.target.closest("[data-acao]");
   if (!b || AG.ocupado || !AG.dados) return;
   const acao = b.dataset.acao;
@@ -2890,6 +2928,132 @@ $("#agAntes").addEventListener("click", () => { AG.mes = somaMes(AG.mes, -1); ag
 $("#agDepois").addEventListener("click", () => { AG.mes = somaMes(AG.mes, 1); agendaCarregar(); });
 $("#agHoje").addEventListener("click", () => { AG.mes = (AG.dados ? AG.dados.hoje : hojeAqui()).slice(0, 7); agendaCarregar(); });
 $("#agAtualizar").addEventListener("click", agendaCarregar);
+
+/* ---------- Meses: ir direto para um mês e abrir ou fechar o mês no site dos clientes ---------- */
+
+const MESES_DLG = { ano: 0, confirmando: null };
+
+// O cliente agenda de amanhã até regras.janelaDias para a frente. Mês aberto no painel vale inteiro; mês fechado, nada.
+// Igual ao Codigo.gs (abertoNoSite).
+function abertoNoSite(d, data) {
+  const escolha = (d.meses || {})[data.slice(0, 7)];
+  if (data < somaDias(d.hoje, d.regras.antecedenciaDias ?? 1) || escolha === "fechado") return false;
+  return escolha === "aberto" || data <= somaDias(d.hoje, d.regras.janelaDias ?? 120);
+}
+
+// Situação de um mês no site dos clientes: a escolha de vocês ou a automática (o mês abre janelaDias antes).
+function situacaoMes(d, mes) {
+  const escolha = (d.meses || {})[mes];
+  const ini = mes + "-01", fim = somaDias(ini, diasNoMes(mes) - 1);
+  const janela = d.regras.janelaDias ?? 120;
+  const ultimo = somaDias(d.hoje, janela);
+  if (fim < somaDias(d.hoje, d.regras.antecedenciaDias ?? 1)) return { estado: "passou" };
+  if (escolha) return { estado: escolha, escolhido: true };
+  if (ini > ultimo) return { estado: "fechado", abreEm: somaDias(ini, -janela) };
+  return { estado: "aberto", ate: fim > ultimo ? ultimo : "" };
+}
+
+const textoSituacaoMes = s => s.estado === "passou" ? "já passou"
+  : s.escolhido ? (s.estado === "aberto" ? "vocês abriram" : "vocês fecharam")
+  : s.abreEm ? `abre sozinho em ${dm(s.abreEm)}` : s.ate ? `até ${dm(s.ate)}; o resto abre sozinho` : "";
+
+function linhaMes(d, mes, nome) {
+  const s = situacaoMes(d, mes);
+  const carros = (d.carrosPorMes || {})[mes] || 0;
+  const vendo = mes === AG.mes;
+  const info = [mes === d.hoje.slice(0, 7) ? "este mês" : "", carros ? plural(carros, "carro", "carros") : ""].filter(Boolean).join(" · ");
+  const ir = el("button", { type: "button", class: "mes-ir", "data-ir-mes": mes, ...(vendo ? { "aria-current": "true" } : {}) },
+    el("b", {}, maiuscula(nome) + (vendo ? " (vendo agora)" : "")), info ? el("span", { class: "sub" }, info) : "");
+  const botao = (situacao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-mes-acao": situacao, "data-mes": mes }, texto);
+  let site;
+  if (s.estado === "passou") site = el("span", { class: "nota" }, mes < d.hoje.slice(0, 7) ? "Já passou" : "Encerrado no site");
+  else {
+    site = el("div", { class: "mes-site" },
+      el("div", { class: "mes-sit" }, el("span", { class: "selo-sinal " + (s.estado === "aberto" ? "sim" : "alerta") }, s.estado === "aberto" ? "Aberto no site" : "Fechado no site"),
+        textoSituacaoMes(s) ? el("span", { class: "nota" }, textoSituacaoMes(s)) : ""),
+      el("div", { class: "ag-acoes" },
+        s.estado === "fechado" || s.ate ? botao("aberto", s.ate ? "Abrir o mês todo" : "Abrir") : "",
+        s.estado === "aberto" ? botao("pedir-fechar", "Fechar") : ""));
+  }
+  const filhos = [ir, site];
+  if (MESES_DLG.confirmando === mes) {
+    filhos.push(el("div", { class: "confirma", role: "alert" },
+      el("span", {}, `Fechar ${nome} no site dos clientes? O site para de aceitar agendamentos nesse mês.` +
+        (carros ? ` ${carros === 1 ? "O carro que já está agendado continua" : `Os ${carros} carros que já estão agendados continuam`}.` : "") +
+        " Reserva que ainda não pagou o sinal perde a vaga."),
+      el("div", { class: "ag-acoes" }, botao("fechado", "Sim, fechar", "mini perigo-cheio"), botao("cancelar", "Cancelar"))));
+  }
+  return el("div", { class: "mes-linha" + (vendo ? " atual" : "") + (s.estado === "passou" ? " passou" : "") }, ...filhos);
+}
+
+function desenharMeses() {
+  const d = AG.dados;
+  const ano = MESES_DLG.ano;
+  const anoHoje = Number(d.hoje.slice(0, 4));
+  $("#mesesCorpo").replaceChildren(
+    el("div", { class: "dlg-topo" },
+      el("div", {}, el("h2", { id: "mesesTitulo" }, "Escolher o mês"),
+        el("p", { class: "sub" }, "Toque no mês para ver a agenda. Ao lado, abra ou feche o mês no site dos clientes.")),
+      el("button", { type: "button", class: "mini", "data-meses": "fechar" }, "Fechar")),
+    el("p", { class: "aviso-ok", id: "mesesAviso", role: "status", hidden: "" }),
+    el("p", { class: "err", id: "mesesErro", role: "alert", hidden: "" }),
+    el("div", { class: "meses-ano" },
+      el("button", { type: "button", class: "mini", "data-meses": "ano-antes", "aria-label": "Ano anterior", ...(ano <= anoHoje - 3 ? { disabled: "" } : {}) }, "‹"),
+      el("b", { "aria-live": "polite" }, String(ano)),
+      el("button", { type: "button", class: "mini", "data-meses": "ano-depois", "aria-label": "Próximo ano", ...(ano >= anoHoje + 2 ? { disabled: "" } : {}) }, "›")),
+    el("div", { class: "meses-lista" }, ...MESES.map((nome, i) => linhaMes(d, `${ano}-${pad2(i + 1)}`, nome))),
+    el("p", { class: "nota" }, `Mês sem escolha abre sozinho no site ${d.regras.janelaDias ?? 120} dias antes. ` +
+      "Fechar um mês não desmarca ninguém; no painel vocês continuam agendando em qualquer dia."));
+}
+
+function abrirMeses() {
+  if (!AG.dados) return;
+  MESES_DLG.ano = Number(AG.mes.slice(0, 4));
+  MESES_DLG.confirmando = null;
+  desenharMeses();
+  if (!$("#dlgMeses").open) $("#dlgMeses").showModal();
+  focarMeses(".mes-linha.atual .mes-ir") || focarMeses(".mes-ir");
+}
+
+// Põe o foco no primeiro que achar dentro da janela dos meses; devolve se achou.
+function focarMeses(seletor) {
+  const alvo = $("#dlgMeses").querySelector(seletor);
+  if (alvo) alvo.focus();
+  return !!alvo;
+}
+
+$("#agMesBtn").addEventListener("click", abrirMeses);
+$("#dlgMeses").addEventListener("close", () => { MESES_DLG.confirmando = null; });
+$("#dlgMeses").addEventListener("click", async e => {
+  if (e.target === $("#dlgMeses")) return $("#dlgMeses").close();
+  const ir = e.target.closest("[data-ir-mes]");
+  if (ir) {
+    AG.mes = ir.dataset.irMes;
+    $("#dlgMeses").close();
+    return agendaCarregar();
+  }
+  const nav = e.target.closest("[data-meses]");
+  if (nav) {
+    if (nav.dataset.meses === "fechar") return $("#dlgMeses").close();
+    MESES_DLG.ano += nav.dataset.meses === "ano-antes" ? -1 : 1;
+    MESES_DLG.confirmando = null;
+    desenharMeses();
+    return focarMeses(`[data-meses="${nav.dataset.meses}"]:not([disabled])`) || focarMeses(".mes-ir");
+  }
+  const b = e.target.closest("[data-mes-acao]");
+  if (!b || AG.ocupado) return;
+  const mes = b.dataset.mes, acao = b.dataset.mesAcao;
+  const nome = MESES[Number(mes.slice(5, 7)) - 1];
+  if (acao === "pedir-fechar" || acao === "cancelar") {
+    MESES_DLG.confirmando = acao === "pedir-fechar" ? mes : null;
+    desenharMeses();
+    return focarMeses(acao === "pedir-fechar" ? `[data-mes-acao="cancelar"][data-mes="${mes}"]` : `[data-mes-acao="pedir-fechar"][data-mes="${mes}"]`);
+  }
+  const deu = await executar("agenda_mes", { mesSite: mes, situacao: acao },
+    acao === "aberto" ? `${maiuscula(nome)} aberto no site dos clientes.` : `${maiuscula(nome)} fechado no site dos clientes.`,
+    $("#mesesErro"), () => { MESES_DLG.confirmando = null; });
+  if (deu) focarMeses(`[data-mes="${mes}"][data-mes-acao]`);
+});
 
 /* ---------- Histórico: todos os carros agendados com sinal pago ---------- */
 
@@ -3262,6 +3426,7 @@ function criarDemo() {
   };
   const hoje = hojeAqui();
   const especiais = {};
+  const mesesSite = {};
   const creditos = [];
   let seq = 0;
   // Reserva esperando o Pix: tem regras.prazoMinutos para pagar.
@@ -3378,6 +3543,7 @@ function criarDemo() {
     const porData = (a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
     return Object.assign({
       ok: true, mes: m, hoje, agora: agora(), regras, dias, mp: true, taxaCartao: 5, site: new URL("../agendar/", location.href).href,
+      meses: { ...mesesSite }, carrosPorMes: c.reduce((t, a) => { t[a.data.slice(0, 7)] = (t[a.data.slice(0, 7)] || 0) + 1; return t; }, {}),
       avaliacoesNovas: avaliacoes.filter(v => !v.decidida).length,
       agendamentos: vis.filter(a => a.data >= ini && a.data <= fim).map(publico).sort(porData),
       proximos: [hoje, somaDias(hoje, 1)].map(data => Object.assign(info(data), { agendamentos: vis.filter(a => a.data === data).map(publico) })),
@@ -3439,6 +3605,18 @@ function criarDemo() {
       else especiais[extra.data] = extra.ofertas.map(o => ({ servico: o.servico, vagas: o.vagas, preco: o.preco || 0 }));
       fecharPendentes();
       return mes(m, { diaSalvo: extra.data });
+    }
+    if (acao === "agenda_mes") {
+      if (extra.mesSite < hoje.slice(0, 7)) return falha("passado", "Esse mês já passou.");
+      mesesSite[extra.mesSite] = extra.situacao;
+      // Mês fechado fecha todos os dias dele, como na planilha.
+      for (let i = 0; i < diasNoMes(extra.mesSite); i++) {
+        const data = somaDias(extra.mesSite + "-01", i);
+        if (extra.situacao === "fechado") especiais[data] = Object.assign([], { mesFechado: true });
+        else if (especiais[data] && especiais[data].mesFechado) delete especiais[data];
+      }
+      fecharPendentes();
+      return mes(m, { mesSalvo: extra.mesSite });
     }
     if (acao === "agenda_credito_baixa") {
       const c = creditos.find(x => x.id === extra.credito && x.situacao === "disponivel");
