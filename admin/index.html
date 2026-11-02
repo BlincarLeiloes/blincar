@@ -301,6 +301,7 @@ button.cel:hover{border-color:var(--muted)}
 .ag{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;background:var(--surface);min-width:0}
 .ag-topo{display:flex;justify-content:space-between;align-items:center;gap:6px 10px;flex-wrap:wrap}
 .ag-nome{font-weight:700}
+.ag-hora{color:var(--red);font-variant-numeric:tabular-nums;margin-right:8px}
 .selo-sinal{font-size:.75rem;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
 .selo-sinal.sim{background:var(--ok-bg);color:var(--ok-fg)}
 .selo-sinal.nao{background:var(--pend-bg);color:var(--pend-fg)}
@@ -1521,10 +1522,16 @@ function resumoVagas(dia) {
 
 const podeAgendar = (dia, hoje) => dia.data >= hoje;
 
+// "09:00" vira "9h"; "09:30" vira "9h30". Sem horário (agendamentos antigos), "".
+const horaBR = h => (h ? Number(h.slice(0, 2)) + "h" + (h.slice(3) === "00" ? "" : h.slice(3)) : "");
+const comHora = a => (a.horario ? `${horaBR(a.horario)} · ${a.cliente}` : a.cliente);
+const porHorario = (x, y) => (x.horario || "99") < (y.horario || "99") ? -1 : (x.horario || "99") > (y.horario || "99") ? 1 : 0;
+
+// Carros de cada dia em ordem de chegada (horário); sem horário, pela situação.
 function agruparPorDia(lista) {
   const m = {};
   lista.forEach(a => { (m[a.data] = m[a.data] || []).push(a); });
-  Object.values(m).forEach(l => l.sort((x, y) => ORDEM_SIT[x.sit] - ORDEM_SIT[y.sit]));
+  Object.values(m).forEach(l => l.sort((x, y) => porHorario(x, y) || (ORDEM_SIT[x.sit] ?? 9) - (ORDEM_SIT[y.sit] ?? 9)));
   return m;
 }
 
@@ -1576,7 +1583,7 @@ function desenharProximos(d) {
       el("b", {}, titulo),
       p.ofertas.length ? el("span", { class: "sub" }, resumoVagas(p)) : "",
       ...ags.slice(0, 3).map(a => el("span", { class: "prox-ag" + (a.sit === "aguardando" ? " pend" : "") },
-        `${a.cliente} · ${a.servico} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : a.sit === "nao_veio" ? " · não veio"
+        `${comHora(a)} · ${a.servico} · ${a.carro}${a.sit === "aguardando" ? " · aguardando sinal" : a.sit === "nao_veio" ? " · não veio"
           : pendente(a) ? " · entregue, pagamento pendente" : a.sit === "entregue" ? " · entregue" : a.recebidoEm ? " · na oficina" : ""}`)));
   };
   $("#agProximos").replaceChildren(cartao("Hoje", d.proximos[0]), cartao("Amanhã", d.proximos[1]));
@@ -1680,7 +1687,7 @@ function celula(dia, ags, hoje) {
     el("span", { class: "num" }, Number(dia.data.slice(8))));
   if (devendo.length) b.append(el("span", { class: "ponto-pag", "aria-hidden": "true", title: "Pagamento pendente" }));
   dia.ofertas.forEach(o => b.append(el("span", { class: "tipo" }, `${o.servico} ${o.ocupadas}/${o.vagas}`)));
-  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" + (a.sit === "aguardando" ? " pend" : a.sit === "nao_veio" ? " falta" : pendente(a) ? " deve" : "") }, a.cliente)));
+  ags.slice(0, 3).forEach(a => b.append(el("span", { class: "quem" + (a.sit === "aguardando" ? " pend" : a.sit === "nao_veio" ? " falta" : pendente(a) ? " deve" : "") }, comHora(a))));
   if (ags.length > 3) b.append(el("span", { class: "quem" }, `+${ags.length - 3}`));
   if (!dia.ofertas.length) {
     if (ags.length) b.append(el("span", { class: "rodape-cel" }, el("span", { class: "pend-num" }, plural(ags.length, "carro", "carros"))));
@@ -1739,14 +1746,14 @@ try { FECH.aberto = localStorage.getItem("blincar:fechamento") === "aberto"; } c
 const somaOrcamentos = lista => lista.reduce((t, a) => t + (a.orcamento || 0), 0);
 const nomeDoMes = mes => MESES[Number(mes.slice(5, 7)) - 1];
 
-// Carros de um dia na ordem dos serviços do dia (retoque, depois pintura geral) e por nome.
+// Carros de um dia por horário de chegada, depois na ordem dos serviços do dia (retoque, depois pintura geral) e por nome.
 function ordemDoDia(d, ags) {
   const dia = d.dias.find(x => x.data === (ags[0] || {}).data) || { ofertas: [] };
   const pos = a => {
     const i = dia.ofertas.findIndex(o => mesmoServico(o.servico, a.servico));
     return i === -1 ? 99 : i;
   };
-  return ags.slice().sort((x, y) => pos(x) - pos(y) || x.cliente.localeCompare(y.cliente, "pt-BR", { numeric: true }));
+  return ags.slice().sort((x, y) => porHorario(x, y) || pos(x) - pos(y) || x.cliente.localeCompare(y.cliente, "pt-BR", { numeric: true }));
 }
 
 // Contam no fechamento os carros com sinal pago (confirmados e entregues). Reserva sem sinal e "não veio" ficam de fora.
@@ -1767,7 +1774,7 @@ const situacaoFech = a => a.sit === "entregue" ? `entregue${a.entregueEm ? " em 
 
 function itemFechamento(a) {
   const sit = [situacaoFech(a), textoEntrada(a)].filter(Boolean).join(" · ");
-  const quem = el("div", { class: "fech-quem" }, el("b", {}, a.cliente),
+  const quem = el("div", { class: "fech-quem" }, el("b", {}, comHora(a)),
     el("span", { class: "sub" }, `${a.servico} · ${a.carro}${a.placa ? ` · ${a.placa}` : ""} · ${String(a.telefone || "").replace(/ /g, "\u00a0")}${sit ? ` · ${sit}` : ""}`));
   if (FECH.editando === a.id) {
     return el("div", { class: "fech-item", "data-fech": a.id }, quem,
@@ -1960,7 +1967,7 @@ function pdfDoMes(JsPDF, d) {
   const blocoCarro = (a, w) => {
     const partes = [];
     const parte = (texto, tam, estilo, c) => { if (textoPdf(texto)) partes.push({ l: quebrar(texto, w, tam, estilo), tam, estilo, c }); };
-    parte(a.cliente, 7.6, "bold", a.sit === "nao_veio" ? "apagado" : "tinta");
+    parte(comHora(a), 7.6, "bold", a.sit === "nao_veio" ? "apagado" : "tinta");
     parte(`${a.carro}${a.placa ? " · " + a.placa : ""}`, 7, "normal", "tinta");
     parte(a.telefone, 7, "normal", "tinta");
     // Serviço e orçamento na mesma linha quando cabem.
@@ -2132,7 +2139,7 @@ function pdfDoMes(JsPDF, d) {
         : a.presenca ? "Agendado · presença confirmada" : "Agendado") + (textoEntrada(a) ? ` · ${textoEntrada(a)}` : "");
       const cel = [
         quebrar(maiuscula(dataCurta(data)), COLS[0][1] - 2, 8, "bold"),
-        quebrar(a.cliente, COLS[1][1] - 3, 8, "bold"),
+        quebrar(comHora(a), COLS[1][1] - 3, 8, "bold"),
         quebrar(a.telefone, COLS[2][1] - 3, 8, "normal"),
         quebrar(`${a.carro}${a.placa ? " · " + a.placa : ""}`, COLS[3][1] - 3, 8, "normal"),
         quebrar(a.servico, COLS[4][1] - 3, 8, "normal"),
@@ -2237,13 +2244,14 @@ function mensagemSinal(a) {
       `Cartão de crédito, só à vista (${reais(valorCartao(a))}, com a taxa do cartão):\n${a.linkCartao}\n\n`
     : `Para garantir a vaga, pague o sinal de ${reais(a.sinal)} ${prazoTexto(a)} por este link (depois desse horário ele não vale mais):\n${a.link}\n\n`;
   return `Olá, ${nome}! Aqui é da Blin Car.\n\n` +
-    `Separamos ${a.servico.toLowerCase()} para ${dataLonga(a.data).toLowerCase()} (${a.carro}).\n\n` + pagar +
+    `Separamos ${a.servico.toLowerCase()} para ${dataLonga(a.data).toLowerCase()}${a.horario ? `, às ${horaBR(a.horario)}` : ""} (${a.carro}).\n\n` + pagar +
     `A vaga só fica garantida depois do pagamento. O sinal de ${reais(a.sinal)} é descontado do valor do serviço. Se você não puder vir, o sinal vira crédito para remarcar.`;
 }
 
 function mensagemPresenca(a) {
   const nome = a.cliente.split(" ")[0];
-  return `Olá, ${nome}! Aqui é da Blin Car. Passando para confirmar: ${a.servico.toLowerCase()} do ${a.carro} ${dataLonga(a.data).toLowerCase()}. Você confirma que vem?`;
+  return `Olá, ${nome}! Aqui é da Blin Car. Passando para confirmar: ${a.servico.toLowerCase()} do ${a.carro} ${dataLonga(a.data).toLowerCase()}` +
+    `${a.horario ? `, às ${horaBR(a.horario)}` : ""}. Você confirma que vem?`;
 }
 
 // Avaliação do carro entregue: se o cliente já respondeu ou quando sai o e-mail pedindo.
@@ -2351,13 +2359,14 @@ function textoSinal(a) {
 function itemAgendamento(a, comData) {
   const max = AG.dados.regras.remarcacoes;
   const botao = (acao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-acao": acao, "data-id": a.id }, texto);
-  const topo = el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, a.cliente), seloSituacao(a));
+  const topo = el("div", { class: "ag-topo" },
+    el("span", { class: "ag-nome" }, a.horario ? el("span", { class: "ag-hora" }, horaBR(a.horario)) : "", a.cliente), seloSituacao(a));
   const zap = linkZap(a.telefone);
   const etiquetas = [];
   if (a.origem === "Site") etiquetas.push("agendou pelo site");
   if (a.remarcacao) etiquetas.push(`remarcação ${a.remarcacao} de ${max}`);
   const info = el("div", { class: "ag-info" },
-    comData ? el("span", { class: "ag-dia" }, dataLonga(a.data)) : "",
+    comData ? el("span", { class: "ag-dia" }, dataLonga(a.data) + (a.horario ? `, às ${horaBR(a.horario)}` : "")) : "",
     el("span", {}, `${a.servico} · ${a.carro}${a.placa ? ` · placa ${a.placa}` : ""}`),
     a.orcamento && !comEntrada(a) ? el("span", {}, "Orçamento: ", el("b", {}, reais(a.orcamento))) : "",
     PAGO(a) ? el("span", { class: a.sinal ? "ok-txt" : "" }, a.sinal ? "✓ " : "", textoSinal(a)) : "",
@@ -2639,6 +2648,8 @@ function formulario(dia, ag) {
   const entrada = (id, attrs) => el("input", { id, name: id, ...attrs });
   const inDia = entrada("fDia", { type: "date", value: v.data, ...(novo ? { min: d.hoje } : {}) });
   const inServico = entrada("fServico", { type: "text", value: v.servico, list: "fSugestoes", autocomplete: "off", placeholder: "Ex.: Retoque" });
+  const inHora = el("select", { id: "fHorario", name: "fHorario" });
+  preencherHorarios(inHora, v.data, ag, v.horario || "");
   const limite = el("p", { class: "nota disputa", id: "fLimite", hidden: "" });
   // Só avisa: no painel dá para agendar mesmo passando do limite.
   const conferir = () => {
@@ -2659,6 +2670,7 @@ function formulario(dia, ag) {
     }
   };
   inDia.addEventListener("change", conferir);
+  inDia.addEventListener("change", () => preencherHorarios(inHora, inDia.value, ag, inHora.value));
   inServico.addEventListener("input", conferir);
   const pago = entrada("fPago", { type: "checkbox" });
   pago.checked = !!v.pago;
@@ -2672,6 +2684,7 @@ function formulario(dia, ag) {
       campo("fCarro", "Carro", entrada("fCarro", { type: "text", value: v.carro, placeholder: "Modelo, ano e cor", autocomplete: "off" })),
       campo("fPlaca", "Placa (opcional)", entrada("fPlaca", { type: "text", value: v.placa || "", placeholder: "ABC1D23", autocapitalize: "characters", maxlength: "8", autocomplete: "off" })),
       campo("fDia", "Dia", inDia),
+      campo("fHorario", "Horário de chegada", inHora),
       campo("fServico", "Serviço", inServico),
       campo("fSinal", "Valor do sinal (R$)", entrada("fSinal", { type: "number", min: "0", step: "0.01", inputmode: "decimal", value: String(v.sinal) })),
       campo("fOrcamento", "Valor do orçamento (R$, opcional)", entrada("fOrcamento", { type: "text", inputmode: "decimal", placeholder: "Ex.: 850,00", autocomplete: "off",
@@ -2694,6 +2707,21 @@ function formulario(dia, ag) {
   return f;
 }
 
+// Horários do formulário do painel: os do site, marcando os que já têm carro nesse dia (dá para escolher mesmo assim).
+function preencherHorarios(select, data, ag, atual) {
+  const d = AG.dados;
+  const lista = (d.regras.horarios || []).slice();
+  if (atual && !lista.includes(atual)) lista.push(atual);
+  lista.sort();
+  const ocupado = h => d.agendamentos.find(a => a.data === data && a.horario === h && (!ag || a.id !== ag.id) &&
+    ["confirmado", "entregue", "aguardando"].includes(a.sit));
+  select.replaceChildren(el("option", { value: "" }, "Sem horário"), ...lista.map(h => {
+    const outro = ocupado(h);
+    return el("option", { value: h }, horaBR(h) + (outro ? ` (já tem ${outro.cliente})` : ""));
+  }));
+  select.value = atual || "";
+}
+
 async function salvarFormulario(ag) {
   const val = id => $("#" + id).value.trim();
   const novo = {
@@ -2708,6 +2736,7 @@ async function salvarFormulario(ag) {
     sinal: Number(String($("#fSinal").value).replace(",", ".")) || 0,
     orcamento: val("fOrcamento"),
     pago: $("#fPago").checked,
+    horario: $("#fHorario").value,
     obs: val("fObs")
   };
   const falta = [];
@@ -3166,7 +3195,7 @@ function detalheHist(a, fechar) {
       linha("Nascimento", a.nascimento),
       linha("Carro", a.carro + (a.placa ? ` · placa ${a.placa}` : "")),
       linha("Serviço", a.servico),
-      linha("Dia do agendamento", dataLonga(a.data)),
+      linha("Dia do agendamento", dataLonga(a.data) + (a.horario ? `, às ${horaBR(a.horario)}` : "")),
       linha("Orçamento", a.orcamento ? reais(a.orcamento) : ""),
       linha("Entrada", a.entrada ? `${reais(a.entrada)}${faltaReceber(a) === null || pendente(a) || quitado(a) ? "" : ` · ${rotuloFalta(a).toLowerCase()}: ${reais(faltaReceber(a))}`}` : ""),
       linha("Pagamento", pendente(a) ? `Pendente${faltaReceber(a) ? `: falta ${reais(faltaReceber(a))}` : ""}`
@@ -3422,7 +3451,8 @@ function criarDemo() {
       "Retoque": { dias: { 1: 3, 3: 2 } },
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
-    sinal: 50, avisoDias: 2, avaliacaoDias: 5, remarcacoes: 3, prazoMinutos: 10, antecedenciaDias: 1, janelaDias: 120
+    sinal: 50, avisoDias: 2, avaliacaoDias: 5, remarcacoes: 3, prazoMinutos: 10, antecedenciaDias: 1, janelaDias: 120,
+    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1
   };
   const hoje = hojeAqui();
   const especiais = {};
@@ -3452,10 +3482,11 @@ function criarDemo() {
     if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
     return n;
   };
+  const HORAS = ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
   const novo = (data, servico, cliente, carro, pago, extra = {}) => {
     const id = "ex" + (++seq);
     return { id, data, servico, cliente, telefone: `(21) 90000-00${pad2(seq)}`, carro, placa: `RIO${seq}A${pad2(seq + 10)}`, email: "", sinal: 50, pago, obs: "",
-      orcamento: servico === "Pintura geral" ? 3500 : 350 + (seq % 4) * 150,
+      orcamento: servico === "Pintura geral" ? 3500 : 350 + (seq % 4) * 150, horario: HORAS[seq % HORAS.length],
       situacao: pago ? "Confirmado" : "Aguardando pagamento", criado: `${hoje} 09:00`, prazo: pago ? "" : daquiPrazo(),
       link: pago ? "" : linkFalso(id), linkCartao: pago ? "" : linkFalso(id + "-cartao"), presenca: false, origem: "Painel", remarcacao: 0,
       forma: pago ? "Pix" : "", ...extra };
@@ -3520,7 +3551,7 @@ function criarDemo() {
   const publico = a => ({ id: a.id, data: a.data, servico: a.servico, cliente: a.cliente, telefone: a.telefone, carro: a.carro, placa: a.placa || "", email: a.email,
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
-    recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0, restante: a.restante || "", restantePagoEm: a.restantePagoEm || "",
+    recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0, restante: a.restante || "", restantePagoEm: a.restantePagoEm || "", horario: a.horario || "",
     avaliacao: a.avaliacao || null });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");

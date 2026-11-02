@@ -179,6 +179,12 @@ details.mais li::before{content:"";position:absolute;left:0;top:.6em;width:5px;h
 .disp .estado{font-weight:600}
 .disp .estado.ok{color:var(--ok-fg)}
 .disp .estado.ruim{color:var(--err)}
+/* Horários de chegada do dia escolhido */
+.horas{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
+.hora{min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);font:600 1rem/1 var(--body);font-variant-numeric:tabular-nums;cursor:pointer}
+.hora:hover{border-color:var(--muted)}
+.hora[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:var(--on-red)}
+.hora:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .msg{margin:0;padding:10px 12px;border-radius:10px;border:1px solid var(--err);color:var(--err);font-size:.9375rem;font-weight:600}
 
 /* Resultado */
@@ -199,6 +205,10 @@ address{font-style:normal}
 
 .rodape{border-top:1px solid var(--line)}
 .rodape p{max-width:1120px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+.rodape p+p{padding-top:0}
+/* Crédito de quem fez o site: centralizado, numa faixa própria */
+.rodape .credito{max-width:none;margin:0;padding:22px 16px 26px;border-top:1px solid var(--line);text-align:center;font-size:1rem;font-weight:400;color:var(--muted)}
+.rodape .credito b{font-weight:700;color:var(--fg)}
 .carregando{opacity:.6;pointer-events:none}
 </style>
 </head>
@@ -357,7 +367,10 @@ address{font-style:normal}
   <section class="resultado" id="vResultado" hidden aria-live="polite"></section>
 </main>
 
-<footer class="rodape"><p class="gutter">Blin Car · Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM</p></footer>
+<footer class="rodape">
+  <p class="gutter">Blin Car · Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM</p>
+  <p class="credito">Desenvolvido por <b>Arthur Web Design</b></p>
+</footer>
 
 <script src="../config.js?v=2"></script>
 <script>
@@ -398,7 +411,7 @@ const digitos = s => String(s || "").replace(/\D/g, "");
 const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim());
 const suave = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
-const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", mes: "", verificado: false, forma: "pix" };
+const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", horario: "", avisoHorario: "", mes: "", verificado: false, forma: "pix" };
 
 // Nome, celular, e-mail, carro e placa ficam lembrados neste aparelho; o nascimento e o orçamento, só até fechar a aba.
 function lembrar(acao, valor) {
@@ -415,9 +428,9 @@ function lembrar(acao, valor) {
   return null;
 }
 
-async function api(acao, corpo) {
+async function api(acao, corpo, params) {
   if (!corpo) {
-    const r = await fetch(`${API}?acao=${acao}`, { cache: "no-store" });
+    const r = await fetch(`${API}?acao=${acao}${params ? "&" + new URLSearchParams(params) : ""}`, { cache: "no-store" });
     return r.json();
   }
   const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ acao, ...corpo }) });
@@ -553,6 +566,7 @@ $("#fDados").addEventListener("submit", async e => {
 async function abrirData() {
   etapa(2);
   E.data = "";
+  E.horario = "";
   $("#ola").textContent = `Olá, ${primeiroNome(E.cadastro.nome)}! ${E.cadastro.email}`;
   const fc = $("#faixaCredito");
   fc.hidden = !E.credito;
@@ -562,7 +576,7 @@ async function abrirData() {
   }
   const fa = $("#faixaAgendado");
   fa.hidden = !E.agendado;
-  if (E.agendado) fa.replaceChildren("Você já tem ", el("b", {}, `${E.agendado.servico.toLowerCase()} em ${dataLonga(E.agendado.data)}`), ". Pode agendar outro carro ou outro serviço aqui.");
+  if (E.agendado) fa.replaceChildren("Você já tem ", el("b", {}, `${E.agendado.servico.toLowerCase()} em ${dataLonga(E.agendado.data)}${E.agendado.horario ? `, às ${horaBR(E.agendado.horario)}` : ""}`), ". Pode agendar outro carro ou outro serviço aqui.");
   desenharResumo();
   window.scrollTo({ top: 0 });
   await carregarAgenda();
@@ -573,7 +587,7 @@ async function carregarAgenda() {
   caixa.classList.add("carregando");
   mostrar($("#dataErro"), "");
   try {
-    const d = await api("cliente_agenda");
+    const d = await api("cliente_agenda", null, E.cadastro ? { email: E.cadastro.email } : null);
     if (!d || !d.ok) throw new Error();
     E.dados = d;
     desenharServicos();
@@ -607,6 +621,7 @@ function desenharServicos() {
     input.addEventListener("change", () => {
       E.servico = s.nome;
       E.data = "";
+      E.horario = "";
       mostrar($("#dataErro"), "");
       if (E.verificado) desenharCalendario(true);
       desenharResumo();
@@ -623,6 +638,13 @@ function estadoDe(data) {
 }
 
 const ofertaDe = data => (E.dados.dias[data] || []).find(x => x.servico === E.servico) || {};
+
+// Horários de chegada (a planilha antiga não manda: aí o agendamento segue sem horário).
+const usaHorario = () => !!(E.dados && E.dados.horarios);
+const horasDoDia = data => (usaHorario() && E.dados.horarios[data]) || [];
+// "09:00" vira "9h"; "09:30" vira "9h30".
+const horaBR = h => (h ? Number(h.slice(0, 2)) + "h" + (h.slice(3) === "00" ? "" : h.slice(3)) : "");
+const diaEHora = (data, h) => dataLonga(data) + (h ? `, às ${horaBR(h)}` : "");
 
 // Primeiro dia livre depois de "depois" (ou o primeiro de todos).
 function proximaLivre(depois = "") {
@@ -684,11 +706,18 @@ function desenharDisponibilidade() {
   const o = ofertaDe(E.data);
   if (est === "livre") {
     const outra = proximaLivre(E.data);
-    caixa.replaceChildren(
-      el("p", { class: "dia" }, `Disponibilidade para ${dataLonga(E.data)}`),
-      el("p", { class: "estado ok", tabindex: "-1" }, `Disponível para ${E.servico.toLowerCase()}${o.preco ? ` · ${reais(o.preco)}` : ""}`),
-      el("p", { class: "nota" }, "Para garantir esta data, toque em agendar no resumo."),
-      outra ? botaoProxima("Ver a próxima data", "btn btn-line") : "");
+    const filhos = [el("p", { class: "dia" }, `Disponibilidade para ${dataLonga(E.data)}`),
+      el("p", { class: "estado ok", tabindex: "-1" }, `Disponível para ${E.servico.toLowerCase()}${o.preco ? ` · ${reais(o.preco)}` : ""}`)];
+    if (usaHorario()) {
+      if (E.avisoHorario) filhos.push(el("p", { class: "estado ruim", id: "avisoHorario", tabindex: "-1" }, E.avisoHorario));
+      filhos.push(el("p", { class: "dia", id: "tHoras" }, "Escolha o horário de chegada"),
+        el("div", { class: "horas", role: "group", "aria-labelledby": "tHoras" }, ...horasDoDia(E.data).map(h =>
+          el("button", { type: "button", class: "hora", "data-hora": h, "aria-pressed": String(h === E.horario), "aria-label": `Chegar às ${horaBR(h)}` }, horaBR(h)))),
+        el("p", { class: "nota" }, E.horario ? `Você vem às ${horaBR(E.horario)}. Para garantir, toque em agendar no resumo.`
+          : "Chegue no horário escolhido: assim a gente recebe o seu carro sem espera."));
+    } else filhos.push(el("p", { class: "nota" }, "Para garantir esta data, toque em agendar no resumo."));
+    if (outra) filhos.push(botaoProxima("Ver a próxima data", "btn btn-line"));
+    caixa.replaceChildren(...filhos);
     return;
   }
   caixa.replaceChildren(
@@ -700,6 +729,8 @@ function desenharDisponibilidade() {
 
 function escolher(data, irAoMes) {
   if (!data) return;
+  if (data !== E.data) E.horario = "";
+  E.avisoHorario = "";
   E.data = data;
   if (irAoMes) E.mes = data.slice(0, 7);
   desenharCalendario(false);
@@ -727,8 +758,21 @@ $("#grade").addEventListener("click", e => {
   if (!b || !estadoDe(b.dataset.data)) return;
   escolher(b.dataset.data, false);
   if (estadoDe(b.dataset.data) === "livre" && matchMedia("(max-width: 899px)").matches) {
-    $("#resumo").scrollIntoView({ behavior: suave(), block: "nearest" });
+    (usaHorario() ? $("#disp") : $("#resumo")).scrollIntoView({ behavior: suave(), block: "nearest" });
   }
+});
+
+// Horário escolhido: libera o agendar.
+$("#disp").addEventListener("click", e => {
+  const b = e.target.closest("[data-hora]");
+  if (!b) return;
+  E.horario = b.dataset.hora;
+  E.avisoHorario = "";
+  desenharDisponibilidade();
+  desenharResumo();
+  const igual = document.querySelector(`#disp [data-hora="${E.horario}"]`);
+  if (igual) igual.focus();
+  if (matchMedia("(max-width: 899px)").matches) $("#resumo").scrollIntoView({ behavior: suave(), block: "nearest" });
 });
 
 $("#mesAntes").addEventListener("click", () => { E.mes = somaMes(E.mes, -1); desenharCalendario(false); });
@@ -737,14 +781,15 @@ $("#trocarDados").addEventListener("click", () => { etapa(1); $("#nome").focus()
 
 // Resumo da direita: serviço, dia, valores e o botão de agendar (só libera com um dia disponível escolhido).
 function desenharResumo() {
-  const pronto = !!(E.servico && E.data && E.dados && estadoDe(E.data) === "livre");
+  const diaLivre = !!(E.servico && E.data && E.dados && estadoDe(E.data) === "livre");
+  const pronto = diaLivre && (!usaHorario() || horasDoDia(E.data).includes(E.horario));
   const dd = (sel, valor, vazio) => {
     $(sel).textContent = valor || vazio;
     $(sel).classList.toggle("vazio", !valor);
   };
   const o = E.dados && E.data ? ofertaDe(E.data) : {};
   dd("#rServico", E.servico ? `${E.servico}${o.preco ? ` · ${reais(o.preco)}` : ""}` : "", "Escolha o serviço");
-  dd("#rDia", pronto ? dataLonga(E.data) : "", "Escolha uma data");
+  dd("#rDia", !diaLivre ? "" : pronto ? diaEHora(E.data, E.horario) : `${dataLonga(E.data)} · escolha o horário`, "Escolha uma data");
   dd("#rCarro", E.cadastro ? `${E.cadastro.carro} · ${E.cadastro.placa}` : "", "");
   dd("#rOrcamento", E.cadastro ? reais(valorReais(E.cadastro.orcamento)) : "", "");
   const sinal = E.dados ? E.dados.sinal : 50;
@@ -788,6 +833,7 @@ function desenharResumo() {
     regras.push(`No cartão de crédito, só à vista, o sinal fica ${reais(sinal + taxa)}: os ${reais(taxa)} são a taxa do cartão e não são descontados do serviço.`);
   }
   regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${remarcacoes} vezes).`);
+  if (usaHorario()) regras.push("Chegue no horário escolhido: cada horário recebe um carro.");
   regras.push("O endereço e a confirmação chegam no seu e-mail. No dia, você recebe um lembrete.");
   $("#regras").replaceChildren(...regras.map(t => el("li", {}, t)));
   const botao = $("#agendar");
@@ -802,7 +848,14 @@ $("#agendar").addEventListener("click", async () => {
   if (botao.getAttribute("aria-disabled") === "true") {
     if (!E.servico) mostrar($("#dataErro"), "Escolha o serviço e toque em Verificar datas disponíveis.");
     else if (!E.verificado) mostrar($("#dataErro"), "Toque em Verificar datas disponíveis e escolha um dia.");
-    else mostrar($("#dataErro"), "Escolha um dia disponível no calendário.");
+    else if (E.data && estadoDe(E.data) === "livre" && usaHorario()) {
+      mostrar($("#dataErro"), "");
+      E.avisoHorario = "Escolha o horário de chegada.";
+      desenharDisponibilidade();
+      const aviso = $("#avisoHorario");
+      aviso.scrollIntoView({ behavior: suave(), block: "center" });
+      return aviso.focus({ preventScroll: true });
+    } else mostrar($("#dataErro"), "Escolha um dia disponível no calendário.");
     $("#dataErro").scrollIntoView({ behavior: suave(), block: "center" });
     return;
   }
@@ -812,7 +865,7 @@ $("#agendar").addEventListener("click", async () => {
   botao.textContent = E.credito ? "Remarcando…" : "Abrindo o pagamento…";
   let indo = false;
   try {
-    const r = await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, servico: E.servico, forma: E.forma });
+    const r = await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, horario: E.horario, servico: E.servico, forma: E.forma });
     if (r && r.ok && r.tipo === "pagar") {
       indo = true;
       location.href = r.link;
@@ -822,11 +875,15 @@ $("#agendar").addEventListener("click", async () => {
       E.credito = null;
       return mostrarResultado(r.agendamento, "remarcado");
     }
-    if (r && (r.erro === "esgotado" || r.erro === "indisponivel")) {
+    if (r && (r.erro === "esgotado" || r.erro === "indisponivel" || r.erro === "horario")) {
       delete botao.dataset.enviando;
+      if (r.erro === "horario") {
+        E.horario = "";
+        E.avisoHorario = r.mensagem;
+      }
       await carregarAgenda();
       desenharCalendario(false);
-      const estado = document.querySelector("#disp .estado");
+      const estado = document.querySelector("#avisoHorario") || document.querySelector("#disp .estado");
       return estado && estado.focus();
     }
     mostrar($("#dataErro"), (r && r.mensagem) || MSG_REDE);
@@ -877,6 +934,7 @@ function preencher(c) {
 function recomecar() {
   try { history.replaceState(null, "", location.pathname); } catch {}
   E.data = "";
+  E.horario = "";
   E.verificado = false;
   $("#cal").hidden = true;
   etapa(1);
@@ -896,7 +954,7 @@ function mostrarResultado(a, tipo, extra) {
   const caixa = $("#vResultado");
   const detalhes = a && a.data ? el("dl", { class: "detalhes" },
     el("div", {}, el("dt", {}, "Serviço"), el("dd", {}, a.servico)),
-    el("div", {}, el("dt", {}, "Dia"), el("dd", {}, dataLonga(a.data))),
+    el("div", {}, el("dt", {}, "Dia"), el("dd", {}, diaEHora(a.data, a.horario))),
     a.carro ? el("div", {}, el("dt", {}, "Carro"), el("dd", {}, a.placa ? `${a.carro} · ${a.placa}` : a.carro)) : "",
     a.orcamento ? el("div", {}, el("dt", {}, "Orçamento"), el("dd", {}, reais(a.orcamento))) : "") : "";
   const onde = el("address", {}, "Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM");
