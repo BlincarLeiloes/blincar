@@ -2263,9 +2263,12 @@ async function dadosDoPeriodo(ini, fim) {
 const semValores = s => String(s || "").replace(/(^|\s*·\s*)Preço do dia: R\$\s?[\d.,]+/gi, "").replace(/R\$\s?\d[\d.]*(,\d{1,2})?/g, "(valor no painel)").replace(/^\s*·\s*/, "").trim();
 
 // Um carro sem valores: horário, cliente, carro, telefone, serviço, situação e observações. "k" diminui a letra.
-function blocoSemValor(f, a, w, k, maxObs) {
+// "caixa" põe o quadro em branco "Previsão de entrega", para escrever à mão: ao lado do carro (lado) ou embaixo.
+function blocoSemValor(f, a, w, k, maxObs, caixa) {
+  const lado = !!(caixa && caixa.lado);
+  const wt = lado ? w - caixa.larg - 3 : w;
   const partes = [];
-  const parte = (texto, tam, estilo, c) => { if (textoPdf(texto)) partes.push({ l: f.quebrar(texto, w, tam * k, estilo), tam: tam * k, estilo, c }); };
+  const parte = (texto, tam, estilo, c) => { if (textoPdf(texto)) partes.push({ l: f.quebrar(texto, wt, tam * k, estilo), tam: tam * k, estilo, c }); };
   if (a.horario) parte(horaBR(a.horario), 13, "bold", a.sit === "nao_veio" ? "apagado" : "vermelho");
   parte(a.cliente, 9.5, "bold", a.sit === "nao_veio" ? "apagado" : "tinta");
   parte(`${a.carro}${a.placa ? " · " + a.placa : ""}`, 8.5, "normal", "tinta");
@@ -2275,11 +2278,22 @@ function blocoSemValor(f, a, w, k, maxObs) {
     : a.presenca ? ["Presença confirmada", "cinza"] : null;
   if (sit) parte(sit[0], 8, "bold", sit[1]);
   if (semValores(a.obs)) {
-    const l = f.quebrar(semValores(a.obs), w, 8 * k, "italic");
+    const l = f.quebrar(semValores(a.obs), wt, 8 * k, "italic");
     partes.push({ l: l.length > maxObs ? l.slice(0, maxObs - 1).concat(l[maxObs - 1].replace(/\s*\S*$/, "") + "...") : l, tam: 8 * k, estilo: "italic", c: "cinza" });
   }
-  const altura = partes.reduce((h, p) => h + p.l.length * f.altLinha(p.tam), 0) + 1;
+  const altTexto = partes.reduce((h, p) => h + p.l.length * f.altLinha(p.tam), 0) + 1;
+  // Quadro: título pequeno em cima e o espaço em branco embaixo.
+  const ROT = 7 * k, altRot = f.altLinha(ROT) + 0.5, altQuadro = caixa ? caixa.alt * k : 0;
+  const altura = !caixa ? altTexto : lado ? Math.max(altTexto, altRot + altQuadro + 0.6) : altTexto + 0.8 + altRot + altQuadro + 0.6;
   const barra = a.sit === "nao_veio" ? "apagado" : a.sit === "entregue" ? "verde" : a.recebidoEm ? "ambar" : "vermelho";
+  const quadro = (qx, qy, qw, qh) => {
+    f.fonte(ROT, "bold");
+    const tam = Math.min(ROT, ROT * qw / f.doc.getTextWidth("PREVISÃO DE ENTREGA"));
+    f.escrever(["PREVISÃO DE ENTREGA"], qx, qy, tam, "bold", "cinza");
+    f.traco("tinta", 0.35);
+    f.doc.setFillColor(...COR_PDF.branco);
+    f.doc.roundedRect(qx, qy + altRot, qw, qh, 1.2, 1.2, "FD");
+  };
   return {
     altura,
     desenhar(x, y) {
@@ -2287,6 +2301,8 @@ function blocoSemValor(f, a, w, k, maxObs) {
       f.doc.rect(x - 1.8, y + 0.4, 0.8, altura - 0.8, "F");
       let yy = y;
       partes.forEach(p => { yy = f.escrever(p.l, x, yy, p.tam, p.estilo, p.c); });
+      if (lado) quadro(x + w - caixa.larg, y, caixa.larg, altura - altRot - 0.6);
+      else if (caixa) quadro(x, yy + 0.8, w, altQuadro);
     }
   };
 }
@@ -2314,11 +2330,16 @@ function pdfDaSemana(JsPDF, p, ini) {
   const xs = [];
   larg.reduce((x, w, i) => { xs[i] = x; return x + w; }, M);
   // Letra menor quando um dia tem carro demais para a página.
-  const cabe = FIM - topo - CAB - PAD;
+  const cabe = FIM - topo - CAB - PAD, VAO = 3.4;
+  // Quadro da previsão de entrega ao lado do carro quando a coluna é larga; embaixo quando é estreita.
+  const caixaDe = w => (w >= 60 ? { lado: true, larg: Math.min(40, Math.max(28, w * 0.45)), alt: 18 } : { lado: false, alt: 13 });
   let k = 1, blocos;
   for (; ; k = Math.round((k - 0.1) * 10) / 10) {
-    blocos = datas.map((x, i) => porDia[x].map(a => blocoSemValor(f, a, larg[i] - 2 * PAD - 1.8, k, 3)));
-    const maior = Math.max(0, ...blocos.map(l => l.reduce((t, b) => t + b.altura + 2.4, 0)));
+    blocos = datas.map((x, i) => {
+      const w = larg[i] - 2 * PAD - 1.8;
+      return porDia[x].map(a => blocoSemValor(f, a, w, k, 3, caixaDe(w)));
+    });
+    const maior = Math.max(0, ...blocos.map(l => l.reduce((t, b) => t + b.altura + VAO, 0)));
     if (maior <= cabe || k <= 0.6) break;
   }
   datas.forEach((x, i) => {
@@ -2336,7 +2357,7 @@ function pdfDaSemana(JsPDF, p, ini) {
       const reserva = j < blocos[i].length - 1 ? 5 : 0;
       if (cortados || y + b.altura + reserva > FIM - 1) return cortados++;
       b.desenhar(xs[i] + PAD + 1.8, y);
-      y += b.altura + 2.4;
+      y += b.altura + VAO;
     });
     if (cortados) f.escrever([`+${cortados} (veja o PDF do dia)`], xs[i] + PAD, y, 7, "bold", "vermelho");
   });
@@ -2363,7 +2384,7 @@ function pdfDoDia(JsPDF, p, data) {
   if (!ags.length) f.escrever(["Nenhum carro agendado neste dia."], M, y + 2, 12, "normal", "cinza");
   const HORA = 28;
   ags.forEach(a => {
-    const b = blocoSemValor(f, Object.assign({}, a, { horario: "" }), LARG - HORA - 2, 1.3, 99);
+    const b = blocoSemValor(f, Object.assign({}, a, { horario: "" }), LARG - HORA - 2, 1.3, 99, { lado: true, larg: 56, alt: 18 });
     const h = Math.max(b.altura, 10) + 5;
     if (y + h > FIM) {
       doc.addPage();
@@ -2410,12 +2431,12 @@ function desenharEscolhaPdf() {
         el("p", { class: "sub" }, "Dia e semana saem sem valores, para deixar à vista na oficina.")),
       el("button", { type: "button", class: "mini", "data-pdfd": "fechar" }, "Fechar")),
     el("div", { class: "pdf-opcoes", role: "radiogroup", "aria-label": "O que baixar" },
-      opcao("semana", "Semana", "De segunda a domingo, com os carros em ordem de chegada.",
+      opcao("semana", "Semana", "De segunda a domingo, com os carros em ordem de chegada e um quadro para escrever a previsão de entrega.",
         el("div", { class: "pdf-ctrl" },
           el("button", { type: "button", class: "mini", "data-pdfd": "semana-antes", "aria-label": "Semana anterior" }, "‹"),
           el("span", { class: "pdf-semana", "aria-live": "polite" }, periodoTexto(PDFD.semana, fimSemana)),
           el("button", { type: "button", class: "mini", "data-pdfd": "semana-depois", "aria-label": "Próxima semana" }, "›"))),
-      opcao("dia", "Dia", "Os carros de um dia, com letra grande.",
+      opcao("dia", "Dia", "Os carros de um dia, com letra grande e o quadro da previsão de entrega.",
         el("div", { class: "pdf-ctrl" }, el("input", { type: "date", id: "pdfDia", value: PDFD.dia, "aria-label": "Dia do PDF" }))),
       opcao("mes", `Mês inteiro: ${nomeMes(d.mes).toLowerCase()}`,
         "Relatório com orçamentos, entradas, o que falta receber e o fechamento. Esse não é para deixar à vista.")),
