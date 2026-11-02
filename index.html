@@ -107,9 +107,9 @@ input[type=text]:focus,textarea:focus{outline:2px solid var(--gold);outline-offs
 input[aria-invalid=true]{border-color:var(--err)}
 .err{margin:0;color:var(--err);font-size:.875rem}
 .row2{display:grid;gap:18px}
-.carro3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 12px}
-.carro3 .marca{grid-column:1/-1}
-@media (min-width:520px){.carro3{grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)}.carro3 .marca{grid-column:auto}}
+/* Marca e modelo separados (muita gente escrevia só "Fiat"), depois ano e cor */
+.carro4{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 12px}
+.carro4 .field{align-content:start}
 .conheceu-mais{margin-top:12px}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -215,12 +215,18 @@ address span{color:var(--muted);font-size:.9375rem}
       <p class="err" id="nome-err" hidden>Escreva seu nome.</p>
     </div>
 
-    <div class="carro3">
-      <div class="field marca">
-        <label for="carro">Marca e modelo do carro</label>
-        <input type="text" id="carro" name="carro" placeholder="Ex.: Chevrolet Meriva" aria-describedby="carro-err">
-        <p class="err" id="carro-err" hidden>Diga a marca e o modelo.</p>
+    <div class="carro4">
+      <div class="field">
+        <label for="marca">Marca do carro</label>
+        <input type="text" id="marca" name="marca" list="marcas" autocomplete="off" placeholder="Ex.: Chevrolet" aria-describedby="marca-err">
+        <p class="err" id="marca-err" hidden>Diga a marca (ex.: Fiat).</p>
       </div>
+      <div class="field">
+        <label for="modelo">Modelo</label>
+        <input type="text" id="modelo" name="modelo" autocomplete="off" placeholder="Ex.: Meriva" aria-describedby="modelo-err">
+        <p class="err" id="modelo-err" hidden>Diga o modelo (ex.: Uno, Onix, HB20).</p>
+      </div>
+      <datalist id="marcas"></datalist>
       <div class="field">
         <label for="ano">Ano</label>
         <input type="text" id="ano" name="ano" inputmode="numeric" maxlength="4" placeholder="Ex.: 2010" aria-describedby="ano-err">
@@ -440,7 +446,8 @@ function dados() {
   const v = id => form.elements[id].value.trim();
   return {
     nome: v("nome"),
-    carro: v("carro"),
+    marca: v("marca"),
+    modelo: v("modelo"),
     ano: v("ano"),
     cor: v("cor"),
     servicos: [...form.querySelectorAll('input[name="servico"]:checked')].map(i => i.value),
@@ -454,7 +461,7 @@ function dados() {
 
 function linhas(d) {
   const conheceu = d.conheceu && maisConheceu(d.conheceu) && d.conheceuQual ? `${d.conheceu} (${d.conheceuQual})` : d.conheceu;
-  const l = [["Nome", d.nome], ["Carro", d.carro], ["Ano", d.ano], ["Cor", d.cor], ["Serviço", d.servicos.join(", ")], ["De onde é", d.cidade], ["Conheceu por", conheceu]];
+  const l = [["Nome", d.nome], ["Carro", carroDe(d.marca, d.modelo)], ["Ano", d.ano], ["Cor", d.cor], ["Serviço", d.servicos.join(", ")], ["De onde é", d.cidade], ["Conheceu por", conheceu]];
   if (d.quando) l.push(["Quando", d.quando]);
   if (d.detalhes) l.push(["Detalhes", d.detalhes]);
   return l;
@@ -488,6 +495,17 @@ function lista(itens) {
 }
 
 const letras = s => s.replace(/[^A-Za-zÀ-ÿ]/g, "").length;
+// Marcas mais comuns: completam a marca enquanto a pessoa digita e mostram quando o modelo veio só com a marca.
+const MARCAS = ["Chevrolet", "Fiat", "Volkswagen", "Ford", "Toyota", "Honda", "Hyundai", "Renault", "Nissan", "Jeep", "Peugeot", "Citroën",
+  "Mitsubishi", "Kia", "Caoa Chery", "BYD", "BMW", "Mercedes-Benz", "Audi", "Volvo", "Land Rover", "Suzuki", "RAM", "GWM", "JAC", "Subaru",
+  "Porsche", "Dodge", "Troller", "Chrysler"];
+const chaveCarro = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const SO_MARCA = new Set(MARCAS.map(chaveCarro).concat(["vw", "volks", "gm", "mercedes", "chery", "citroen", "chevrolet"]));
+// Modelo de verdade: 2 letras ou números (Uno, C3, 208) e não só o nome de uma marca.
+const modeloOk = (marca, modelo) => chaveCarro(modelo).length >= 2 && !SO_MARCA.has(chaveCarro(modelo)) && chaveCarro(modelo) !== chaveCarro(marca);
+// "Chevrolet" + "Onix" vira "Chevrolet Onix" (sem repetir a marca se a pessoa já escreveu no modelo).
+const carroDe = (marca, modelo) => (marca && chaveCarro(modelo).startsWith(chaveCarro(marca)) ? modelo : [marca, modelo].filter(Boolean).join(" "));
+$("#marcas").replaceChildren(...MARCAS.map(m => Object.assign(document.createElement("option"), { value: m })));
 // Ano do carro: 4 números, de 1950 até o ano que vem (modelo do ano seguinte).
 const anoOk = a => /^\d{4}$/.test(a) && Number(a) >= 1950 && Number(a) <= new Date().getFullYear() + 1;
 // "Indicação" e "Outros" abrem um campo opcional para dizer quem indicou ou onde viu.
@@ -498,7 +516,8 @@ const GRUPOS = ["servicos", "conheceu"];
 function regras(d) {
   return [
     ["nome", letras(d.nome) >= 2, "seu nome", form.elements.nome],
-    ["carro", letras(d.carro) >= 2, "a marca e o modelo do carro", form.elements.carro],
+    ["marca", letras(d.marca) >= 2, "a marca do carro", form.elements.marca],
+    ["modelo", modeloOk(d.marca, d.modelo), "o modelo do carro", form.elements.modelo],
     ["ano", anoOk(d.ano), "o ano do carro", form.elements.ano],
     ["cor", letras(d.cor) >= 3, "a cor do carro", form.elements.cor],
     ["servicos", d.servicos.length > 0, "o serviço", $("#s-geral")],

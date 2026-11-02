@@ -212,6 +212,16 @@ tr:last-child td{border-bottom:0}
 .mes-site{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px 10px}
 .mes-sit{display:grid;gap:2px;justify-items:end}
 .mes-linha .confirma{grid-column:1/-1}
+.pdf-opcoes{display:grid;gap:8px}
+.pdf-opcao{display:grid;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface)}
+.pdf-opcao.marcada{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.pdf-opcao label{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.pdf-opcao input[type=radio]{width:18px;height:18px;margin:3px 0 0;accent-color:var(--red);flex:none}
+.pdf-txt{display:grid;gap:2px}
+.pdf-txt .sub{font-size:.875rem;color:var(--muted)}
+.pdf-ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-left:28px}
+.pdf-ctrl input[type=date]{font:400 16px/1.4 var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px}
+.pdf-semana{font-weight:600;text-align:center;min-width:13em}
 @media (max-width:519px){
   .mes-linha{grid-template-columns:minmax(0,1fr)}
   .mes-site{justify-content:space-between;padding:0 4px 4px 8px}
@@ -635,9 +645,9 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     <section class="bloco">
       <div class="bloco-head">
         <h2 id="agCalTitulo">Calendário do mês</h2>
-        <button type="button" class="mini mini-icone" data-pdf>
+        <button type="button" class="mini mini-icone" id="agPdf" aria-haspopup="dialog">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
-          <span>Baixar PDF do mês</span>
+          <span>Baixar PDF</span>
         </button>
       </div>
       <div class="cal-wrap" id="agCalWrap">
@@ -666,7 +676,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
           <button type="button" class="mini" id="fechAbrir" aria-expanded="false" aria-controls="fechLista">Ver carro por carro</button>
           <button type="button" class="mini mini-icone" data-pdf>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
-            <span>Baixar PDF</span>
+            <span>Baixar PDF do mês</span>
           </button>
         </div>
       </div>
@@ -701,6 +711,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg" id="dlgMeses" aria-labelledby="mesesTitulo">
   <div class="dlg-corpo" id="mesesCorpo"></div>
+</dialog>
+
+<dialog class="dlg" id="dlgPdf" aria-labelledby="pdfTitulo">
+  <div class="dlg-corpo" id="pdfCorpo"></div>
 </dialog>
 
 <footer class="rodape"><p class="gutter" id="rodapeTxt">Blin Car · Painel dos administradores</p></footer>
@@ -1904,11 +1918,8 @@ const COR_PDF = { tinta: [22, 23, 26], cinza: [95, 94, 99], linha: [214, 211, 20
   vermelho: [207, 31, 38], verde: [17, 112, 58], ambar: [150, 100, 0], apagado: [150, 148, 152], branco: [255, 255, 255] };
 const NO_CALENDARIO_PDF = ["confirmado", "entregue", "nao_veio"];
 
-function pdfDoMes(JsPDF, d) {
-  const doc = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
-  const L = 297, A = 210, M = 10, LARG = L - 2 * M, FIM = A - M - 4;
-  const mes = nomeMes(d.mes).toLowerCase();
-  const f = fechamentoDe(d);
+// Ferramentas de desenho do PDF (letra, cor, texto com quebra, marca e rodapé), as mesmas no mês, na semana e no dia.
+function ferramentasPdf(doc, L, A, M) {
   const t = new Date();
   const gerado = `${pad2(t.getDate())}/${pad2(t.getMonth() + 1)}/${t.getFullYear()} às ${pad2(t.getHours())}:${pad2(t.getMinutes())}`;
   doc.setLineHeightFactor(1.2);
@@ -1924,7 +1935,6 @@ function pdfDoMes(JsPDF, d) {
     doc.text(linhas.map(textoPdf), x, y + tam * 0.3528 * 0.92, opcoes);
     return y + linhas.length * altLinha(tam);
   };
-
   const marca = (x, y, tam) => {
     fonte(tam, "bolditalic");
     cor("tinta");
@@ -1934,6 +1944,24 @@ function pdfDoMes(JsPDF, d) {
     doc.text("CAR", x + w, y);
     return x + w + doc.getTextWidth("CAR");
   };
+  // Rodapé de todas as páginas, com o número da página.
+  const rodape = texto => {
+    const total = doc.getNumberOfPages();
+    for (let p = 1; p <= total; p++) {
+      doc.setPage(p);
+      escrever([texto], M, A - M + 1, 7, "normal", "cinza");
+      escrever([`Página ${p} de ${total}`], L - M, A - M + 1, 7, "normal", "cinza", { align: "right" });
+    }
+  };
+  return { doc, gerado, fonte, cor, traco, altLinha, quebrar, escrever, marca, rodape };
+}
+
+function pdfDoMes(JsPDF, d) {
+  const doc = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  const L = 297, A = 210, M = 10, LARG = L - 2 * M, FIM = A - M - 4;
+  const mes = nomeMes(d.mes).toLowerCase();
+  const f = fechamentoDe(d);
+  const { gerado, fonte, cor, traco, altLinha, quebrar, escrever, marca, rodape } = ferramentasPdf(doc, L, A, M);
   const cabecalho = (titulo, sub, comResumo) => {
     marca(M, M + 4, 11);
     escrever([titulo], M, M + 7, 18, "bold", "tinta");
@@ -2182,13 +2210,7 @@ function pdfDoMes(JsPDF, d) {
   notas.push("Reservas aguardando sinal e carros que não vieram não entram na soma.");
   escrever(quebrar(notas.join(" "), LARG, 8, "normal"), M, y, 8, "normal", "cinza");
 
-  // Rodapé com o número da página.
-  const total = doc.getNumberOfPages();
-  for (let p = 1; p <= total; p++) {
-    doc.setPage(p);
-    escrever([`Blin Car · Agenda de ${mes} · gerado em ${gerado}`], M, A - M + 1, 7, "normal", "cinza");
-    escrever([`Página ${p} de ${total}`], L - M, A - M + 1, 7, "normal", "cinza", { align: "right" });
-  }
+  rodape(`Blin Car · Agenda de ${mes} · gerado em ${gerado}`);
   return doc;
 }
 
@@ -2213,6 +2235,255 @@ async function baixarPdf(botao) {
   }
 }
 document.querySelectorAll("[data-pdf]").forEach(b => b.addEventListener("click", () => baixarPdf(b)));
+
+/* ---------- PDF do dia e da semana: para deixar na oficina, sem nenhum valor ---------- */
+
+// "16 a 22 de novembro de 2026" ou "30 de novembro a 6 de dezembro de 2026".
+function periodoTexto(ini, fim) {
+  const dia = x => Number(x.slice(8, 10)), mes = x => MESES[Number(x.slice(5, 7)) - 1], ano = x => x.slice(0, 4);
+  if (ini.slice(0, 7) === fim.slice(0, 7)) return `${dia(ini)} a ${dia(fim)} de ${mes(fim)} de ${ano(fim)}`;
+  if (ano(ini) === ano(fim)) return `${dia(ini)} de ${mes(ini)} a ${dia(fim)} de ${mes(fim)} de ${ano(fim)}`;
+  return `${dia(ini)} de ${mes(ini)} de ${ano(ini)} a ${dia(fim)} de ${mes(fim)} de ${ano(fim)}`;
+}
+
+// Dias e carros de um período. A semana pode pegar dois meses: o que não está na tela vem da planilha.
+async function dadosDoPeriodo(ini, fim) {
+  const meses = [...new Set([ini.slice(0, 7), fim.slice(0, 7)])];
+  const lista = await Promise.all(meses.map(m => (AG.dados && AG.dados.mes === m ? AG.dados : agendaPedir("agenda", { mes: m }))));
+  if (lista.some(d => !d || !d.ok || !d.dias)) throw new Error("agenda");
+  const dentro = x => x.data >= ini && x.data <= fim;
+  return {
+    hoje: AG.dados.hoje,
+    dias: [].concat(...lista.map(d => d.dias)).filter(dentro),
+    agendamentos: [].concat(...lista.map(d => d.agendamentos)).filter(a => dentro(a) && NO_CALENDARIO_PDF.indexOf(a.sit) !== -1)
+  };
+}
+
+// Observações sem dinheiro, para o PDF que fica à vista: some o "Preço do dia" e outros valores viram "(valor no painel)".
+const semValores = s => String(s || "").replace(/(^|\s*·\s*)Preço do dia: R\$\s?[\d.,]+/gi, "").replace(/R\$\s?\d[\d.]*(,\d{1,2})?/g, "(valor no painel)").replace(/^\s*·\s*/, "").trim();
+
+// Um carro sem valores: horário, cliente, carro, telefone, serviço, situação e observações. "k" diminui a letra.
+function blocoSemValor(f, a, w, k, maxObs) {
+  const partes = [];
+  const parte = (texto, tam, estilo, c) => { if (textoPdf(texto)) partes.push({ l: f.quebrar(texto, w, tam * k, estilo), tam: tam * k, estilo, c }); };
+  if (a.horario) parte(horaBR(a.horario), 13, "bold", a.sit === "nao_veio" ? "apagado" : "vermelho");
+  parte(a.cliente, 9.5, "bold", a.sit === "nao_veio" ? "apagado" : "tinta");
+  parte(`${a.carro}${a.placa ? " · " + a.placa : ""}`, 8.5, "normal", "tinta");
+  parte(a.telefone, 8.5, "normal", "tinta");
+  parte(a.servico, 8.5, "normal", "cinza");
+  const sit = a.sit === "nao_veio" ? ["Não veio", "vermelho"] : a.sit === "entregue" || a.recebidoEm ? [maiuscula(situacaoFech(a)), a.sit === "entregue" ? "verde" : "ambar"]
+    : a.presenca ? ["Presença confirmada", "cinza"] : null;
+  if (sit) parte(sit[0], 8, "bold", sit[1]);
+  if (semValores(a.obs)) {
+    const l = f.quebrar(semValores(a.obs), w, 8 * k, "italic");
+    partes.push({ l: l.length > maxObs ? l.slice(0, maxObs - 1).concat(l[maxObs - 1].replace(/\s*\S*$/, "") + "...") : l, tam: 8 * k, estilo: "italic", c: "cinza" });
+  }
+  const altura = partes.reduce((h, p) => h + p.l.length * f.altLinha(p.tam), 0) + 1;
+  const barra = a.sit === "nao_veio" ? "apagado" : a.sit === "entregue" ? "verde" : a.recebidoEm ? "ambar" : "vermelho";
+  return {
+    altura,
+    desenhar(x, y) {
+      f.doc.setFillColor(...COR_PDF[barra]);
+      f.doc.rect(x - 1.8, y + 0.4, 0.8, altura - 0.8, "F");
+      let yy = y;
+      partes.forEach(p => { yy = f.escrever(p.l, x, yy, p.tam, p.estilo, p.c); });
+    }
+  };
+}
+
+// Semana de segunda a domingo, em pé de igualdade com o calendário: uma coluna por dia, carros em ordem de chegada.
+function pdfDaSemana(JsPDF, p, ini) {
+  const doc = new JsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
+  const L = 297, A = 210, M = 10, LARG = L - 2 * M, FIM = A - M - 4;
+  const f = ferramentasPdf(doc, L, A, M);
+  const datas = [0, 1, 2, 3, 4, 5, 6].map(i => somaDias(ini, i));
+  const titulo = `Semana de ${periodoTexto(ini, datas[6])}`;
+  const porDia = {};
+  datas.forEach(x => { porDia[x] = ordemDoDia(p, p.agendamentos.filter(a => a.data === x)); });
+  const total = datas.reduce((t, x) => t + porDia[x].length, 0);
+  f.marca(M, M + 4, 11);
+  f.escrever([titulo], M, M + 7, 18, "bold", "tinta");
+  f.escrever([`Carros agendados, em ordem de chegada. Gerado em ${f.gerado}.`], M, M + 15.5, 8.5, "normal", "cinza");
+  f.escrever([plural(total, "carro", "carros")], L - M, M + 6.5, 16, "bold", "tinta", { align: "right" });
+  const topo = M + 24, CAB = 11, PAD = 2.2;
+  // Dia com carro ganha coluna larga; sem carro, estreita.
+  const com = datas.map(x => porDia[x].length > 0);
+  const n = com.filter(Boolean).length;
+  const ESTREITA = 26;
+  const larg = com.map(c => (!n || n === 7 ? LARG / 7 : c ? (LARG - ESTREITA * (7 - n)) / n : ESTREITA));
+  const xs = [];
+  larg.reduce((x, w, i) => { xs[i] = x; return x + w; }, M);
+  // Letra menor quando um dia tem carro demais para a página.
+  const cabe = FIM - topo - CAB - PAD;
+  let k = 1, blocos;
+  for (; ; k = Math.round((k - 0.1) * 10) / 10) {
+    blocos = datas.map((x, i) => porDia[x].map(a => blocoSemValor(f, a, larg[i] - 2 * PAD - 1.8, k, 3)));
+    const maior = Math.max(0, ...blocos.map(l => l.reduce((t, b) => t + b.altura + 2.4, 0)));
+    if (maior <= cabe || k <= 0.6) break;
+  }
+  datas.forEach((x, i) => {
+    const dia = p.dias.find(d => d.data === x) || { ofertas: [] };
+    const vazio = !porDia[x].length;
+    doc.setFillColor(...COR_PDF[vazio ? "fundo" : "branco"]);
+    f.traco("linha", 0.25);
+    doc.rect(xs[i], topo, larg[i], FIM - topo, "FD");
+    const cab = `${SEMANA_CURTA[diaSemana(x)].toUpperCase()} ${x.slice(8, 10)}/${x.slice(5, 7)}`;
+    f.escrever(f.quebrar(cab, larg[i] - 2 * PAD, 9, "bold"), xs[i] + PAD, topo + PAD, 9, "bold", x === p.hoje ? "vermelho" : "tinta");
+    if (vazio) f.escrever(f.quebrar(dia.ofertas.length ? "Sem carros" : "Fechado", larg[i] - 2 * PAD, 7, "normal"), xs[i] + PAD, topo + 6.6, 7, "normal", "cinza");
+    // O que não couber nem com a letra menor fica no PDF do dia.
+    let y = topo + CAB, cortados = 0;
+    blocos[i].forEach((b, j) => {
+      const reserva = j < blocos[i].length - 1 ? 5 : 0;
+      if (cortados || y + b.altura + reserva > FIM - 1) return cortados++;
+      b.desenhar(xs[i] + PAD + 1.8, y);
+      y += b.altura + 2.4;
+    });
+    if (cortados) f.escrever([`+${cortados} (veja o PDF do dia)`], xs[i] + PAD, y, 7, "bold", "vermelho");
+  });
+  f.rodape(`Blin Car · ${titulo} · sem valores · gerado em ${f.gerado}`);
+  return doc;
+}
+
+// Um dia, em pé e com letra grande: para pregar na parede.
+function pdfDoDia(JsPDF, p, data) {
+  const doc = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+  const L = 210, A = 297, M = 12, LARG = L - 2 * M, FIM = A - M - 4;
+  const f = ferramentasPdf(doc, L, A, M);
+  const ags = ordemDoDia(p, p.agendamentos.filter(a => a.data === data));
+  const dia = p.dias.find(d => d.data === data) || { ofertas: [] };
+  const titulo = `${dataLonga(data)} de ${data.slice(0, 4)}`;
+  f.marca(M, M + 4, 11);
+  f.escrever(f.quebrar(titulo, LARG, 20, "bold"), M, M + 7, 20, "bold", "tinta");
+  const vagas = dia.ofertas.length ? ` · ${dia.ofertas.map(o => `${o.servico} ${o.ocupadas}/${o.vagas}`).join(" · ")}` : "";
+  f.escrever([`${plural(ags.length, "carro", "carros")}, em ordem de chegada${vagas}. Gerado em ${f.gerado}.`], M, M + 16.5, 9, "normal", "cinza");
+  let y = M + 26;
+  f.traco("tinta", 0.5);
+  doc.line(M, y, L - M, y);
+  y += 4;
+  if (!ags.length) f.escrever(["Nenhum carro agendado neste dia."], M, y + 2, 12, "normal", "cinza");
+  const HORA = 28;
+  ags.forEach(a => {
+    const b = blocoSemValor(f, Object.assign({}, a, { horario: "" }), LARG - HORA - 2, 1.3, 99);
+    const h = Math.max(b.altura, 10) + 5;
+    if (y + h > FIM) {
+      doc.addPage();
+      const x = f.marca(M, M + 4, 9);
+      f.escrever([titulo + " (continuação)"], x + 4, M + 0.8, 9, "bold", "tinta");
+      y = M + 10;
+    }
+    f.escrever([a.horario ? horaBR(a.horario) : "—"], M, y, 20, "bold", a.sit === "nao_veio" ? "apagado" : "vermelho");
+    b.desenhar(M + HORA + 2, y + 0.5);
+    y += h;
+    f.traco("linha", 0.3);
+    doc.line(M, y - 2.5, L - M, y - 2.5);
+  });
+  f.rodape(`Blin Car · ${titulo} · sem valores · gerado em ${f.gerado}`);
+  return doc;
+}
+
+/* Escolha do PDF: semana (o mais usado), dia ou o mês inteiro (relatório com os valores). */
+
+const PDFD = { tipo: "semana", dia: "", semana: "", ocupado: false };
+
+function abrirEscolhaPdf() {
+  const d = AG.dados;
+  if (!d || $("#agenda").classList.contains("carregando")) return;
+  const base = d.hoje.slice(0, 7) === d.mes ? d.hoje : d.mes + "-01";
+  Object.assign(PDFD, { dia: base, semana: segundaDe(base) });
+  desenharEscolhaPdf();
+  if (!$("#dlgPdf").open) $("#dlgPdf").showModal();
+  const marcado = $("#dlgPdf").querySelector("input[name=pdfTipo]:checked");
+  if (marcado) marcado.focus();
+}
+
+function desenharEscolhaPdf() {
+  const d = AG.dados;
+  const opcao = (tipo, titulo, detalhe, controle) => el("div", { class: "pdf-opcao" + (PDFD.tipo === tipo ? " marcada" : "") },
+    el("label", {},
+      el("input", { type: "radio", name: "pdfTipo", value: tipo, ...(PDFD.tipo === tipo ? { checked: "" } : {}) }),
+      el("span", { class: "pdf-txt" }, el("b", {}, titulo), el("span", { class: "sub" }, detalhe))),
+    controle || "");
+  const fimSemana = somaDias(PDFD.semana, 6);
+  $("#pdfCorpo").replaceChildren(
+    el("div", { class: "dlg-topo" },
+      el("div", {}, el("h2", { id: "pdfTitulo" }, "Baixar PDF"),
+        el("p", { class: "sub" }, "Dia e semana saem sem valores, para deixar à vista na oficina.")),
+      el("button", { type: "button", class: "mini", "data-pdfd": "fechar" }, "Fechar")),
+    el("div", { class: "pdf-opcoes", role: "radiogroup", "aria-label": "O que baixar" },
+      opcao("semana", "Semana", "De segunda a domingo, com os carros em ordem de chegada.",
+        el("div", { class: "pdf-ctrl" },
+          el("button", { type: "button", class: "mini", "data-pdfd": "semana-antes", "aria-label": "Semana anterior" }, "‹"),
+          el("span", { class: "pdf-semana", "aria-live": "polite" }, periodoTexto(PDFD.semana, fimSemana)),
+          el("button", { type: "button", class: "mini", "data-pdfd": "semana-depois", "aria-label": "Próxima semana" }, "›"))),
+      opcao("dia", "Dia", "Os carros de um dia, com letra grande.",
+        el("div", { class: "pdf-ctrl" }, el("input", { type: "date", id: "pdfDia", value: PDFD.dia, "aria-label": "Dia do PDF" }))),
+      opcao("mes", `Mês inteiro: ${nomeMes(d.mes).toLowerCase()}`,
+        "Relatório com orçamentos, entradas, o que falta receber e o fechamento. Esse não é para deixar à vista.")),
+    el("p", { class: "err", id: "pdfErro", role: "alert", hidden: "" }),
+    el("div", { class: "ag-acoes" },
+      el("button", { type: "button", class: "btn btn-red", id: "pdfBaixar" }, PDFD.ocupado ? "Gerando o PDF…" : "Baixar PDF")));
+}
+
+async function baixarEscolhido() {
+  if (PDFD.ocupado || !AG.dados) return;
+  const d = AG.dados;
+  PDFD.ocupado = true;
+  $("#pdfBaixar").textContent = "Gerando o PDF…";
+  $("#pdfBaixar").setAttribute("aria-busy", "true");
+  try {
+    const JsPDF = await bibliotecaPdf();
+    let nome, msg;
+    if (PDFD.tipo === "mes") {
+      pdfDoMes(JsPDF, d).save(`agenda-blincar-${d.mes}.pdf`);
+      msg = `PDF de ${nomeDoMes(d.mes)} baixado.`;
+    } else if (PDFD.tipo === "dia") {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(PDFD.dia)) throw new Error("dia");
+      const p = await dadosDoPeriodo(PDFD.dia, PDFD.dia);
+      nome = `agenda-blincar-dia-${PDFD.dia}.pdf`;
+      pdfDoDia(JsPDF, p, PDFD.dia).save(nome);
+      msg = `PDF de ${dataCurta(PDFD.dia)} baixado.`;
+    } else {
+      const fim = somaDias(PDFD.semana, 6);
+      const p = await dadosDoPeriodo(PDFD.semana, fim);
+      pdfDaSemana(JsPDF, p, PDFD.semana).save(`agenda-blincar-semana-${PDFD.semana}.pdf`);
+      msg = `PDF da semana de ${periodoTexto(PDFD.semana, fim)} baixado.`;
+    }
+    $("#dlgPdf").close();
+    aviso(msg);
+  } catch (e) {
+    mostrarErro($("#pdfErro"), e && e.message === "dia" ? "Escolha o dia." : "Não deu para gerar o PDF. Confira a internet e tente de novo.");
+  } finally {
+    PDFD.ocupado = false;
+    const b = $("#pdfBaixar");
+    if (b) { b.textContent = "Baixar PDF"; b.removeAttribute("aria-busy"); }
+  }
+}
+
+$("#agPdf").addEventListener("click", abrirEscolhaPdf);
+$("#dlgPdf").addEventListener("click", e => {
+  if (e.target === $("#dlgPdf")) return $("#dlgPdf").close();
+  if (e.target.closest("#pdfBaixar")) return baixarEscolhido();
+  const b = e.target.closest("[data-pdfd]");
+  if (!b) return;
+  if (b.dataset.pdfd === "fechar") return $("#dlgPdf").close();
+  PDFD.tipo = "semana";
+  PDFD.semana = somaDias(PDFD.semana, b.dataset.pdfd === "semana-antes" ? -7 : 7);
+  desenharEscolhaPdf();
+  $("#dlgPdf").querySelector(`[data-pdfd="${b.dataset.pdfd}"]`).focus();
+});
+$("#dlgPdf").addEventListener("change", e => {
+  if (e.target.name === "pdfTipo") {
+    PDFD.tipo = e.target.value;
+    $("#dlgPdf").querySelectorAll(".pdf-opcao").forEach(o => o.classList.toggle("marcada", o.querySelector("input[name=pdfTipo]").checked));
+  }
+  if (e.target.id === "pdfDia") {
+    PDFD.dia = e.target.value;
+    PDFD.tipo = "dia";
+    $("#dlgPdf").querySelector("input[value=dia]").checked = true;
+    $("#dlgPdf").querySelectorAll(".pdf-opcao").forEach(o => o.classList.toggle("marcada", o.querySelector("input[name=pdfTipo]").checked));
+  }
+});
+
 
 function numeroWhatsApp(telefone) {
   const n = String(telefone || "").replace(/\D/g, "");

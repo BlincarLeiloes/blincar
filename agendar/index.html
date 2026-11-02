@@ -276,10 +276,16 @@ address{font-style:normal}
           <p class="err" id="nascimento-err" hidden>Confira a data de nascimento.</p>
         </fieldset>
         <div class="field">
-          <label for="carro">Modelo do carro</label>
-          <input type="text" id="carro" placeholder="Ex.: Onix 2019 prata" aria-describedby="carro-err">
-          <p class="err" id="carro-err" hidden>Diga qual é o carro.</p>
+          <label for="marca">Marca do carro</label>
+          <input type="text" id="marca" list="marcas" autocomplete="off" placeholder="Ex.: Chevrolet" aria-describedby="marca-err">
+          <p class="err" id="marca-err" hidden>Diga a marca (ex.: Fiat).</p>
         </div>
+        <div class="field">
+          <label for="modelo">Modelo do carro</label>
+          <input type="text" id="modelo" autocomplete="off" placeholder="Ex.: Onix 2019 prata" aria-describedby="modelo-err">
+          <p class="err" id="modelo-err" hidden>Diga o modelo (ex.: Uno, Onix, HB20).</p>
+        </div>
+        <datalist id="marcas"></datalist>
         <div class="field">
           <label for="placa">Placa</label>
           <input type="text" id="placa" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABC1D23" maxlength="8" aria-describedby="placa-err">
@@ -458,7 +464,18 @@ function etapa(n) {
 
 /* ---------- Etapa 1: cadastro ---------- */
 
-const CAMPOS = ["nome", "email", "telefone", "nascimento", "carro", "placa", "orcamento"];
+const CAMPOS = ["nome", "email", "telefone", "nascimento", "marca", "modelo", "placa", "orcamento"];
+// Marcas mais comuns: completam a marca enquanto a pessoa digita e mostram quando o modelo veio só com a marca.
+const MARCAS = ["Chevrolet", "Fiat", "Volkswagen", "Ford", "Toyota", "Honda", "Hyundai", "Renault", "Nissan", "Jeep", "Peugeot", "Citroën",
+  "Mitsubishi", "Kia", "Caoa Chery", "BYD", "BMW", "Mercedes-Benz", "Audi", "Volvo", "Land Rover", "Suzuki", "RAM", "GWM", "JAC", "Subaru",
+  "Porsche", "Dodge", "Troller", "Chrysler"];
+const chaveCarro = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const SO_MARCA = new Set(MARCAS.map(chaveCarro).concat(["vw", "volks", "gm", "mercedes", "chery", "citroen", "chevrolet"]));
+// Modelo de verdade: 2 letras ou números (Uno, C3, 208) e não só o nome de uma marca.
+const modeloOk = (marca, modelo) => chaveCarro(modelo).length >= 2 && !SO_MARCA.has(chaveCarro(modelo)) && chaveCarro(modelo) !== chaveCarro(marca);
+// "Chevrolet" + "Onix" vira "Chevrolet Onix" (sem repetir a marca se a pessoa já escreveu no modelo).
+const carroDe = (marca, modelo) => (marca && chaveCarro(modelo).startsWith(chaveCarro(marca)) ? modelo : [marca, modelo].filter(Boolean).join(" "));
+$("#marcas").replaceChildren(...MARCAS.map(m => el("option", { value: m })));
 
 // "1.250,50", "1250,5", "1250.50": o valor em reais (0 se não der para ler).
 function valorReais(v) {
@@ -489,7 +506,10 @@ function lerCampos() {
     email: $("#email").value.trim().toLowerCase(),
     telefone: $("#telefone").value.trim(),
     nascimento: lerNascimento(),
-    carro: $("#carro").value.trim(),
+    // A planilha guarda marca e modelo juntos, em "Carro".
+    marca: $("#marca").value.trim(),
+    modelo: $("#modelo").value.trim(),
+    carro: carroDe($("#marca").value.trim(), $("#modelo").value.trim()),
     placa: $("#placa").value.trim().toUpperCase(),
     orcamento: $("#orcamento").value.trim()
   };
@@ -502,7 +522,8 @@ function conferirCampos(c) {
     email: !emailOk(c.email),
     telefone: tel.length < 10 || tel.length > 11,
     nascimento: !nascimentoOk(c.nascimento),
-    carro: c.carro.replace(/\s/g, "").length < 2,
+    marca: letras(c.marca) < 2,
+    modelo: !modeloOk(c.marca, c.modelo),
     placa: !/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(c.placa.replace(/[^A-Z0-9]/g, "")),
     orcamento: !(valorReais(c.orcamento) > 0 && valorReais(c.orcamento) <= 200000)
   };
@@ -532,7 +553,7 @@ $("#orcamento").addEventListener("blur", () => {
   if (v) $("#orcamento").value = v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 });
 
-["nome", "email", "telefone", "nDia", "nMes", "nAno", "carro", "placa", "orcamento"].forEach(id => $("#" + id).addEventListener("input", () => {
+["nome", "email", "telefone", "nDia", "nMes", "nAno", "marca", "modelo", "placa", "orcamento"].forEach(id => $("#" + id).addEventListener("input", () => {
   if ($("#" + id).getAttribute("aria-invalid") === "true") conferirCampos(lerCampos());
 }));
 
@@ -922,7 +943,9 @@ function botaoNovo(texto = "Escolher outra data") {
 }
 
 function preencher(c) {
-  ["nome", "email", "telefone", "carro", "placa", "orcamento"].forEach(k => { $("#" + k).value = c[k] || ""; });
+  ["nome", "email", "telefone", "marca", "modelo", "placa", "orcamento"].forEach(k => { $("#" + k).value = c[k] || ""; });
+  // Cadastro lembrado de antes da marca separada: o carro inteiro vai para o modelo.
+  if (!c.marca && !c.modelo && c.carro) $("#modelo").value = c.carro;
   if (c.nascimento && /^\d{4}-\d{2}-\d{2}$/.test(c.nascimento)) {
     $("#nAno").value = c.nascimento.slice(0, 4);
     $("#nMes").value = c.nascimento.slice(5, 7);
