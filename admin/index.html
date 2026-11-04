@@ -379,6 +379,52 @@ button.cel:hover{border-color:var(--muted)}
 .pag-falhas ul{margin:2px 0 0;padding-left:18px;color:var(--err)}
 .pag-falhas li{overflow-wrap:anywhere}
 .pag-colunas{display:grid;gap:16px;align-items:start}
+/* WhatsApp, Recebidos e Clientes */
+.err-txt{color:var(--err);font-weight:600}
+.rc-lista{display:grid;gap:12px;align-items:start}
+@media (min-width:900px){.rc-lista{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rc-item{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--surface);min-width:0}
+.rc-item.indo{border-color:var(--ok-fg)}
+.rc-dados{margin:0;display:grid;gap:8px 14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.rc-dados div{display:grid;gap:1px;min-width:0}
+.rc-dados dt{font-size:.6875rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.rc-dados dd{margin:0;font-weight:600;font-size:.9375rem;overflow-wrap:anywhere}
+.rc-zap{display:grid;gap:4px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);font-size:.875rem;overflow-wrap:anywhere}
+.rc-zap .sub{color:var(--muted)}
+.rc-form{display:grid;gap:10px;border:1px solid var(--gold);border-radius:12px;padding:12px;background:var(--bg);min-width:0}
+.rc-form fieldset{border:0;margin:0;padding:0;display:grid;gap:8px;min-width:0}
+.rc-form legend{font-weight:700;padding:0;margin-bottom:6px}
+.rc-op{display:flex;gap:10px;align-items:center;font-size:.9375rem;min-height:32px;cursor:pointer}
+.rc-op input{width:18px;height:18px;margin:0;accent-color:var(--red)}
+.rc-quando{display:flex;gap:8px;flex-wrap:wrap;padding-left:28px}
+.rc-quando input{font:400 16px/1.4 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px;color-scheme:light dark}
+.rc-quando input:disabled{opacity:.5}
+.rc-msg{display:grid;gap:6px}
+.rc-previa{margin:0;padding:10px 12px;border-radius:12px 12px 12px 3px;background:var(--ok-bg);color:var(--fg);font-size:.875rem;line-height:1.45;overflow-wrap:anywhere}
+.rc-botoes{display:flex;gap:6px;flex-wrap:wrap}
+.rc-botoes span{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.8125rem;font-weight:600;color:var(--c-wa)}
+.cl-ferramentas{display:grid;gap:10px}
+.cl-filtros{display:flex;gap:6px;flex-wrap:wrap}
+.cl-filtros [aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.cl-lista{display:grid;gap:8px}
+.cl-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);min-width:0}
+.cl-txt{display:grid;gap:2px;min-width:0}
+.cl-nome{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-weight:700;overflow-wrap:anywhere}
+.cl-sub{font-size:.875rem;color:var(--muted);overflow-wrap:anywhere}
+.cl-sub b{color:var(--fg);font-weight:600}
+.cl-mais{justify-self:center}
+@media (max-width:519px){.cl-item{grid-template-columns:minmax(0,1fr)}.cl-item .mini-wa{justify-self:start}}
+.etq{font-size:.6875rem;font-weight:700;border-radius:999px;padding:2px 8px;border:1px solid currentColor;white-space:nowrap}
+.etq.site{color:var(--red)}
+.etq.painel{color:var(--muted)}
+.etq.zap{color:var(--c-wa)}
+.etq.volta{color:var(--ok-fg)}
+.etq.sumido{color:var(--pend-fg)}
+.wa-passos{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+.wa-passo{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:6px;min-width:0}
+.wa-passo.feito{border-color:var(--ok-fg)}
+.wa-passo .sub{font-size:.8125rem;color:var(--muted);overflow-wrap:anywhere}
+.wa-modelo{display:grid;gap:6px;border-top:1px dashed var(--line);padding-top:8px}
 #dlgPag{width:min(1040px,calc(100% - 24px))}
 @media (min-width:720px){.pag-colunas{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
@@ -479,6 +525,8 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
   <div class="abas-in gutter" role="tablist">
     <button type="button" class="aba" role="tab" data-aba="painel" aria-controls="painel" aria-selected="true">Métricas</button>
     <button type="button" class="aba" role="tab" data-aba="agenda" aria-controls="agenda" aria-selected="false">Agenda</button>
+    <button type="button" class="aba" role="tab" data-aba="clientes" aria-controls="clientes" aria-selected="false">Clientes</button>
+    <button type="button" class="aba" role="tab" data-aba="recebidos" aria-controls="recebidos" aria-selected="false">Recebidos</button>
   </div>
 </nav>
 
@@ -697,6 +745,59 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     </section>
     <p class="aviso-ok toast" id="agAviso" role="status" hidden></p>
   </section>
+
+  <section class="painel" id="clientes" hidden>
+    <div class="topo-painel">
+      <div>
+        <p class="eyebrow">Oficina · Blin Car</p>
+        <h1>Clientes</h1>
+      </div>
+      <div class="filtros">
+        <button type="button" class="mini" id="clAtualizar">Atualizar</button>
+        <button type="button" class="mini mini-icone" id="clBaixar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
+          Baixar lista
+        </button>
+        <button type="button" class="mini mini-icone" data-abrir-wa aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1.2-.5-2.3-1.6-2.8-2.8l.9-1-1-2z"/></svg>WhatsApp</button>
+      </div>
+    </div>
+    <p class="nota">Todo mundo que já falou com a Blin Car: quem agendou (pelo site ou pelo painel) e quem mandou mensagem no WhatsApp.</p>
+    <p class="aviso" id="clSemWa" hidden><b>O WhatsApp ainda não está ligado.</b> Por enquanto aparecem só os clientes que agendaram. Depois de ligar (botão "WhatsApp"), quem mandar mensagem entra aqui sozinho.</p>
+    <p class="err" id="clErro" role="alert" hidden></p>
+    <div class="kpis kpis-4" id="clResumo"></div>
+    <section class="bloco">
+      <div class="cl-ferramentas">
+        <input type="search" class="hist-busca" id="clBusca" placeholder="Buscar por nome, telefone, carro ou placa" aria-label="Buscar clientes" autocomplete="off">
+        <div class="cl-filtros" id="clFiltros" role="group" aria-label="Filtrar clientes">
+          <button type="button" class="mini" data-cl-filtro="todos" aria-pressed="true">Todos</button>
+          <button type="button" class="mini" data-cl-filtro="agendaram" aria-pressed="false">Agendaram</button>
+          <button type="button" class="mini" data-cl-filtro="zap" aria-pressed="false">Só WhatsApp</button>
+          <button type="button" class="mini" data-cl-filtro="sumidos" aria-pressed="false">Sumidos há 6 meses</button>
+        </div>
+      </div>
+      <div class="cl-lista" id="clLista"></div>
+      <p class="nota">"Baixar lista" gera uma planilha com nome e telefone dos clientes da busca, boa para salvar no celular.</p>
+    </section>
+  </section>
+
+  <section class="painel" id="recebidos" hidden>
+    <div class="topo-painel">
+      <div>
+        <p class="eyebrow">Oficina · Blin Car</p>
+        <h1>Recebidos</h1>
+      </div>
+      <div class="filtros">
+        <button type="button" class="mini" id="rcAtualizar">Atualizar</button>
+        <button type="button" class="mini mini-icone" data-abrir-wa aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1.2-.5-2.3-1.6-2.8-2.8l.9-1-1-2z"/></svg>WhatsApp</button>
+      </div>
+    </div>
+    <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp. <span id="rcHorario"></span></p>
+    <p class="aviso" id="rcSemWa" hidden><b>O WhatsApp ainda não está ligado.</b> Para mandar o aviso de carro pronto, toque em "WhatsApp" e siga os passos.</p>
+    <p class="err" id="rcErro" role="alert" hidden></p>
+    <div class="kpis kpis-4" id="rcResumo"></div>
+    <div class="rc-lista" id="rcLista"></div>
+    <p class="aviso-ok toast" id="rcAviso" role="status" hidden></p>
+  </section>
 </main>
 
 <dialog class="dlg" id="dlgDia" aria-labelledby="dlgTitulo">
@@ -713,6 +814,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg dlg-largo" id="dlgPag" aria-labelledby="pagTitulo">
   <div class="dlg-corpo" id="pagCorpo"></div>
+</dialog>
+
+<dialog class="dlg dlg-largo" id="dlgWa" aria-labelledby="waTitulo">
+  <div class="dlg-corpo" id="waCorpo"></div>
 </dialog>
 
 <dialog class="dlg" id="dlgMeses" aria-labelledby="mesesTitulo">
@@ -897,9 +1002,12 @@ function mostrarPainel(jaCarregado) {
   dados = null;
   AG.dados = null;
   AG.demo = null;
+  RC.dados = null;
+  CL.dados = null;
+  WA.dados = null;
   filtroPublico = null;
   if (jaCarregado && dias === 30) aplicarMetricas(jaCarregado);
-  let pedida = location.hash === "#agenda" ? "agenda" : location.hash === "#metricas" ? "painel" : "";
+  let pedida = ABAS.find(a => HASH_ABA[a] === location.hash) || "";
   if (!pedida) try { pedida = localStorage.getItem("blincar:aba") || "painel"; } catch { pedida = "painel"; }
   abrirAba(pedida);
 }
@@ -913,8 +1021,11 @@ function sair(msg) {
   guardado("del", "blincar:senha");
   if ($("#dlgDia").open) $("#dlgDia").close();
   $("#abas").hidden = true;
-  $("#painel").hidden = true;
-  $("#agenda").hidden = true;
+  ABAS.forEach(a => { $("#" + a).hidden = true; });
+  ["#dlgWa", "#dlgPag", "#dlgAval", "#dlgHist", "#dlgMeses"].forEach(x => { if ($(x) && $(x).open) $(x).close(); });
+  Object.assign(RC, { dados: null, pronto: null, entregar: null });
+  Object.assign(CL, { dados: null });
+  WA.dados = null;
   $("#sair").hidden = true;
   $("#entrada").hidden = false;
   $("#loginErro").hidden = !msg;
@@ -1281,15 +1392,20 @@ document.addEventListener("click", e => {
 
 let abaAtual = "painel";
 
+const ABAS = ["painel", "agenda", "clientes", "recebidos"];
+const HASH_ABA = { painel: "#metricas", agenda: "#agenda", clientes: "#clientes", recebidos: "#recebidos" };
+
 function abrirAba(nome) {
-  abaAtual = nome === "agenda" ? "agenda" : "painel";
+  abaAtual = ABAS.indexOf(nome) !== -1 ? nome : "painel";
   document.querySelectorAll("[data-aba]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === abaAtual)));
-  $("#painel").hidden = abaAtual !== "painel";
-  $("#agenda").hidden = abaAtual !== "agenda";
+  ABAS.forEach(a => { $("#" + a).hidden = abaAtual !== a; });
   try { localStorage.setItem("blincar:aba", abaAtual); } catch {}
-  try { history.replaceState(null, "", abaAtual === "agenda" ? "#agenda" : "#metricas"); } catch {}
+  try { history.replaceState(null, "", HASH_ABA[abaAtual]); } catch {}
   if (abaAtual === "painel" && !dados) carregar();
   if (abaAtual === "agenda" && !AG.dados) agendaCarregar();
+  // Clientes e Recebidos buscam de novo a cada vez: mudam com a agenda e com o WhatsApp.
+  if (abaAtual === "clientes") clCarregar();
+  if (abaAtual === "recebidos") rcCarregar();
 }
 
 document.querySelectorAll("[data-aba]").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
@@ -2674,6 +2790,7 @@ function itemAgendamento(a, comData) {
     etiquetas.length ? el("span", {}, maiuscula(etiquetas.join(" · "))) : "",
     a.sit === "confirmado" && !a.recebidoEm ? el("span", { class: a.presenca ? "ok-txt" : "" }, a.presenca ? "Cliente confirmou que vem" : "Presença ainda não confirmada") : "",
     a.recebidoEm ? el("span", { class: "ok-txt" }, `Carro recebido na oficina em ${quandoTexto(a.recebidoEm)}`) : "",
+    ...(a.sit === "confirmado" && !a.recebidoEm ? linhasWhatsAgenda(a) : []),
     a.sit === "entregue" && a.entregueEm ? el("span", { class: "ok-txt" }, `Entregue em ${quandoTexto(a.entregueEm)}`) : "",
     a.sit === "entregue" && !pendente(a) ? situacaoAvaliacao(a) : "",
     a.sit === "nao_veio" ? el("span", {}, /sem cr[ée]dito/i.test(a.situacao || "") ? "O sinal não virou crédito (já tinha usado as remarcações)." : "O sinal virou crédito para remarcar.") : "");
@@ -2740,6 +2857,7 @@ function itemAgendamento(a, comData) {
     // No dia: primeiro "Carro recebido" (o cliente deixou o carro); depois "Veículo entregue".
     acoes = el("div", { class: "ag-acoes" },
       chegou && !a.recebidoEm ? botao("recebido", "Carro recebido", "mini mini-ok") : "",
+      chegou && a.recebidoEm ? botao("ver-recebidos", "Carro pronto (aba Recebidos)", "mini mini-forte") : "",
       chegou && a.recebidoEm ? botao("pedir-entregue", "Veículo entregue", "mini mini-ok") : "",
       chegou && a.recebidoEm ? botao("desfazer-recebido", "Desfazer recebido") : "",
       chegou && !a.recebidoEm ? botao("pedir-naoveio", "Não veio") : "",
@@ -2770,6 +2888,7 @@ function desenharRegras(d) {
   itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site ou pelo link mandado daqui, o cliente tem ${r.prazoMinutos ?? r.prazoSiteMinutos} minutos para pagar o Pix; se não pagar, a reserva sai da agenda e da planilha sozinha.`);
   itens.push(`O sinal é descontado do serviço. Se o cliente não vier, toque em "Não veio": o sinal vira crédito para remarcar pelo site, até ${r.remarcacoes} vezes.`);
   itens.push(`No dia do carro, às 8h, o cliente recebe um e-mail lembrando. ${r.avisoDias} dias antes, vocês recebem um e-mail (e aparece aqui) para ligar e confirmar.`);
+  if (d.whatsapp) itens.push(`WhatsApp ligado: ${r.avisoDias} dias antes, às 8h, o cliente recebe o lembrete com os botões "Confirmo" e "Preciso remarcar". Quem confirmar fica com a presença confirmada sozinho; quem pedir para remarcar gera um e-mail para vocês. O aviso de carro pronto sai da aba Recebidos.`);
   itens.push(d.mp
     ? "Mercado Pago ligado: o sinal é confirmado sozinho quando o cliente paga."
     : "Mercado Pago ainda não ligado: o site dos clientes não consegue receber o sinal. Para ligar, veja o LEIA-ME.");
@@ -3178,7 +3297,12 @@ document.addEventListener("click", e => {
     agendaDesenhar();
     return acao === "entrada" ? focarNaTela(`[data-entrada-form="${a.id}"] input`) : focarNaTela(`[data-acao="entrada"][data-id="${a.id}"]`);
   }
-  if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina. Já dá para registrar a entrada.`);
+  if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina. Já dá para registrar a entrada. Ele aparece na aba Recebidos.`);
+  if (acao === "ver-recebidos") {
+    if ($("#dlgDia").open) $("#dlgDia").close();
+    abrirAba("recebidos");
+    return window.scrollTo(0, 0);
+  }
   if (acao === "desfazer-recebido") return executar("agenda_recebido", { id: a.id, desfazer: true }, "Desfeito: o carro voltou para \"não recebido\".");
   if (acao === "pedir-entregue" || acao === "pedir-restante") {
     // Entrada que já cobriu tudo: entrega sem perguntar.
@@ -3783,6 +3907,531 @@ marcarVista();
 /* Agenda de exemplo: mesmas regras da planilha, tudo só na memória do navegador.
    "Conferir pagamento" faz de conta que o cliente pagou. */
 
+/* ---------- WhatsApp: o que aconteceu com cada agendamento ---------- */
+
+const quandoWA = q => (q ? `${q.slice(8, 10)}/${q.slice(5, 7)} às ${q.slice(11, 16)}` : "");
+const situacaoWA = s => (s ? s.toLowerCase() : "");
+
+// Linhas do WhatsApp num carro da agenda: lembrete, confirmação ou pedido de remarcar.
+function linhasWhatsAgenda(a) {
+  const w = a.wa;
+  if (!w) return [];
+  const linhas = [];
+  if (w.lembrete) {
+    linhas.push(w.lembrete.situacao === "Não enviada" || w.lembrete.situacao === "Não entregue"
+      ? el("span", { class: "err-txt" }, `WhatsApp: o lembrete não foi ${w.lembrete.situacao === "Não enviada" ? "enviado" : "entregue"}${w.lembrete.detalhe ? ` (${w.lembrete.detalhe})` : ""}`)
+      : el("span", {}, `WhatsApp: lembrete enviado em ${quandoWA(w.lembrete.em)} · ${situacaoWA(w.lembrete.situacao)}`));
+  }
+  if (w.confirmou && (!w.lembrete || w.confirmou.em >= w.lembrete.em)) linhas.push(el("span", { class: "ok-txt" }, `Confirmou pelo WhatsApp em ${quandoWA(w.confirmou.em)}`));
+  if (w.remarcar && (!w.lembrete || w.remarcar.em >= w.lembrete.em)) linhas.push(el("span", { class: "err-txt" }, `Pediu para remarcar pelo WhatsApp em ${quandoWA(w.remarcar.em)}`));
+  return linhas;
+}
+
+/* ---------- Aba Recebidos: carros na oficina ---------- */
+
+const RC = { dados: null, erro: "", pronto: null, form: null, entregar: null, ocupado: false };
+
+async function rcCarregar() {
+  $("#recebidos").classList.add("carregando");
+  $("#rcErro").hidden = true;
+  try {
+    const d = await agendaPedir("agenda_recebidos");
+    if (d && d.ok && Array.isArray(d.recebidos)) RC.dados = d;
+    else if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else mostrarErro($("#rcErro"), d && d.erro !== "acao" && d.mensagem ? d.mensagem : MSG_VERSAO);
+  } catch {
+    mostrarErro($("#rcErro"), MSG_REDE);
+  } finally {
+    $("#recebidos").classList.remove("carregando");
+  }
+  rcDesenhar();
+}
+
+const minutos = h => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+const hhmm = m => `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+
+// A oficina está aberta agora? (dias e horário de REGRAS.funcionamento)
+function abertoAgora(f, agora) {
+  if (!f) return true;
+  const data = agora.slice(0, 10), m = minutos(agora.slice(11, 16));
+  return f.dias.indexOf(diaSemana(data)) !== -1 && m >= minutos(f.abre) && m < minutos(f.fecha);
+}
+
+// Sugestão para "fica pronto em": aberto agora, daqui a 1 hora (arredondada); fechado, a próxima abertura.
+function sugestaoPronto(f, agora) {
+  let data = agora.slice(0, 10);
+  const m = minutos(agora.slice(11, 16));
+  if (f && abertoAgora(f, agora)) {
+    const alvo = Math.ceil((m + 60) / 30) * 30;
+    if (alvo <= minutos(f.fecha)) return { data, hora: hhmm(alvo) };
+  }
+  const abre = f ? f.abre : "08:00";
+  if (!f || f.dias.indexOf(diaSemana(data)) === -1 || m >= minutos(abre)) data = somaDias(data, 1);
+  for (let i = 0; i < 8 && f && f.dias.indexOf(diaSemana(data)) === -1; i++) data = somaDias(data, 1);
+  return { data, hora: abre };
+}
+
+// Igual à planilha: "hoje, a partir das 16h", "amanhã, quinta (05/11), a partir das 8h", "na sexta (06/11), a partir das 8h".
+function fraseRetirada(quando, hoje) {
+  const data = quando.slice(0, 10), hora = horaBR(quando.slice(11, 16));
+  const dia = SEMANA[diaSemana(data)], dm = `${data.slice(8, 10)}/${data.slice(5, 7)}`;
+  if (data === hoje) return `hoje, a partir das ${hora}`;
+  if (data === somaDias(hoje, 1)) return `amanhã, ${dia} (${dm}), a partir das ${hora}`;
+  return `${/^(sábado|domingo)$/.test(dia) ? "no" : "na"} ${dia} (${dm}), a partir das ${hora}`;
+}
+
+const textoDias = dias => {
+  const nomes = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const ordem = dias.slice().sort((x, y) => x - y);
+  const seguidos = ordem.every((d, i) => !i || d === ordem[i - 1] + 1);
+  return seguidos && ordem.length > 2 ? `${nomes[ordem[0]]} a ${nomes[ordem[ordem.length - 1]]}` : ordem.map(d => nomes[d]).join(", ");
+};
+
+function rcDesenhar() {
+  const d = RC.dados;
+  const lista = $("#rcLista");
+  $("#rcSemWa").hidden = !d || d.whatsapp;
+  if (!d) {
+    $("#rcResumo").replaceChildren();
+    return lista.replaceChildren(RC.erro ? "" : el("p", { class: "nota" }, "Carregando os carros…"));
+  }
+  const kpi = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
+  const r = d.recebidos;
+  const avisados = r.filter(a => a.wa && a.wa.pronto && a.wa.pronto.situacao !== "Não enviada");
+  const vindo = r.filter(a => respostaAtual(a) && respostaAtual(a).tipo === "indo");
+  const falta = r.reduce((t, a) => t + (faltaReceber(a) || 0), 0);
+  $("#rcResumo").replaceChildren(
+    kpi("Na oficina", String(r.length), plural(r.length, "carro recebido", "carros recebidos")),
+    kpi("Avisados", String(avisados.length), "que o carro fica pronto"),
+    kpi("Vindo buscar", String(vindo.length), "responderam \"Estou indo\""),
+    kpi("Falta receber", reais(falta), "dos carros na oficina"));
+  const f = d.funcionamento;
+  $("#rcHorario").textContent = f ? `Horário da oficina: ${textoDias(f.dias)}, das ${horaBR(f.abre)} às ${horaBR(f.fecha)}.` : "";
+  if (!r.length) return lista.replaceChildren(el("p", { class: "vazio" }, "Nenhum carro na oficina agora. Quando vocês tocarem em \"Carro recebido\" na agenda, ele aparece aqui."));
+  lista.replaceChildren(...r.map(itemRecebido));
+}
+
+// Resposta do cliente ao último aviso de carro pronto.
+const respostaAtual = a => (a.wa && a.wa.resposta && a.wa.pronto && a.wa.resposta.em >= a.wa.pronto.em ? a.wa.resposta : null);
+
+const diasNaOficina = a => {
+  const n = Math.round((Date.parse(RC.dados.hoje + "T12:00:00Z") - Date.parse(a.recebidoEm.slice(0, 10) + "T12:00:00Z")) / 864e5);
+  return n <= 0 ? "chegou hoje" : n === 1 ? "há 1 dia" : `há ${n} dias`;
+};
+
+function itemRecebido(a) {
+  const botao = (acao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-rc": acao, "data-id": a.id }, texto);
+  const resp = respostaAtual(a);
+  const pronto = a.wa && a.wa.pronto;
+  const zap = linkZap(a.telefone);
+  const falta = faltaReceber(a);
+  const selo = resp && resp.tipo === "indo" ? el("span", { class: "selo-sinal sim" }, "Cliente está vindo")
+    : resp ? el("span", { class: "selo-sinal nao" }, "Vem outro dia")
+    : pronto && pronto.situacao !== "Não enviada" ? el("span", { class: "selo-sinal nao" }, "Avisado")
+    : el("span", { class: "selo-sinal" }, `Na oficina ${diasNaOficina(a)}`);
+  const dado = (rot, valor, largo) => (valor ? el("div", largo ? { class: "largo" } : {}, el("dt", {}, rot), el("dd", {}, valor)) : "");
+  const dados = el("dl", { class: "rc-dados" },
+    dado("Carro", `${a.carro}${a.placa ? ` · ${a.placa}` : ""}`),
+    dado("Serviço", a.servico),
+    dado("Recebido", `${quandoTexto(a.recebidoEm)} (${diasNaOficina(a)})`),
+    dado("Agendado para", dataLonga(a.data) + (a.horario ? `, às ${horaBR(a.horario)}` : "")),
+    dado("Telefone", a.telefone),
+    dado("Orçamento", a.orcamento ? reais(a.orcamento) : "sem orçamento"),
+    dado("Sinal + entrada", reais((a.sinal || 0) + (a.entrada || 0))),
+    dado("Falta receber", falta === null ? "ponha o orçamento" : falta ? reais(falta) : "R$ 0,00 (pago tudo)"));
+  const zapCaixa = [];
+  if (pronto) {
+    const falhou = pronto.situacao === "Não enviada" || pronto.situacao === "Não entregue";
+    zapCaixa.push(falhou
+      ? el("span", { class: "err-txt" }, `O aviso de carro pronto não foi ${pronto.situacao === "Não enviada" ? "enviado" : "entregue"}${pronto.detalhe ? `: ${pronto.detalhe}` : "."}`)
+      : el("span", {}, el("b", {}, "Aviso de carro pronto: "), `pronto para retirada ${pronto.retirada || "a partir de agora"}. Mandado em ${quandoWA(pronto.em)} · ${situacaoWA(pronto.situacao)}.`));
+  }
+  if (resp) zapCaixa.push(el("span", { class: resp.tipo === "indo" ? "ok-txt" : "" }, `Cliente respondeu "${resp.tipo === "indo" ? "Estou indo" : "Vou outro dia"}" em ${quandoWA(resp.em)}.`));
+  else if (pronto && pronto.situacao !== "Não enviada") zapCaixa.push(el("span", { class: "sub" }, "O cliente ainda não respondeu."));
+  let acoes;
+  if (RC.entregar === a.id) {
+    acoes = el("div", { class: "confirma", role: "alert" },
+      el("span", {}, `Entregar o carro de ${a.cliente}. ` + (falta === null ? "O cliente já pagou tudo o que faltava do serviço?" : `O restante de ${reais(falta)} já foi pago?`)),
+      el("div", { class: "ag-acoes" }, botao("entregue-pago", "Sim, pagou tudo", "mini mini-ok"),
+        botao("entregue-pendente", "Não, ficou pendente", "mini perigo"), botao("cancelar", "Cancelar")));
+  } else {
+    acoes = el("div", { class: "ag-acoes" },
+      RC.pronto === a.id ? "" : botao("pronto", pronto ? "Avisar de novo" : "Carro pronto", "mini mini-forte"),
+      botao("entregar", "Veículo entregue", "mini mini-ok"),
+      zap ? el("a", { class: "mini mini-wa", href: zap, target: "_blank", rel: "noopener" }, "Conversar") : "");
+  }
+  return el("article", { class: "rc-item" + (resp && resp.tipo === "indo" ? " indo" : ""), "data-rc-item": a.id },
+    el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, a.cliente), selo),
+    dados,
+    a.obs ? el("p", { class: "ag-obs" }, a.obs) : "",
+    zapCaixa.length ? el("div", { class: "rc-zap" }, ...zapCaixa) : "",
+    RC.pronto === a.id ? formPronto(a) : "",
+    el("p", { class: "err", role: "alert", hidden: "", "data-rc-erro": a.id }),
+    acoes);
+}
+
+// Quadro do "Carro pronto": já pode buscar ou fica pronto num dia e hora. Mostra a mensagem como o cliente vai receber.
+function formPronto(a) {
+  const d = RC.dados;
+  const f = RC.form;
+  const aberto = abertoAgora(d.funcionamento, d.agora);
+  const quando = f.modo === "agora" ? "" : `${f.data} ${f.hora}`;
+  const frase = f.modo === "agora" ? "a partir de agora" : f.data && f.hora ? fraseRetirada(quando, d.hoje) : "…";
+  const previa = (d.modeloPronto || "").replace("{{1}}", primeiroNomeDe(a.cliente)).replace("{{2}}", a.carro).replace("{{3}}", frase);
+  const radio = (valor, texto) => el("label", { class: "rc-op" },
+    el("input", { type: "radio", name: "rcModo", value: valor, ...(f.modo === valor ? { checked: "" } : {}) }), texto);
+  const fechado = !aberto && f.modo === "agora";
+  return el("form", { class: "rc-form", "data-rc-form": a.id, novalidate: "" },
+    el("fieldset", {},
+      el("legend", {}, "Quando o cliente pode buscar?"),
+      radio("agora", "Já pode buscar agora"),
+      radio("hora", "Fica pronto em:"),
+      el("div", { class: "rc-quando" },
+        el("input", { type: "date", name: "rcData", value: f.data, min: d.hoje, "aria-label": "Dia em que fica pronto", ...(f.modo === "agora" ? { disabled: "" } : {}) }),
+        el("input", { type: "time", name: "rcHora", value: f.hora, step: "1800", "aria-label": "Hora em que fica pronto", ...(f.modo === "agora" ? { disabled: "" } : {}) }))),
+    fechado ? el("p", { class: "err-txt" }, `A oficina está fechada agora (abre às ${horaBR(d.funcionamento.abre)}). Melhor escolher "Fica pronto em".`) : "",
+    el("div", { class: "rc-msg" },
+      el("span", { class: "nota" }, "O cliente recebe no WhatsApp:"),
+      el("p", { class: "rc-previa" }, previa),
+      el("div", { class: "rc-botoes", "aria-label": "Botões da mensagem" }, ...(d.botoesPronto || ["Estou indo", "Vou outro dia"]).map(b => el("span", {}, b)))),
+    el("p", { class: "nota" }, "Se ele tocar em \"Estou indo\", vocês recebem um e-mail na hora."),
+    el("div", { class: "ag-acoes" },
+      el("button", { type: "submit", class: "mini mini-wa", ...(d.whatsapp ? {} : { disabled: "" }) }, RC.ocupado ? "Mandando…" : "Mandar no WhatsApp"),
+      el("button", { type: "button", class: "mini", "data-rc": "fechar-pronto", "data-id": a.id }, "Cancelar")),
+    d.whatsapp ? "" : el("p", { class: "err-txt" }, "O WhatsApp ainda não está ligado. Toque em \"WhatsApp\" lá em cima."));
+}
+
+const primeiroNomeDe = nome => String(nome || "").trim().split(" ")[0] || "tudo bem";
+
+function rcFocar(sel) {
+  const alvo = $(sel);
+  if (alvo) alvo.focus();
+}
+
+async function rcAcao(acao, extra, msgOk, id) {
+  if (RC.ocupado) return;
+  RC.ocupado = true;
+  document.body.classList.add("salvando");
+  const erroDe = () => document.querySelector(`[data-rc-erro="${id}"]`) || $("#rcErro");
+  try {
+    const d = await agendaPedir(acao, { mes: hojeAqui().slice(0, 7), ...extra });
+    if (d && d.ok) {
+      AG.dados = null;
+      RC.pronto = null;
+      RC.entregar = null;
+      RC.ocupado = false;
+      if (Array.isArray(d.recebidos)) {
+        RC.dados = d;
+        rcDesenhar();
+      } else await rcCarregar();
+      rcAviso(msgOk);
+    } else if (d && d.erro === "senha") sair("A senha mudou. Entre de novo.");
+    else {
+      RC.ocupado = false;
+      rcDesenhar();
+      mostrarErro(erroDe(), d && d.mensagem ? d.mensagem : MSG_VERSAO);
+    }
+  } catch {
+    RC.ocupado = false;
+    rcDesenhar();
+    mostrarErro(erroDe(), MSG_REDE);
+  } finally {
+    RC.ocupado = false;
+    document.body.classList.remove("salvando");
+  }
+}
+
+let rcAvisoTimer;
+function rcAviso(msg) {
+  const alvo = $("#rcAviso");
+  alvo.textContent = msg;
+  alvo.hidden = false;
+  clearTimeout(rcAvisoTimer);
+  rcAvisoTimer = setTimeout(() => { alvo.hidden = true; }, 5000);
+}
+
+$("#rcLista").addEventListener("click", e => {
+  const b = e.target.closest("[data-rc]");
+  if (!b || !RC.dados || RC.ocupado) return;
+  const a = RC.dados.recebidos.find(x => x.id === b.dataset.id);
+  if (!a) return;
+  const acao = b.dataset.rc;
+  if (acao === "pronto") {
+    const s = sugestaoPronto(RC.dados.funcionamento, RC.dados.agora);
+    RC.pronto = a.id;
+    RC.entregar = null;
+    RC.form = { modo: abertoAgora(RC.dados.funcionamento, RC.dados.agora) ? "agora" : "hora", data: s.data, hora: s.hora };
+    rcDesenhar();
+    return rcFocar(`[data-rc-form="${a.id}"] input[name=rcModo]:checked`);
+  }
+  if (acao === "fechar-pronto" || acao === "cancelar") {
+    RC.pronto = null;
+    RC.entregar = null;
+    rcDesenhar();
+    return rcFocar(`[data-rc-item="${a.id}"] [data-rc="${acao === "cancelar" ? "entregar" : "pronto"}"]`);
+  }
+  if (acao === "entregar") {
+    RC.entregar = a.id;
+    RC.pronto = null;
+    rcDesenhar();
+    return rcFocar(`[data-rc-item="${a.id}"] [data-rc="entregue-pago"]`);
+  }
+  if (acao === "entregue-pago" || acao === "entregue-pendente") {
+    const pago = acao === "entregue-pago";
+    return rcAcao("agenda_entregue", { id: a.id, restantePago: pago },
+      pago ? `Carro de ${a.cliente} entregue. Saiu da lista de recebidos.` : `Carro de ${a.cliente} entregue com pagamento pendente (aparece na agenda em vermelho).`, a.id);
+  }
+});
+
+$("#rcLista").addEventListener("change", e => {
+  const form = e.target.closest("[data-rc-form]");
+  if (!form || !RC.form) return;
+  if (e.target.name === "rcModo") RC.form.modo = e.target.value;
+  if (e.target.name === "rcData") RC.form.data = e.target.value;
+  if (e.target.name === "rcHora") RC.form.hora = e.target.value;
+  const foco = e.target.name;
+  rcDesenhar();
+  const de = document.querySelector(`[data-rc-form="${form.dataset.rcForm}"] [name="${foco}"]${foco === "rcModo" ? ":checked" : ""}`);
+  if (de) de.focus();
+});
+
+$("#rcLista").addEventListener("submit", e => {
+  const form = e.target.closest("[data-rc-form]");
+  if (!form) return;
+  e.preventDefault();
+  const a = RC.dados.recebidos.find(x => x.id === form.dataset.rcForm);
+  const f = RC.form;
+  if (!a || !f) return;
+  if (f.modo === "hora" && (!f.data || !f.hora)) return mostrarErro(document.querySelector(`[data-rc-erro="${a.id}"]`), "Escolha o dia e a hora em que o carro fica pronto.");
+  const quando = f.modo === "agora" ? "" : `${f.data} ${f.hora}`;
+  rcAcao("agenda_pronto", { id: a.id, quando }, `Mensagem mandada para ${a.cliente}: pronto para retirada ${f.modo === "agora" ? "a partir de agora" : fraseRetirada(quando, RC.dados.hoje)}.`, a.id);
+});
+
+$("#rcAtualizar").addEventListener("click", rcCarregar);
+
+/* ---------- Aba Clientes: todo mundo que falou com a Blin Car ---------- */
+
+const CL = { dados: null, busca: "", filtro: "todos", mostrar: 30 };
+
+async function clCarregar() {
+  $("#clientes").classList.add("carregando");
+  $("#clErro").hidden = true;
+  try {
+    const d = await agendaPedir("agenda_clientes");
+    if (d && d.ok && Array.isArray(d.clientes)) CL.dados = d;
+    else if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else mostrarErro($("#clErro"), d && d.erro !== "acao" && d.mensagem ? d.mensagem : MSG_VERSAO);
+  } catch {
+    mostrarErro($("#clErro"), MSG_REDE);
+  } finally {
+    $("#clientes").classList.remove("carregando");
+  }
+  clDesenhar();
+}
+
+const seisMeses = hoje => somaDias(hoje, -182);
+const sumido = (c, hoje) => !!c.atividade && c.atividade.slice(0, 10) < seisMeses(hoje) && !c.proximo;
+const nomeCliente = c => c.nome || c.nomeWA || c.telefone;
+
+function clFiltrados() {
+  const d = CL.dados;
+  const termo = semAcento(CL.busca.trim());
+  const dig = CL.busca.replace(/\D/g, "");
+  return d.clientes.filter(c => {
+    if (CL.filtro === "agendaram" && !c.agendamentos) return false;
+    if (CL.filtro === "zap" && (c.agendamentos || !c.mensagens && c.origens.indexOf("WhatsApp") === -1)) return false;
+    if (CL.filtro === "sumidos" && !sumido(c, d.hoje)) return false;
+    if (!termo) return true;
+    const alvo = semAcento([c.nome, c.nomeWA, c.telefone, ...c.carros].join(" "));
+    return alvo.includes(termo) || (dig.length >= 4 && String(c.telefone).replace(/\D/g, "").includes(dig));
+  });
+}
+
+function clDesenhar() {
+  const d = CL.dados;
+  const lista = $("#clLista");
+  $("#clSemWa").hidden = !d || d.whatsapp;
+  if (!d) {
+    $("#clResumo").replaceChildren();
+    return lista.replaceChildren(el("p", { class: "nota" }, "Carregando os clientes…"));
+  }
+  const kpi = (rot, valor, det) => el("div", { class: "kpi" }, el("span", { class: "rot" }, rot), el("strong", {}, valor), el("span", { class: "det" }, det));
+  const c = d.clientes;
+  $("#clResumo").replaceChildren(
+    kpi("Clientes", String(c.length), "no total"),
+    kpi("Já agendaram", String(c.filter(x => x.agendamentos).length), "pelo site ou pelo painel"),
+    kpi("Só conversaram", String(c.filter(x => !x.agendamentos).length), "no WhatsApp, sem agendar"),
+    kpi("Voltaram", String(c.filter(x => x.agendamentos >= 2).length), "mais de um agendamento"));
+  document.querySelectorAll("[data-cl-filtro]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.clFiltro === CL.filtro)));
+  const f = clFiltrados();
+  if (!f.length) return lista.replaceChildren(el("p", { class: "vazio" }, CL.busca || CL.filtro !== "todos" ? "Ninguém encontrado com essa busca." : "Ainda não tem clientes aqui."));
+  const itens = f.slice(0, CL.mostrar).map(x => itemCliente(x, d.hoje));
+  if (f.length > CL.mostrar) itens.push(el("button", { type: "button", class: "mini cl-mais", "data-cl": "mais" }, `Mostrar mais (${f.length - CL.mostrar})`));
+  lista.replaceChildren(el("p", { class: "nota", "aria-live": "polite" }, plural(f.length, "cliente", "clientes")), ...itens);
+}
+
+function itemCliente(c, hoje) {
+  const etq = (classe, texto) => el("span", { class: "etq " + classe }, texto);
+  const tags = [];
+  if (c.origens.indexOf("Site") !== -1) tags.push(etq("site", "Site"));
+  if (c.origens.indexOf("Painel") !== -1) tags.push(etq("painel", "Painel"));
+  if (c.origens.indexOf("WhatsApp") !== -1) tags.push(etq("zap", "WhatsApp"));
+  if (c.agendamentos >= 2) tags.push(etq("volta", plural(c.agendamentos, "agendamento", "agendamentos")));
+  if (sumido(c, hoje)) {
+    const meses = Math.max(6, Math.round((Date.parse(hoje) - Date.parse(c.atividade.slice(0, 10))) / (30.4 * 864e5)));
+    tags.push(etq("sumido", `sumido há ${meses} meses`));
+  }
+  const linha2 = [c.nome || c.nomeWA ? c.telefone : "", ...c.carros.slice(0, 2)].filter(Boolean).join(" · ");
+  let linha3;
+  if (c.proximo) linha3 = el("span", { class: "cl-sub" }, c.proximo.recebido ? "Na oficina agora: " : "Agendado: ",
+    el("b", {}, `${c.proximo.servico} em ${dataCurta(c.proximo.data)}${c.proximo.horario ? ` às ${horaBR(c.proximo.horario)}` : ""}`));
+  else if (c.ultimo) linha3 = el("span", { class: "cl-sub" }, "Último: ", el("b", {}, `${c.ultimo.servico} em ${c.ultimo.data.slice(8, 10)}/${c.ultimo.data.slice(5, 7)}/${c.ultimo.data.slice(0, 4)}`),
+    c.total ? ` · total ${reais(c.total)}` : "");
+  else if (c.ultimoAg) linha3 = el("span", { class: "cl-sub" }, "Último agendamento: ", el("b", {}, `${c.ultimoAg.servico} em ${c.ultimoAg.data.slice(8, 10)}/${c.ultimoAg.data.slice(5, 7)}/${c.ultimoAg.data.slice(0, 4)}`),
+    c.ultimoAg.sit === "nao_veio" ? " (não veio)" : c.ultimoAg.sit === "credito" ? " (virou crédito)" : c.ultimoAg.sit === "pago_sem_vaga" ? " (pagou sem vaga)" : "");
+  else if (c.ultimaMensagem) linha3 = el("span", { class: "cl-sub" }, `Última mensagem em ${quandoTexto(c.ultimaMensagem)}`, c.ultimoTexto ? `: "${c.ultimoTexto}"` : "");
+  else linha3 = el("span", { class: "cl-sub" }, c.agendamentos ? "" : "Ainda não agendou.");
+  const zap = linkZap(c.telefone);
+  return el("div", { class: "cl-item" },
+    el("div", { class: "cl-txt" },
+      el("div", { class: "cl-nome" }, nomeCliente(c), ...tags),
+      linha2 ? el("span", { class: "cl-sub" }, linha2) : "",
+      linha3,
+      c.mensagens ? el("span", { class: "cl-sub" }, `${plural(c.mensagens, "mensagem recebida", "mensagens recebidas")} no WhatsApp`) : ""),
+    zap ? el("a", { class: "mini mini-wa", href: zap, target: "_blank", rel: "noopener" }, "Conversar") : "");
+}
+
+$("#clBusca").addEventListener("input", e => {
+  CL.busca = e.target.value;
+  CL.mostrar = 30;
+  if (CL.dados) clDesenhar();
+});
+$("#clFiltros").addEventListener("click", e => {
+  const b = e.target.closest("[data-cl-filtro]");
+  if (!b) return;
+  CL.filtro = b.dataset.clFiltro;
+  CL.mostrar = 30;
+  if (CL.dados) clDesenhar();
+});
+$("#clLista").addEventListener("click", e => {
+  if (!e.target.closest("[data-cl='mais']")) return;
+  CL.mostrar += 50;
+  clDesenhar();
+});
+$("#clAtualizar").addEventListener("click", clCarregar);
+
+// Planilha (CSV) com nome e telefone, boa para salvar no celular ou fazer lista de transmissão.
+$("#clBaixar").addEventListener("click", () => {
+  if (!CL.dados) return;
+  const campo = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+  const linhas = [["Nome", "Nome no WhatsApp", "Telefone", "Carros", "Agendamentos", "Serviços entregues", "Total gasto", "Última conversa"]]
+    .concat(clFiltrados().map(c => [c.nome, c.nomeWA, c.telefone, c.carros.join(" / "), c.agendamentos, c.servicos,
+      c.total ? numeroBR(c.total) : "", c.ultimaConversa]));
+  const csv = "﻿" + linhas.map(l => l.map(campo).join(";")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const a = el("a", { href: url, download: `clientes-blincar-${hojeAqui()}.csv` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+/* ---------- Janela do WhatsApp: chave, mensagens prontas (aprovação da Meta) e aviso das mensagens ---------- */
+
+const WA = { dados: null, erro: "", ocupado: false };
+
+async function abrirWhats(atualizar) {
+  WA.erro = "";
+  if (!$("#dlgWa").open) $("#dlgWa").showModal();
+  WA.ocupado = true;
+  desenharWhats();
+  try {
+    const d = await agendaPedir("agenda_whatsapp", { atualizar: !!atualizar });
+    if (d && d.ok && "chave" in d) WA.dados = d;
+    else if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else WA.erro = d && d.erro !== "acao" && d.mensagem ? d.mensagem : MSG_VERSAO;
+  } catch {
+    WA.erro = MSG_REDE;
+  }
+  WA.ocupado = false;
+  desenharWhats();
+}
+
+async function ligarWhats() {
+  if (WA.ocupado) return;
+  WA.ocupado = true;
+  WA.erro = "";
+  desenharWhats();
+  try {
+    const d = await agendaPedir("agenda_whatsapp_ligar");
+    if (d && d.ok && "chave" in d) WA.dados = d;
+    else WA.erro = d && d.mensagem ? d.mensagem : MSG_VERSAO;
+  } catch {
+    WA.erro = MSG_REDE;
+  }
+  WA.ocupado = false;
+  desenharWhats();
+  if (RC.dados) rcCarregar();
+}
+
+const STATUS_MODELO = {
+  APPROVED: ["Aprovada pela Meta", "sim"], PENDING: ["Em análise na Meta (pode levar de minutos a algumas horas)", "nao"],
+  IN_APPEAL: ["Em recurso na Meta", "nao"], REJECTED: ["Recusada pela Meta", "alerta"], PAUSED: ["Pausada pela Meta", "alerta"],
+  DISABLED: ["Desativada pela Meta", "alerta"], NAO_CRIADO: ["Ainda não criada", "nao"], ERRO: ["Não consegui consultar", "alerta"]
+};
+
+function desenharWhats() {
+  const d = WA.dados;
+  const passo = (feito, titulo, ...conteudo) => el("li", { class: "wa-passo" + (feito ? " feito" : "") },
+    el("b", {}, feito ? "✓ " : "", titulo), ...conteudo);
+  const corpo = [el("div", { class: "dlg-topo" },
+    el("div", {}, el("h2", { id: "waTitulo" }, "WhatsApp"),
+      el("p", { class: "sub" }, "O número da oficina continua no celular. Daqui saem só o lembrete de 2 dias e o aviso de carro pronto, e todo mundo que manda mensagem entra na aba Clientes.")),
+    el("button", { type: "button", class: "mini", "data-wa": "fechar" }, "Fechar"))];
+  if (!d) {
+    corpo.push(WA.erro ? el("p", { class: "err", role: "alert" }, WA.erro) : el("p", { class: "nota" }, "Conferindo o WhatsApp…"));
+    return $("#waCorpo").replaceChildren(...corpo);
+  }
+  const aprovadas = d.modelos.filter(m => m.status === "APPROVED").length;
+  const webhookOk = d.webhook && d.webhook.status && ["NAO_CRIADO", "ERRO"].indexOf(d.webhook.status) === -1;
+  const tudo = d.chave && d.waba && aprovadas === d.modelos.length && webhookOk;
+  corpo.push(el("ol", { class: "wa-passos" },
+    passo(d.chave, "Chave da YCloud",
+      el("span", { class: "sub" }, d.chave ? "Colocada nas Propriedades do script." : "Falta colocar: no Apps Script, Configurações do projeto > Propriedades do script > Adicionar propriedade, nome YCLOUD_KEY e o valor da chave (YCloud > Desenvolvedor > Chaves de API).")),
+    passo(!!d.waba, `Número ${d.numero}`,
+      el("span", { class: "sub" }, d.waba ? "Conectado na YCloud." : "Ainda não conferido: toque em \"Ligar o WhatsApp\".")),
+    passo(d.modelos.length && aprovadas === d.modelos.length, "Mensagens prontas",
+      el("span", { class: "sub" }, "A Meta precisa aprovar as mensagens que a oficina manda primeiro."),
+      ...d.modelos.map(m => {
+        const st = STATUS_MODELO[m.status] || [m.status ? m.status : "Ainda não criada", "nao"];
+        return el("div", { class: "wa-modelo" },
+          el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, m.titulo), el("span", { class: "selo-sinal " + st[1] }, st[0])),
+          m.motivo ? el("span", { class: "err-txt" }, m.motivo) : "",
+          el("p", { class: "rc-previa" }, m.texto.replace("{{1}}", "Carlos").replace("{{2}}", "Onix 2019 prata").replace("{{3}}", m.chave === "pronto" ? "hoje, a partir das 16h" : "quinta-feira, 5 de novembro, às 10h")),
+          el("div", { class: "rc-botoes" }, ...m.botoes.map(b => el("span", {}, b))));
+      })),
+    passo(webhookOk, "Aviso das mensagens que chegam",
+      el("span", { class: "sub" }, webhookOk ? `Ligado. ${d.ultimoEvento ? `Último aviso recebido em ${quandoWA(d.ultimoEvento)}.` : "Nenhuma mensagem recebida ainda."}`
+        : "Ainda não ligado: toque em \"Ligar o WhatsApp\"." + (d.webhook && d.webhook.motivo ? ` (${d.webhook.motivo})` : "")))));
+  if (d.erros && d.erros.length) corpo.push(el("div", { class: "err", role: "alert" }, ...d.erros.map(x => el("div", {}, x))));
+  if (WA.erro) corpo.push(el("p", { class: "err", role: "alert" }, WA.erro));
+  if (d.funcionamento) corpo.push(el("p", { class: "nota" }, `Horário da oficina usado no "Carro pronto": ${textoDias(d.funcionamento.dias)}, das ${horaBR(d.funcionamento.abre)} às ${horaBR(d.funcionamento.fecha)}.`));
+  corpo.push(el("div", { class: "ag-acoes" },
+    tudo ? "" : el("button", { type: "button", class: "btn btn-red", "data-wa": "ligar", ...(d.chave && !WA.ocupado ? {} : { disabled: "" }) }, WA.ocupado ? "Ligando…" : "Ligar o WhatsApp"),
+    el("button", { type: "button", class: "mini", "data-wa": "atualizar", ...(WA.ocupado ? { disabled: "" } : {}) }, WA.ocupado ? "Conferindo…" : "Atualizar")));
+  $("#waCorpo").replaceChildren(...corpo);
+}
+
+document.querySelectorAll("[data-abrir-wa]").forEach(b => b.addEventListener("click", () => abrirWhats(false)));
+$("#dlgWa").addEventListener("click", e => {
+  if (e.target === $("#dlgWa")) return $("#dlgWa").close();
+  const b = e.target.closest("[data-wa]");
+  if (!b) return;
+  if (b.dataset.wa === "fechar") return $("#dlgWa").close();
+  if (b.dataset.wa === "ligar") return ligarWhats();
+  if (b.dataset.wa === "atualizar") return abrirWhats(true);
+});
+
 function criarDemo() {
   const regras = {
     servicos: {
@@ -3790,7 +4439,8 @@ function criarDemo() {
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
     sinal: 50, avisoDias: 2, avaliacaoDias: 5, remarcacoes: 3, prazoMinutos: 10, antecedenciaDias: 1, janelaDias: 120,
-    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1
+    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1,
+    funcionamento: { dias: [1, 2, 3, 4, 5, 6], abre: "08:00", fecha: "18:00" }
   };
   const hoje = hojeAqui();
   const especiais = {};
@@ -3855,6 +4505,13 @@ function criarDemo() {
       orcamento: 2500, entrada: 1000, recebidoEm: `${somaDias(anterior("Retoque"), -14)} 08:05`, situacao: "Veículo entregue",
       entregueEm: `${somaDias(anterior("Retoque"), -12)} 17:30`, restante: "pendente", obs: "Pintura do capô e para-choque" })
   ];
+  // Outro carro na oficina, já avisado de que estava pronto e com o cliente vindo buscar.
+  const tiago = novo(somaDias(anterior("Retoque"), -2), "Retoque", "Tiago (exemplo)", "Siena 2012 prata", true, { orcamento: 950, entrada: 400,
+    recebidoEm: `${somaDias(anterior("Retoque"), -2)} 09:10`, obs: "Retoque no capô" });
+  tiago.wa = { pronto: { em: `${hoje} 08:30`, situacao: "Lida", retirada: "hoje, a partir das 10h" }, resposta: { tipo: "indo", em: `${hoje} 08:41`, situacao: "Recebida" } };
+  lista.push(tiago);
+  // Lembrete do WhatsApp: Carlos confirmou tocando em "Confirmo".
+  lista[0].wa = { lembrete: { em: `${somaDias(lista[0].data, -2)} 08:00`, situacao: "Lida" }, confirmou: { em: `${somaDias(lista[0].data, -2)} 08:12`, situacao: "Recebida" } };
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
   // Avaliações de exemplo: uma publicada, uma nova para decidir e uma abaixo de 4 estrelas.
   const linkAval = id => new URL(`../avaliar/?t=EXEMPLO${id}`, location.href).href;
@@ -3890,7 +4547,50 @@ function criarDemo() {
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
     recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0, restante: a.restante || "", restantePagoEm: a.restantePagoEm || "", horario: a.horario || "",
-    avaliacao: a.avaliacao || null });
+    avaliacao: a.avaliacao || null, wa: a.wa || null });
+  // Quem só conversou no WhatsApp (no exemplo).
+  const conversas = [
+    { telefone: "(21) 90000-0091", nomeWA: "Juliana Rocha", ultimaMensagem: `${somaDias(hoje, -3)} 14:20`, mensagens: 4, ultimoTexto: "Quanto fica a pintura do para-choque?" },
+    { telefone: "(21) 90000-0092", nomeWA: "", ultimaMensagem: `${somaDias(hoje, -40)} 10:02`, mensagens: 1, ultimoTexto: "Bom dia, vocês abrem sábado?" },
+    { telefone: lista[0].telefone, nomeWA: "Carlos M.", ultimaMensagem: `${somaDias(lista[0].data, -2)} 08:12`, mensagens: 3, ultimoTexto: "Confirmo" },
+    { telefone: "(21) 90000-0093", nomeWA: "Roberto Lima", ultimaMensagem: "2026-03-10 09:30", mensagens: 6, ultimoTexto: "Valeu, ficou top!" }
+  ];
+  const textoPronto = "Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} fica pronto para retirada {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você vem buscar?";
+  const textoLembrete = "Olá, {{1}}! Aqui é da Blin Car. Passando para lembrar que o seu {{2}} está agendado para {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você confirma que vai trazer o carro?";
+  const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), funcionamento: regras.funcionamento, whatsapp: true, modeloPronto: textoPronto,
+    botoesPronto: ["Estou indo", "Vou outro dia"], recebidos: comSit().filter(a => a.sit === "confirmado" && a.recebidoEm).map(publico)
+      .sort((x, y) => (x.recebidoEm < y.recebidoEm ? -1 : 1)) }, extra || {});
+  const clientesDemo = () => {
+    const pessoas = {};
+    const chave = t => String(t).replace(/\D/g, "").slice(-8);
+    const pessoa = t => pessoas[chave(t)] || (pessoas[chave(t)] = { chave: chave(t), telefone: t, nome: "", nomeWA: "", carros: [], agendamentos: 0, servicos: 0, total: 0,
+      ultimo: null, proximo: null, origens: [], mensagens: 0, primeira: "", ultimaConversa: "", ultimaMensagem: "", ultimoTexto: "", desde: "", ultimoCriado: "", ultimoAg: null });
+    conversas.forEach(c => Object.assign(pessoa(c.telefone), { nomeWA: c.nomeWA, mensagens: c.mensagens, ultimaMensagem: c.ultimaMensagem, ultimaConversa: c.ultimaMensagem,
+      ultimoTexto: c.ultimoTexto, origens: ["WhatsApp"] }));
+    comSit().slice().sort((x, y) => (x.data < y.data ? -1 : 1)).forEach(a => {
+      const p = pessoa(a.telefone);
+      p.nome = a.cliente;
+      const carro = `${a.carro}${a.placa ? ` (${a.placa})` : ""}`;
+      if (p.carros.indexOf(carro) === -1) p.carros.push(carro);
+      if (p.origens.indexOf(a.origem) === -1) p.origens.push(a.origem);
+      if (!p.desde || a.criado < p.desde) p.desde = a.criado;
+      if (a.criado > p.ultimoCriado) p.ultimoCriado = a.criado;
+      if (["confirmado", "entregue", "nao_veio", "credito", "pago_sem_vaga"].indexOf(a.sit) === -1) return;
+      p.agendamentos++;
+      p.ultimoAg = { data: a.data, servico: a.servico, sit: a.sit };
+      if (a.sit === "entregue") { p.servicos++; p.total += a.orcamento || 0; p.ultimo = { data: a.data, servico: a.servico, carro: a.carro }; }
+      if (a.sit === "confirmado" && (a.recebidoEm || a.data >= hoje) && (!p.proximo || (!p.proximo.recebido && (a.recebidoEm || a.data < p.proximo.data)))) p.proximo = { data: a.data, horario: a.horario || "", servico: a.servico, recebido: !!a.recebidoEm };
+    });
+    // Roberto já agendou antes e sumiu.
+    Object.assign(pessoa("(21) 90000-0093"), { nome: "Roberto Lima (exemplo)", carros: ["HB20 2020 branco (RIO3A13)"], agendamentos: 1, servicos: 1, total: 3500,
+      ultimo: { data: "2026-03-08", servico: "Pintura geral", carro: "HB20 2020 branco" }, ultimoCriado: "2026-03-01 10:00", origens: ["Painel", "WhatsApp"] });
+    return Object.values(pessoas).map(p => Object.assign(p, { atividade: [p.ultimaConversa, p.ultimoCriado, p.ultimo && p.ultimo.data].filter(Boolean).sort().pop() || "" }))
+      .sort((x, y) => (x.atividade < y.atividade ? 1 : -1));
+  };
+  const statusZap = () => ({ ok: true, chave: true, numero: "(21) 99657-8427", waba: "exemplo", ultimoEvento: `${hoje} 08:41`, webhookUrl: "",
+    webhook: { status: "active", eventos: [] }, erros: [], funcionamento: regras.funcionamento,
+    modelos: [{ chave: "lembrete", titulo: "Lembrete de 2 dias antes", nome: "blincar_lembrete_agendamento", status: "APPROVED", motivo: "", texto: textoLembrete, botoes: ["Confirmo", "Preciso remarcar"] },
+      { chave: "pronto", titulo: "Carro pronto", nome: "blincar_carro_pronto", status: "APPROVED", motivo: "", texto: textoPronto, botoes: ["Estou indo", "Vou outro dia"] }] });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
   const credito = (a, nivel, motivo) => creditos.push({ id: "cr" + (++seq), cliente: a.cliente, email: a.email, telefone: a.telefone,
@@ -3998,6 +4698,20 @@ function criarDemo() {
       return { ok: true, hoje, agendamentos: h.sort((x, y) => (x.data < y.data ? 1 : x.data > y.data ? -1 : 0)) };
     }
     if (acao === "agenda_avaliacoes") return painelAval();
+    if (acao === "agenda_recebidos") return recebidos();
+    if (acao === "agenda_clientes") return { ok: true, hoje, clientes: clientesDemo(), whatsapp: true, ultimoEvento: `${hoje} 08:41` };
+    if (acao === "agenda_whatsapp" || acao === "agenda_whatsapp_ligar") return statusZap();
+    if (acao === "agenda_pronto") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (a.sit !== "confirmado" || !a.recebidoEm) return falha("situacao", "Esse carro não está na oficina. Atualize a lista.");
+      const q = String(extra.quando || "");
+      if (q && (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(q))) return falha("dados", "Escolha o dia e a hora em que o carro fica pronto.");
+      if (q && q < agora()) return falha("dados", "Esse horário já passou. Escolha outro ou marque \"Já pode buscar\".");
+      const retirada = q ? fraseRetirada(q, hoje) : "a partir de agora";
+      a.wa = Object.assign({}, a.wa, { pronto: { em: agora(), situacao: "Enviada", retirada } });
+      return recebidos({ enviado: a.id, retirada });
+    }
     if (acao === "agenda_pagamentos") {
       const h = n => `${hoje} ${n}`;
       return { ok: true, hoje, pagamentos: [
