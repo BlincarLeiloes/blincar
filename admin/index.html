@@ -791,7 +791,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
         <button type="button" class="mini mini-icone" data-abrir-wa aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1.2-.5-2.3-1.6-2.8-2.8l.9-1-1-2z"/></svg>WhatsApp</button>
       </div>
     </div>
-    <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp. <span id="rcHorario"></span></p>
+    <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp.</p>
     <p class="aviso" id="rcSemWa" hidden><b>O WhatsApp ainda não está ligado.</b> Para mandar o aviso de carro pronto, toque em "WhatsApp" e siga os passos.</p>
     <p class="err" id="rcErro" role="alert" hidden></p>
     <div class="kpis kpis-4" id="rcResumo"></div>
@@ -3947,30 +3947,6 @@ async function rcCarregar() {
   rcDesenhar();
 }
 
-const minutos = h => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
-const hhmm = m => `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
-
-// A oficina está aberta agora? (dias e horário de REGRAS.funcionamento)
-function abertoAgora(f, agora) {
-  if (!f) return true;
-  const data = agora.slice(0, 10), m = minutos(agora.slice(11, 16));
-  return f.dias.indexOf(diaSemana(data)) !== -1 && m >= minutos(f.abre) && m < minutos(f.fecha);
-}
-
-// Sugestão para "fica pronto em": aberto agora, daqui a 1 hora (arredondada); fechado, a próxima abertura.
-function sugestaoPronto(f, agora) {
-  let data = agora.slice(0, 10);
-  const m = minutos(agora.slice(11, 16));
-  if (f && abertoAgora(f, agora)) {
-    const alvo = Math.ceil((m + 60) / 30) * 30;
-    if (alvo <= minutos(f.fecha)) return { data, hora: hhmm(alvo) };
-  }
-  const abre = f ? f.abre : "08:00";
-  if (!f || f.dias.indexOf(diaSemana(data)) === -1 || m >= minutos(abre)) data = somaDias(data, 1);
-  for (let i = 0; i < 8 && f && f.dias.indexOf(diaSemana(data)) === -1; i++) data = somaDias(data, 1);
-  return { data, hora: abre };
-}
-
 // Igual à planilha: "hoje, a partir das 16h", "amanhã, quinta (05/11), a partir das 8h", "na sexta (06/11), a partir das 8h".
 function fraseRetirada(quando, hoje) {
   const data = quando.slice(0, 10), hora = horaBR(quando.slice(11, 16));
@@ -3979,13 +3955,6 @@ function fraseRetirada(quando, hoje) {
   if (data === somaDias(hoje, 1)) return `amanhã, ${dia} (${dm}), a partir das ${hora}`;
   return `${/^(sábado|domingo)$/.test(dia) ? "no" : "na"} ${dia} (${dm}), a partir das ${hora}`;
 }
-
-const textoDias = dias => {
-  const nomes = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-  const ordem = dias.slice().sort((x, y) => x - y);
-  const seguidos = ordem.every((d, i) => !i || d === ordem[i - 1] + 1);
-  return seguidos && ordem.length > 2 ? `${nomes[ordem[0]]} a ${nomes[ordem[ordem.length - 1]]}` : ordem.map(d => nomes[d]).join(", ");
-};
 
 function rcDesenhar() {
   const d = RC.dados;
@@ -4005,8 +3974,6 @@ function rcDesenhar() {
     kpi("Avisados", String(avisados.length), "que o carro fica pronto"),
     kpi("Vindo buscar", String(vindo.length), "responderam \"Estou indo\""),
     kpi("Falta receber", reais(falta), "dos carros na oficina"));
-  const f = d.funcionamento;
-  $("#rcHorario").textContent = f ? `Horário da oficina: ${textoDias(f.dias)}, das ${horaBR(f.abre)} às ${horaBR(f.fecha)}.` : "";
   if (!r.length) return lista.replaceChildren(el("p", { class: "vazio" }, "Nenhum carro na oficina agora. Quando vocês tocarem em \"Carro recebido\" na agenda, ele aparece aqui."));
   lista.replaceChildren(...r.map(itemRecebido));
 }
@@ -4070,26 +4037,23 @@ function itemRecebido(a) {
     acoes);
 }
 
-// Quadro do "Carro pronto": já pode buscar ou fica pronto num dia e hora. Mostra a mensagem como o cliente vai receber.
+// Quadro do "Carro pronto": já pode buscar ou fica pronto no dia e hora que vocês digitam. Mostra a mensagem como o cliente vai receber.
 function formPronto(a) {
   const d = RC.dados;
   const f = RC.form;
-  const aberto = abertoAgora(d.funcionamento, d.agora);
   const quando = f.modo === "agora" ? "" : `${f.data} ${f.hora}`;
   const frase = f.modo === "agora" ? "a partir de agora" : f.data && f.hora ? fraseRetirada(quando, d.hoje) : "…";
   const previa = (d.modeloPronto || "").replace("{{1}}", primeiroNomeDe(a.cliente)).replace("{{2}}", a.carro).replace("{{3}}", frase);
   const radio = (valor, texto) => el("label", { class: "rc-op" },
     el("input", { type: "radio", name: "rcModo", value: valor, ...(f.modo === valor ? { checked: "" } : {}) }), texto);
-  const fechado = !aberto && f.modo === "agora";
   return el("form", { class: "rc-form", "data-rc-form": a.id, novalidate: "" },
     el("fieldset", {},
       el("legend", {}, "Quando o cliente pode buscar?"),
       radio("agora", "Já pode buscar agora"),
       radio("hora", "Fica pronto em:"),
       el("div", { class: "rc-quando" },
-        el("input", { type: "date", name: "rcData", value: f.data, min: d.hoje, "aria-label": "Dia em que fica pronto", ...(f.modo === "agora" ? { disabled: "" } : {}) }),
-        el("input", { type: "time", name: "rcHora", value: f.hora, step: "1800", "aria-label": "Hora em que fica pronto", ...(f.modo === "agora" ? { disabled: "" } : {}) }))),
-    fechado ? el("p", { class: "err-txt" }, `A oficina está fechada agora (abre às ${horaBR(d.funcionamento.abre)}). Melhor escolher "Fica pronto em".`) : "",
+        el("input", { type: "date", name: "rcData", value: f.data, min: d.hoje, "aria-label": "Dia em que fica pronto" }),
+        el("input", { type: "time", name: "rcHora", value: f.hora, "aria-label": "Hora em que fica pronto" }))),
     el("div", { class: "rc-msg" },
       el("span", { class: "nota" }, "O cliente recebe no WhatsApp:"),
       el("p", { class: "rc-previa" }, previa),
@@ -4157,10 +4121,10 @@ $("#rcLista").addEventListener("click", e => {
   if (!a) return;
   const acao = b.dataset.rc;
   if (acao === "pronto") {
-    const s = sugestaoPronto(RC.dados.funcionamento, RC.dados.agora);
     RC.pronto = a.id;
     RC.entregar = null;
-    RC.form = { modo: abertoAgora(RC.dados.funcionamento, RC.dados.agora) ? "agora" : "hora", data: s.data, hora: s.hora };
+    // Dia e hora em branco: vocês digitam.
+    RC.form = { modo: "agora", data: "", hora: "" };
     rcDesenhar();
     return rcFocar(`[data-rc-form="${a.id}"] input[name=rcModo]:checked`);
   }
@@ -4187,8 +4151,9 @@ $("#rcLista").addEventListener("change", e => {
   const form = e.target.closest("[data-rc-form]");
   if (!form || !RC.form) return;
   if (e.target.name === "rcModo") RC.form.modo = e.target.value;
-  if (e.target.name === "rcData") RC.form.data = e.target.value;
-  if (e.target.name === "rcHora") RC.form.hora = e.target.value;
+  // Digitar o dia ou a hora já marca "Fica pronto em".
+  if (e.target.name === "rcData") Object.assign(RC.form, { data: e.target.value, modo: "hora" });
+  if (e.target.name === "rcHora") Object.assign(RC.form, { hora: e.target.value, modo: "hora" });
   const foco = e.target.name;
   rcDesenhar();
   const de = document.querySelector(`[data-rc-form="${form.dataset.rcForm}"] [name="${foco}"]${foco === "rcModo" ? ":checked" : ""}`);
@@ -4415,7 +4380,6 @@ function desenharWhats() {
         : "Ainda não ligado: toque em \"Ligar o WhatsApp\"." + (d.webhook && d.webhook.motivo ? ` (${d.webhook.motivo})` : "")))));
   if (d.erros && d.erros.length) corpo.push(el("div", { class: "err", role: "alert" }, ...d.erros.map(x => el("div", {}, x))));
   if (WA.erro) corpo.push(el("p", { class: "err", role: "alert" }, WA.erro));
-  if (d.funcionamento) corpo.push(el("p", { class: "nota" }, `Horário da oficina usado no "Carro pronto": ${textoDias(d.funcionamento.dias)}, das ${horaBR(d.funcionamento.abre)} às ${horaBR(d.funcionamento.fecha)}.`));
   corpo.push(el("div", { class: "ag-acoes" },
     tudo ? "" : el("button", { type: "button", class: "btn btn-red", "data-wa": "ligar", ...(d.chave && !WA.ocupado ? {} : { disabled: "" }) }, WA.ocupado ? "Ligando…" : "Ligar o WhatsApp"),
     el("button", { type: "button", class: "mini", "data-wa": "atualizar", ...(WA.ocupado ? { disabled: "" } : {}) }, WA.ocupado ? "Conferindo…" : "Atualizar")));
@@ -4439,8 +4403,7 @@ function criarDemo() {
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
     sinal: 50, avisoDias: 2, avaliacaoDias: 5, remarcacoes: 3, prazoMinutos: 10, antecedenciaDias: 1, janelaDias: 120,
-    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1,
-    funcionamento: { dias: [1, 2, 3, 4, 5, 6], abre: "08:00", fecha: "18:00" }
+    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1
   };
   const hoje = hojeAqui();
   const especiais = {};
@@ -4557,7 +4520,7 @@ function criarDemo() {
   ];
   const textoPronto = "Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} fica pronto para retirada {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você vem buscar?";
   const textoLembrete = "Olá, {{1}}! Aqui é da Blin Car. Passando para lembrar que o seu {{2}} está agendado para {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você confirma que vai trazer o carro?";
-  const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), funcionamento: regras.funcionamento, whatsapp: true, modeloPronto: textoPronto,
+  const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), whatsapp: true, modeloPronto: textoPronto,
     botoesPronto: ["Estou indo", "Vou outro dia"], recebidos: comSit().filter(a => a.sit === "confirmado" && a.recebidoEm).map(publico)
       .sort((x, y) => (x.recebidoEm < y.recebidoEm ? -1 : 1)) }, extra || {});
   const clientesDemo = () => {
@@ -4588,7 +4551,7 @@ function criarDemo() {
       .sort((x, y) => (x.atividade < y.atividade ? 1 : -1));
   };
   const statusZap = () => ({ ok: true, chave: true, numero: "(21) 99657-8427", waba: "exemplo", ultimoEvento: `${hoje} 08:41`, webhookUrl: "",
-    webhook: { status: "active", eventos: [] }, erros: [], funcionamento: regras.funcionamento,
+    webhook: { status: "active", eventos: [] }, erros: [],
     modelos: [{ chave: "lembrete", titulo: "Lembrete de 2 dias antes", nome: "blincar_lembrete_agendamento", status: "APPROVED", motivo: "", texto: textoLembrete, botoes: ["Confirmo", "Preciso remarcar"] },
       { chave: "pronto", titulo: "Carro pronto", nome: "blincar_carro_pronto", status: "APPROVED", motivo: "", texto: textoPronto, botoes: ["Estou indo", "Vou outro dia"] }] });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
