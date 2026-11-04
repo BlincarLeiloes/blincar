@@ -3947,14 +3947,18 @@ async function rcCarregar() {
   rcDesenhar();
 }
 
-// Igual à planilha: "hoje, a partir das 16h", "amanhã, quinta (05/11), a partir das 8h", "na sexta (06/11), a partir das 8h".
+// Igual à planilha: "hoje às 16h", "amanhã, quinta (05/11), às 8h", "na sexta (06/11), às 16h30".
 function fraseRetirada(quando, hoje) {
   const data = quando.slice(0, 10), hora = horaBR(quando.slice(11, 16));
   const dia = SEMANA[diaSemana(data)], dm = `${data.slice(8, 10)}/${data.slice(5, 7)}`;
-  if (data === hoje) return `hoje, a partir das ${hora}`;
-  if (data === somaDias(hoje, 1)) return `amanhã, ${dia} (${dm}), a partir das ${hora}`;
-  return `${/^(sábado|domingo)$/.test(dia) ? "no" : "na"} ${dia} (${dm}), a partir das ${hora}`;
+  if (data === hoje) return `hoje às ${hora}`;
+  if (data === somaDias(hoje, 1)) return `amanhã, ${dia} (${dm}), às ${hora}`;
+  return `${/^(sábado|domingo)$/.test(dia) ? "no" : "na"} ${dia} (${dm}), às ${hora}`;
 }
+
+// Aviso "já pode buscar" (agora) ou "vai ficar pronto às..." (com horário).
+const prontoAgora = p => !p.retirada || /agora/.test(p.retirada);
+const textoAvisoPronto = p => (prontoAgora(p) ? "já pode buscar" : `fica pronto ${p.retirada}`);
 
 function rcDesenhar() {
   const d = RC.dados;
@@ -4011,9 +4015,9 @@ function itemRecebido(a) {
     const falhou = pronto.situacao === "Não enviada" || pronto.situacao === "Não entregue";
     zapCaixa.push(falhou
       ? el("span", { class: "err-txt" }, `O aviso de carro pronto não foi ${pronto.situacao === "Não enviada" ? "enviado" : "entregue"}${pronto.detalhe ? `: ${pronto.detalhe}` : "."}`)
-      : el("span", {}, el("b", {}, "Aviso de carro pronto: "), `pronto para retirada ${pronto.retirada || "a partir de agora"}. Mandado em ${quandoWA(pronto.em)} · ${situacaoWA(pronto.situacao)}.`));
+      : el("span", {}, el("b", {}, "Aviso de carro pronto: "), `${textoAvisoPronto(pronto)}. Mandado em ${quandoWA(pronto.em)} · ${situacaoWA(pronto.situacao)}.`));
   }
-  if (resp) zapCaixa.push(el("span", { class: resp.tipo === "indo" ? "ok-txt" : "" }, `Cliente respondeu "${resp.tipo === "indo" ? "Estou indo" : "Vou outro dia"}" em ${quandoWA(resp.em)}.`));
+  if (resp) zapCaixa.push(el("span", { class: resp.tipo === "indo" ? "ok-txt" : "" }, `Cliente respondeu "${resp.texto || (resp.tipo === "indo" ? "Estou indo" : "Vou outro dia")}" em ${quandoWA(resp.em)}.`));
   else if (pronto && pronto.situacao !== "Não enviada") zapCaixa.push(el("span", { class: "sub" }, "O cliente ainda não respondeu."));
   let acoes;
   if (RC.entregar === a.id) {
@@ -4042,8 +4046,10 @@ function formPronto(a) {
   const d = RC.dados;
   const f = RC.form;
   const quando = f.modo === "agora" ? "" : `${f.data} ${f.hora}`;
-  const frase = f.modo === "agora" ? "a partir de agora" : f.data && f.hora ? fraseRetirada(quando, d.hoje) : "…";
-  const previa = (d.modeloPronto || "").replace("{{1}}", primeiroNomeDe(a.cliente)).replace("{{2}}", a.carro).replace("{{3}}", frase);
+  const frase = f.data && f.hora ? fraseRetirada(quando, d.hoje) : "(digite o dia e a hora)";
+  // Duas mensagens: "ficou pronto" (agora) e "vai ficar pronto às..." (com horário).
+  const modelo = (d.modelosPronto && d.modelosPronto[f.modo === "agora" ? "agora" : "hora"]) || { texto: d.modeloPronto || "", botoes: d.botoesPronto };
+  const previa = modelo.texto.replace("{{1}}", primeiroNomeDe(a.cliente)).replace("{{2}}", a.carro).replace("{{3}}", frase);
   const radio = (valor, texto) => el("label", { class: "rc-op" },
     el("input", { type: "radio", name: "rcModo", value: valor, ...(f.modo === valor ? { checked: "" } : {}) }), texto);
   return el("form", { class: "rc-form", "data-rc-form": a.id, novalidate: "" },
@@ -4057,8 +4063,8 @@ function formPronto(a) {
     el("div", { class: "rc-msg" },
       el("span", { class: "nota" }, "O cliente recebe no WhatsApp:"),
       el("p", { class: "rc-previa" }, previa),
-      el("div", { class: "rc-botoes", "aria-label": "Botões da mensagem" }, ...(d.botoesPronto || ["Estou indo", "Vou outro dia"]).map(b => el("span", {}, b)))),
-    el("p", { class: "nota" }, "Se ele tocar em \"Estou indo\", vocês recebem um e-mail na hora."),
+      el("div", { class: "rc-botoes", "aria-label": "Botões da mensagem" }, ...(modelo.botoes || ["Estou indo", "Vou outro dia"]).map(b => el("span", {}, b)))),
+    el("p", { class: "nota" }, `Se ele tocar em "${(modelo.botoes || ["Estou indo"])[0]}", vocês recebem um e-mail na hora.`),
     el("div", { class: "ag-acoes" },
       el("button", { type: "submit", class: "mini mini-wa", ...(d.whatsapp ? {} : { disabled: "" }) }, RC.ocupado ? "Mandando…" : "Mandar no WhatsApp"),
       el("button", { type: "button", class: "mini", "data-rc": "fechar-pronto", "data-id": a.id }, "Cancelar")),
@@ -4169,7 +4175,7 @@ $("#rcLista").addEventListener("submit", e => {
   if (!a || !f) return;
   if (f.modo === "hora" && (!f.data || !f.hora)) return mostrarErro(document.querySelector(`[data-rc-erro="${a.id}"]`), "Escolha o dia e a hora em que o carro fica pronto.");
   const quando = f.modo === "agora" ? "" : `${f.data} ${f.hora}`;
-  rcAcao("agenda_pronto", { id: a.id, quando }, `Mensagem mandada para ${a.cliente}: pronto para retirada ${f.modo === "agora" ? "a partir de agora" : fraseRetirada(quando, RC.dados.hoje)}.`, a.id);
+  rcAcao("agenda_pronto", { id: a.id, quando }, `Mensagem mandada para ${a.cliente}: ${f.modo === "agora" ? "já pode buscar" : `fica pronto ${fraseRetirada(quando, RC.dados.hoje)}`}.`, a.id);
 });
 
 $("#rcAtualizar").addEventListener("click", rcCarregar);
@@ -4372,7 +4378,7 @@ function desenharWhats() {
         return el("div", { class: "wa-modelo" },
           el("div", { class: "ag-topo" }, el("span", { class: "ag-nome" }, m.titulo), el("span", { class: "selo-sinal " + st[1] }, st[0])),
           m.motivo ? el("span", { class: "err-txt" }, m.motivo) : "",
-          el("p", { class: "rc-previa" }, m.texto.replace("{{1}}", "Carlos").replace("{{2}}", "Onix 2019 prata").replace("{{3}}", m.chave === "pronto" ? "hoje, a partir das 16h" : "quinta-feira, 5 de novembro, às 10h")),
+          el("p", { class: "rc-previa" }, m.texto.replace(/\{\{(\d)\}\}/g, (_, n) => (m.exemplo || [])[n - 1] || "")),
           el("div", { class: "rc-botoes" }, ...m.botoes.map(b => el("span", {}, b))));
       })),
     passo(webhookOk, "Aviso das mensagens que chegam",
@@ -4471,7 +4477,7 @@ function criarDemo() {
   // Outro carro na oficina, já avisado de que estava pronto e com o cliente vindo buscar.
   const tiago = novo(somaDias(anterior("Retoque"), -2), "Retoque", "Tiago (exemplo)", "Siena 2012 prata", true, { orcamento: 950, entrada: 400,
     recebidoEm: `${somaDias(anterior("Retoque"), -2)} 09:10`, obs: "Retoque no capô" });
-  tiago.wa = { pronto: { em: `${hoje} 08:30`, situacao: "Lida", retirada: "hoje, a partir das 10h" }, resposta: { tipo: "indo", em: `${hoje} 08:41`, situacao: "Recebida" } };
+  tiago.wa = { pronto: { em: `${hoje} 08:30`, situacao: "Lida", retirada: "hoje às 10h" }, resposta: { tipo: "indo", em: `${hoje} 08:41`, situacao: "Recebida", texto: "Vou buscar" } };
   lista.push(tiago);
   // Lembrete do WhatsApp: Carlos confirmou tocando em "Confirmo".
   lista[0].wa = { lembrete: { em: `${somaDias(lista[0].data, -2)} 08:00`, situacao: "Lida" }, confirmou: { em: `${somaDias(lista[0].data, -2)} 08:12`, situacao: "Recebida" } };
@@ -4518,10 +4524,14 @@ function criarDemo() {
     { telefone: lista[0].telefone, nomeWA: "Carlos M.", ultimaMensagem: `${somaDias(lista[0].data, -2)} 08:12`, mensagens: 3, ultimoTexto: "Confirmo" },
     { telefone: "(21) 90000-0093", nomeWA: "Roberto Lima", ultimaMensagem: "2026-03-10 09:30", mensagens: 6, ultimoTexto: "Valeu, ficou top!" }
   ];
-  const textoPronto = "Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} fica pronto para retirada {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você vem buscar?";
+  const endereco = "Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM)";
+  const aviseAntes = "Estamos esperando você! Caso não consiga vir, por favor nos avise com antecedência.";
+  const textoProntoAgora = `Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} ficou pronto e já pode ser retirado. Endereço: ${endereco}. ${aviseAntes}`;
+  const textoProntoHora = `Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} vai ficar pronto {{3}}, e você já pode vir buscar a partir desse horário. Endereço: ${endereco}. ${aviseAntes}`;
   const textoLembrete = "Olá, {{1}}! Aqui é da Blin Car. Passando para lembrar que o seu {{2}} está agendado para {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você confirma que vai trazer o carro?";
-  const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), whatsapp: true, modeloPronto: textoPronto,
-    botoesPronto: ["Estou indo", "Vou outro dia"], recebidos: comSit().filter(a => a.sit === "confirmado" && a.recebidoEm).map(publico)
+  const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), whatsapp: true,
+    modelosPronto: { agora: { texto: textoProntoAgora, botoes: ["Estou indo", "Vou outro dia"] }, hora: { texto: textoProntoHora, botoes: ["Vou buscar", "Vou outro dia"] } },
+    recebidos: comSit().filter(a => a.sit === "confirmado" && a.recebidoEm).map(publico)
       .sort((x, y) => (x.recebidoEm < y.recebidoEm ? -1 : 1)) }, extra || {});
   const clientesDemo = () => {
     const pessoas = {};
@@ -4552,8 +4562,12 @@ function criarDemo() {
   };
   const statusZap = () => ({ ok: true, chave: true, numero: "(21) 99657-8427", waba: "exemplo", ultimoEvento: `${hoje} 08:41`, webhookUrl: "",
     webhook: { status: "active", eventos: [] }, erros: [],
-    modelos: [{ chave: "lembrete", titulo: "Lembrete de 2 dias antes", nome: "blincar_lembrete_agendamento", status: "APPROVED", motivo: "", texto: textoLembrete, botoes: ["Confirmo", "Preciso remarcar"] },
-      { chave: "pronto", titulo: "Carro pronto", nome: "blincar_carro_pronto", status: "APPROVED", motivo: "", texto: textoPronto, botoes: ["Estou indo", "Vou outro dia"] }] });
+    modelos: [{ chave: "lembrete", titulo: "Lembrete de 2 dias antes", nome: "blincar_lembrete_agendamento", status: "APPROVED", motivo: "", texto: textoLembrete,
+      botoes: ["Confirmo", "Preciso remarcar"], exemplo: ["Carlos", "Onix 2019 prata", "quinta-feira, 5 de novembro, às 10h"] },
+      { chave: "prontoAgora", titulo: "Carro pronto (já pode buscar)", nome: "blincar_carro_pronto_agora", status: "APPROVED", motivo: "", texto: textoProntoAgora,
+        botoes: ["Estou indo", "Vou outro dia"], exemplo: ["Carlos", "Onix 2019 prata"] },
+      { chave: "prontoHora", titulo: "Carro pronto (com horário)", nome: "blincar_carro_pronto_horario", status: "APPROVED", motivo: "", texto: textoProntoHora,
+        botoes: ["Vou buscar", "Vou outro dia"], exemplo: ["Carlos", "Onix 2019 prata", "hoje às 16h"] }] });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
   const credito = (a, nivel, motivo) => creditos.push({ id: "cr" + (++seq), cliente: a.cliente, email: a.email, telefone: a.telefone,
@@ -4671,7 +4685,7 @@ function criarDemo() {
       const q = String(extra.quando || "");
       if (q && (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(q))) return falha("dados", "Escolha o dia e a hora em que o carro fica pronto.");
       if (q && q < agora()) return falha("dados", "Esse horário já passou. Escolha outro ou marque \"Já pode buscar\".");
-      const retirada = q ? fraseRetirada(q, hoje) : "a partir de agora";
+      const retirada = q ? fraseRetirada(q, hoje) : "agora";
       a.wa = Object.assign({}, a.wa, { pronto: { em: agora(), situacao: "Enviada", retirada } });
       return recebidos({ enviado: a.id, retirada });
     }
