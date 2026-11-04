@@ -63,6 +63,12 @@ h1,h2{text-wrap:balance}
 #tema .ico-lua,#tema.claro .ico-sol{display:none}
 #tema.claro .ico-lua{display:block}
 @media (max-width:420px){#temaTxt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
+/* Valores escondidos (para gravar a tela): cada "R$ 1.234,56" vira "R$ •••••" até tocar no olho */
+.ocultar-valores .valor-real{display:none}
+.ocultar-valores .valor::before{content:"R$ •••••";letter-spacing:.02em;white-space:nowrap}
+#olhoValores .ico-fechado,#olhoValores.aberto .ico-aberto{display:none}
+#olhoValores.aberto .ico-fechado{display:block}
+@media (max-width:560px){#olhoTxt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
 .link:hover{color:var(--fg)}
 
 .page{max-width:1120px;margin:0 auto;padding-block:28px 56px}
@@ -510,6 +516,11 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <span class="tag">Painel dos administradores</span>
     </a>
     <div class="bar-acoes">
+      <button type="button" class="mini mini-icone" id="olhoValores" aria-pressed="false" hidden>
+        <svg class="ico-aberto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="ico-fechado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.9 3.6M6.2 6.9C3.9 8.6 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.3-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        <span id="olhoTxt">Mostrar valores</span>
+      </button>
       <button type="button" class="mini mini-icone" id="tema" aria-label="Mudar para o modo claro">
         <svg class="ico-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
         <svg class="ico-lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
@@ -835,6 +846,57 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 const CONFIG = window.BLINCAR || {};
 const URL_METRICAS = String(CONFIG.metricas || "").trim();
 
+/* ---------- Esconder os valores (para gravar a tela, stories e live) ---------- */
+// Todo valor em R$ que aparece no painel vira "R$ •••••" até tocar no olho. O painel sempre abre com os valores escondidos.
+// Os PDFs e a lista baixada continuam com os valores: eles são feitos a partir dos dados, não da tela.
+const TEM_VALOR = /R\$\s?-?\s?\d/;
+const VALOR = /R\$\s?-?\s?\d[\d.]*(?:,\d{1,2})?/g;
+
+function marcarTexto(n) {
+  const pai = n.parentNode;
+  if (!pai || pai.nodeType !== 1 || !TEM_VALOR.test(n.nodeValue) || pai.closest(".valor, script, style, textarea, option, title")) return;
+  const txt = n.nodeValue;
+  const pedacos = document.createDocumentFragment();
+  let fim = 0;
+  for (const m of txt.matchAll(VALOR)) {
+    if (m.index > fim) pedacos.append(txt.slice(fim, m.index));
+    pedacos.append(el("span", { class: "valor" }, el("span", { class: "valor-real" }, m[0])));
+    fim = m.index + m[0].length;
+  }
+  if (fim < txt.length) pedacos.append(txt.slice(fim));
+  pai.replaceChild(pedacos, n);
+}
+
+function marcarValores(raiz) {
+  if (raiz.nodeType === 3) return marcarTexto(raiz);
+  if (raiz.nodeType !== 1 || raiz.closest(".valor")) return;
+  const andar = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  const nos = [];
+  for (let n = andar.nextNode(); n; n = andar.nextNode()) if (TEM_VALOR.test(n.nodeValue)) nos.push(n);
+  nos.forEach(marcarTexto);
+}
+
+document.body.classList.add("ocultar-valores");
+new MutationObserver(lista => lista.forEach(m => {
+  if (m.type === "characterData") marcarTexto(m.target);
+  else m.addedNodes.forEach(marcarValores);
+})).observe(document.body, { childList: true, subtree: true, characterData: true });
+marcarValores(document.body);
+
+function mostrarOlho() {
+  const oculto = document.body.classList.contains("ocultar-valores");
+  const b = document.getElementById("olhoValores");
+  b.classList.toggle("aberto", !oculto);
+  b.setAttribute("aria-pressed", String(!oculto));
+  document.getElementById("olhoTxt").textContent = oculto ? "Mostrar valores" : "Esconder valores";
+  b.title = oculto ? "Mostrar os valores em R$" : "Esconder os valores em R$ (para gravar a tela)";
+}
+document.getElementById("olhoValores").addEventListener("click", () => {
+  document.body.classList.toggle("ocultar-valores");
+  mostrarOlho();
+});
+mostrarOlho();
+
 // Botão do topo: troca entre modo claro e escuro e lembra neste aparelho.
 const temaDoSistema = window.matchMedia("(prefers-color-scheme: light)");
 const temaAtual = () => document.documentElement.dataset.theme || (temaDoSistema.matches ? "light" : "dark");
@@ -994,6 +1056,7 @@ function mostrarPainel(jaCarregado) {
   $("#entrada").hidden = true;
   $("#abas").hidden = false;
   $("#sair").hidden = false;
+  $("#olhoValores").hidden = false;
   $("#seloExemplo").hidden = !exemploLigado;
   $("#agExemplo").hidden = !exemploLigado;
   $("#rodapeTxt").textContent = exemploLigado
@@ -1022,6 +1085,10 @@ function sair(msg) {
   if ($("#dlgDia").open) $("#dlgDia").close();
   $("#abas").hidden = true;
   ABAS.forEach(a => { $("#" + a).hidden = true; });
+  // Saiu: na próxima entrada os valores voltam escondidos.
+  document.body.classList.add("ocultar-valores");
+  mostrarOlho();
+  $("#olhoValores").hidden = true;
   ["#dlgWa", "#dlgPag", "#dlgAval", "#dlgHist", "#dlgMeses"].forEach(x => { if ($(x) && $(x).open) $(x).close(); });
   Object.assign(RC, { dados: null, pronto: null, entregar: null });
   Object.assign(CL, { dados: null });
