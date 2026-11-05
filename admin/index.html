@@ -4117,6 +4117,8 @@ function formPronto(a) {
   // Duas mensagens: "ficou pronto" (agora) e "vai ficar pronto às..." (com horário).
   const modelo = (d.modelosPronto && d.modelosPronto[f.modo === "agora" ? "agora" : "hora"]) || { texto: d.modeloPronto || "", botoes: d.botoesPronto };
   const previa = modelo.texto.replace("{{1}}", primeiroNomeDe(a.cliente)).replace("{{2}}", a.carro).replace("{{3}}", frase);
+  const pronta = f.modo === "agora" || !!(f.data && f.hora);
+  const zapCel = linkZap(a.telefone, previa);
   const radio = (valor, texto) => el("label", { class: "rc-op" },
     el("input", { type: "radio", name: "rcModo", value: valor, ...(f.modo === valor ? { checked: "" } : {}) }), texto);
   return el("form", { class: "rc-form", "data-rc-form": a.id, novalidate: "" },
@@ -4134,7 +4136,11 @@ function formPronto(a) {
     el("p", { class: "nota" }, `Se ele tocar em "${(modelo.botoes || ["Estou indo"])[0]}", vocês recebem um e-mail na hora.`),
     el("div", { class: "ag-acoes" },
       el("button", { type: "submit", class: "mini mini-wa", ...(d.whatsapp ? {} : { disabled: "" }) }, RC.ocupado ? "Mandando…" : "Mandar no WhatsApp"),
+      // Sem depender da Meta: abre o WhatsApp da oficina com a mesma mensagem escrita, para vocês apertarem enviar.
+      pronta && zapCel ? el("a", { class: "mini", href: zapCel, target: "_blank", rel: "noopener", "data-rc-cel": a.id }, "Mandar pelo celular")
+        : el("button", { type: "button", class: "mini", disabled: "" }, "Mandar pelo celular"),
       el("button", { type: "button", class: "mini", "data-rc": "fechar-pronto", "data-id": a.id }, "Cancelar")),
+    el("p", { class: "nota" }, "\"Mandar pelo celular\" abre o WhatsApp da oficina com a mensagem pronta para vocês enviarem. Serve enquanto a Meta não aprova as mensagens; por ele não vão os botões nem o e-mail automático."),
     d.whatsapp ? "" : el("p", { class: "err-txt" }, "O WhatsApp ainda não está ligado. Toque em \"WhatsApp\" lá em cima."));
 }
 
