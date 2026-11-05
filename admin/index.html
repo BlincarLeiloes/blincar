@@ -4094,7 +4094,7 @@ function itemRecebido(a) {
         botao("entregue-pendente", "Não, ficou pendente", "mini perigo"), botao("cancelar", "Cancelar")));
   } else {
     acoes = el("div", { class: "ag-acoes" },
-      RC.pronto === a.id ? "" : botao("pronto", pronto ? "Avisar de novo" : "Carro pronto", "mini mini-forte"),
+      RC.pronto === a.id ? "" : botao("pronto", pronto && pronto.situacao !== "Não enviada" ? "Avisar de novo" : "Carro pronto", "mini mini-forte"),
       botao("entregar", "Veículo entregue", "mini mini-ok"),
       zap ? el("a", { class: "mini mini-wa", href: zap, target: "_blank", rel: "noopener" }, "Conversar") : "");
   }
