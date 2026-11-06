@@ -4082,7 +4082,7 @@ function itemRecebido(a) {
     const falhou = pronto.situacao === "Não enviada" || pronto.situacao === "Não entregue";
     zapCaixa.push(falhou
       ? el("span", { class: "err-txt" }, `O aviso de carro pronto não foi ${pronto.situacao === "Não enviada" ? "enviado" : "entregue"}${pronto.detalhe ? `: ${pronto.detalhe}` : "."}`)
-      : el("span", {}, el("b", {}, "Aviso de carro pronto: "), `${textoAvisoPronto(pronto)}. Mandado em ${quandoWA(pronto.em)} · ${situacaoWA(pronto.situacao)}.`));
+      : el("span", {}, el("b", {}, "Aviso de carro pronto: "), `${textoAvisoPronto(pronto)}. Mandado em ${quandoWA(pronto.em)} · ${situacaoWA(pronto.situacao)}.${pronto.detalhe ? ` ${pronto.detalhe}` : ""}`));
   }
   if (resp) zapCaixa.push(el("span", { class: resp.tipo === "indo" ? "ok-txt" : "" }, `Cliente respondeu "${resp.texto || (resp.tipo === "indo" ? "Estou indo" : "Vou outro dia")}" em ${quandoWA(resp.em)}.`));
   else if (pronto && pronto.situacao !== "Não enviada") zapCaixa.push(el("span", { class: "sub" }, "O cliente ainda não respondeu."));
@@ -4167,7 +4167,7 @@ async function rcAcao(acao, extra, msgOk, id) {
         RC.dados = d;
         rcDesenhar();
       } else await rcCarregar();
-      rcAviso(msgOk);
+      rcAviso(typeof msgOk === "function" ? msgOk(d) : msgOk);
     } else if (d && d.erro === "senha") sair("A senha mudou. Entre de novo.");
     else {
       RC.ocupado = false;
@@ -4248,7 +4248,8 @@ $("#rcLista").addEventListener("submit", e => {
   if (!a || !f) return;
   if (f.modo === "hora" && (!f.data || !f.hora)) return mostrarErro(document.querySelector(`[data-rc-erro="${a.id}"]`), "Escolha o dia e a hora em que o carro fica pronto.");
   const quando = f.modo === "agora" ? "" : `${f.data} ${f.hora}`;
-  rcAcao("agenda_pronto", { id: a.id, quando }, `Mensagem mandada para ${a.cliente}: ${f.modo === "agora" ? "já pode buscar" : `fica pronto ${fraseRetirada(quando, RC.dados.hoje)}`}.`, a.id);
+  rcAcao("agenda_pronto", { id: a.id, quando }, d => `Mensagem mandada para ${a.cliente}: ${f.modo === "agora" ? "já pode buscar" : `fica pronto ${fraseRetirada(quando, RC.dados.hoje)}`}.` +
+    (d.semModelo ? " Foi pela conversa aberta (o cliente falou com vocês nas últimas 24 horas), sem esperar a Meta." : ""), a.id);
 });
 
 $("#rcAtualizar").addEventListener("click", rcCarregar);
