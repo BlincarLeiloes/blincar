@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Política de privacidade · Blin Car</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Como a Blin Car Estética Automotiva cuida dos dados de quem pede orçamento, agenda e traz o carro, conforme a LGPD.">
+<meta name="theme-color" content="#0f1012">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="../favicon.ico" sizes="32x32">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
+<style>
+/* Layout: topo com a marca e um texto de leitura numa coluna de ~68 caracteres, com resumo e índice no começo. Mesmas cores do site. */
+:root{
+  --bg:#0f1012;--surface:#17181b;--line:#2c2e33;--fg:#f2f0ec;--muted:#a3a2a7;
+  --red:#ec3a3f;--gold:#e3b54c;
+  --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--gold:#9a6d0c;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#f4f3f0;--surface:#ffffff;--line:#dedbd5;--fg:#16171a;--muted:#5f5e63;
+  --red:#cf1f26;--gold:#9a6d0c;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 17px/1.65 var(--body);-webkit-text-size-adjust:100%}
+a{color:inherit;font-weight:600;text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar{border-bottom:1px solid var(--line)}
+.bar-in{max-width:1120px;margin:0 auto;padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mark{display:grid;text-decoration:none;line-height:1;font-weight:400}
+.mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
+.mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
+.mark .word b{color:var(--red);font-weight:800}
+.mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.voltar{font-size:.875rem;color:var(--muted);text-decoration:none;padding:8px 0}
+.voltar:hover{color:var(--fg)}
+.texto{max-width:760px;margin:0 auto;padding-block:36px 64px}
+.eyebrow{margin:0;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{margin:8px 0 10px;font:italic 800 clamp(2.25rem,8vw,3.5rem)/.95 var(--display);font-stretch:72%;text-transform:uppercase;text-wrap:balance}
+.data{margin:0;color:var(--muted);font-size:.9375rem}
+.resumo{margin:28px 0;padding:18px 20px;border-radius:14px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--red)}
+.resumo p{margin:0}
+.indice{margin:0 0 8px;padding:16px 20px;border:1px solid var(--line);border-radius:14px}
+.indice h2{margin:0 0 8px;font:600 .8125rem/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.indice ol{margin:0;padding-left:22px;display:grid;gap:2px}
+.indice a{font-weight:500}
+section{padding-top:28px;scroll-margin-top:16px}
+section h2{margin:0 0 10px;font:italic 800 1.625rem/1.1 var(--display);font-stretch:78%;text-transform:uppercase;text-wrap:balance}
+section p,section li{max-width:68ch}
+section p{margin:0 0 12px}
+section ul{margin:0 0 12px;padding-left:22px;display:grid;gap:6px}
+.contato{display:grid;gap:4px;padding:14px 18px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.rodape{border-top:1px solid var(--line)}
+.rodape p{max-width:1120px;margin:0 auto;padding-block:20px;font-size:.8125rem;color:var(--muted)}
+@media (max-width:560px){body{font-size:16px}section h2{font-size:1.4rem}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in gutter">
+    <a class="mark" href="../" aria-label="Blin Car, página inicial">
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <span class="word">BLIN <b>CAR</b></span>
+      <span class="tag">Estética automotiva</span>
+    </a>
+    <a class="voltar" href="../">Voltar ao site</a>
+  </div>
+</header>
+
+<main class="texto gutter">
+  <p class="eyebrow">LGPD · Lei 13.709/2018</p>
+  <h1>Política de privacidade</h1>
+  <p class="data">Atualizada em 7 de novembro de 2026.</p>
+
+  <div class="resumo">
+    <p><b>Em resumo:</b> usamos os seus dados só para atender você: responder o orçamento, agendar, receber o sinal, lembrar do dia e avisar quando o carro estiver pronto. Não vendemos os seus dados e não passamos para outras empresas fazerem propaganda. Você pode pedir para ver, corrigir ou apagar os seus dados quando quiser.</p>
+  </div>
+
+  <nav class="indice" aria-labelledby="t-indice">
+    <h2 id="t-indice">Nesta página</h2>
+    <ol>
+      <li><a href="#quem">Quem cuida dos seus dados</a></li>
+      <li><a href="#quais">Quais dados guardamos</a></li>
+      <li><a href="#para-que">Para que usamos</a></li>
+      <li><a href="#base">Por que podemos usar (base legal)</a></li>
+      <li><a href="#acesso">Quem tem acesso</a></li>
+      <li><a href="#onde">Onde os dados ficam</a></li>
+      <li><a href="#tempo">Por quanto tempo</a></li>
+      <li><a href="#seguranca">Como protegemos</a></li>
+      <li><a href="#navegador">Cookies e armazenamento no navegador</a></li>
+      <li><a href="#direitos">Seus direitos e como pedir</a></li>
+      <li><a href="#mudancas">Mudanças nesta política</a></li>
+    </ol>
+  </nav>
+
+  <section id="quem">
+    <h2>1. Quem cuida dos seus dados</h2>
+    <p>A responsável pelos seus dados (a "controladora", nos termos da LGPD) é a <b>Blin Car Estética Automotiva</b>, na Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM).</p>
+    <div class="contato">
+      <span>Para qualquer assunto sobre os seus dados:</span>
+      <span>E-mail: <a href="mailto:blincarestetica@gmail.com">blincarestetica@gmail.com</a></span>
+      <span>WhatsApp: <a href="https://wa.me/5521996578427" target="_blank" rel="noopener">(21) 99657-8427</a></span>
+    </div>
+  </section>
+
+  <section id="quais">
+    <h2>2. Quais dados guardamos</h2>
+    <ul>
+      <li><b>Pedido de orçamento (página inicial):</b> o que você preenche (nome, carro, ano, cor, bairro ou cidade, o que aconteceu, o serviço, quando quer trazer e como conheceu a Blin Car) vira uma mensagem no WhatsApp, que você mesmo envia. O site não guarda o seu nome nem o seu telefone.</li>
+      <li><b>Estatísticas do site:</b> visitas e cliques, com um código aleatório do navegador que não identifica você, de onde você chegou (Instagram, Google...), o tipo de aparelho, os serviços marcados, quando quer trazer o carro, o bairro ou cidade e como conheceu a Blin Car.</li>
+      <li><b>Agendamento:</b> nome, celular, e-mail, data de nascimento, carro (marca e modelo), placa, valor do orçamento combinado, serviço, dia, horário de chegada e observações.</li>
+      <li><b>Sinal:</b> o pagamento é feito no Mercado Pago (Pix ou cartão). Os dados do cartão ficam só com o Mercado Pago. Nós recebemos a confirmação: o número do pagamento, a forma, o valor, a situação e a data.</li>
+      <li><b>Atendimento na oficina:</b> quando o carro chegou, a entrada paga, o que falta pagar, quando o carro foi entregue e, se for o caso, o crédito do sinal para remarcar.</li>
+      <li><b>WhatsApp:</b> o seu número, o nome do seu perfil no WhatsApp, a data e o texto da última mensagem que você mandou e quantas mensagens foram, as mensagens automáticas que mandamos (lembrete do agendamento e aviso de carro pronto) e as suas respostas aos botões dessas mensagens.</li>
+      <li><b>Avaliação:</b> as notas, o comentário e se você autorizou mostrar a avaliação no site.</li>
+    </ul>
+    <p>Não pedimos CPF e não guardamos dados de cartão.</p>
+  </section>
+
+  <section id="para-que">
+    <h2>3. Para que usamos</h2>
+    <ul>
+      <li>Responder o seu pedido de orçamento.</li>
+      <li>Agendar, confirmar e remarcar o serviço, e receber o sinal.</li>
+      <li>Lembrar você do agendamento (por e-mail e WhatsApp, 2 dias antes e no dia) e pedir a confirmação.</li>
+      <li>Avisar quando o carro estiver pronto e combinar a retirada.</li>
+      <li>Controlar o atendimento na oficina: entrada, pagamento e entrega.</li>
+      <li>Pedir a sua avaliação depois da entrega e, só se você autorizar, mostrar no site com o seu primeiro nome, o modelo do carro e o mês.</li>
+      <li>Entender de onde vêm os clientes e melhorar o site, com as estatísticas sem nome.</li>
+    </ul>
+    <p>Não usamos os seus dados para propaganda de outras empresas, não vendemos e não repassamos para ninguém fazer publicidade.</p>
+  </section>
+
+  <section id="base">
+    <h2>4. Por que podemos usar (base legal)</h2>
+    <ul>
+      <li><b>Para fazer o serviço que você pediu</b> (art. 7º, V, da LGPD): orçamento, agendamento, sinal, lembretes, aviso de carro pronto, pagamento e entrega.</li>
+      <li><b>Com o seu consentimento</b> (art. 7º, I): para mostrar a sua avaliação no site. Você pode retirar a autorização quando quiser.</li>
+      <li><b>Pelo interesse legítimo da oficina</b> (art. 7º, IX): para as estatísticas sem nome e para guardar o histórico do atendimento (garantia, retornos e remarcações), sempre respeitando os seus direitos.</li>
+      <li><b>Para cumprir a lei</b> (art. 7º, II): quando a lei exigir guardar algum registro.</li>
+    </ul>
+  </section>
+
+  <section id="acesso">
+    <h2>5. Quem tem acesso</h2>
+    <ul>
+      <li><b>A equipe da Blin Car</b> que faz o atendimento, pelo painel da oficina, que tem senha.</li>
+      <li><b>As empresas que fazem o site funcionar</b>, só no que é preciso: Google (planilha e e-mail), Mercado Pago (pagamento do sinal), Meta e YCloud (mensagens do WhatsApp oficial; a YCloud é parceira oficial da Meta) e GitHub (hospeda o site).</li>
+      <li>Ninguém mais tem acesso, a não ser que a lei ou uma ordem judicial exija.</li>
+    </ul>
+  </section>
+
+  <section id="onde">
+    <h2>6. Onde os dados ficam</h2>
+    <p>Os dados ficam guardados na conta Google da Blin Car: Planilhas Google (agenda, clientes e pagamentos) e Gmail (e-mails de confirmação e lembrete). O pagamento fica no Mercado Pago, e as mensagens do WhatsApp passam pela Meta e pela YCloud.</p>
+    <p>Algumas dessas empresas guardam dados em servidores fora do Brasil. Elas seguem as próprias políticas de privacidade e as regras de proteção de dados que a LGPD exige para isso.</p>
+    <p>O site em si fica hospedado no GitHub Pages e <b>não guarda dados de clientes</b>. As letras do site vêm do Google Fonts, então o seu navegador busca essas fontes nos servidores do Google.</p>
+  </section>
+
+  <section id="tempo">
+    <h2>7. Por quanto tempo</h2>
+    <p>Guardamos os dados do agendamento e do serviço enquanto forem úteis para atender você (garantia, retornos e remarcações) e pelo prazo que a lei exigir. Reserva feita no site e não paga sai da planilha sozinha, em poucos minutos. Depois que não precisarmos mais dos dados, eles são apagados ou ficam só como estatística, sem nome.</p>
+  </section>
+
+  <section id="seguranca">
+    <h2>8. Como protegemos</h2>
+    <ul>
+      <li>A planilha é privada, na conta Google da Blin Car, e o painel da oficina tem senha.</li>
+      <li>O pagamento do sinal é feito no Mercado Pago: a Blin Car não vê nem guarda os dados do seu cartão.</li>
+      <li>As mensagens automáticas saem pelo WhatsApp oficial da Meta, do mesmo número da oficina.</li>
+      <li>O site não carrega anúncios nem rastreadores de outras empresas.</li>
+    </ul>
+    <p>Se acontecer algum incidente de segurança que possa afetar você, avisaremos você e a Autoridade Nacional de Proteção de Dados (ANPD), como pede a lei.</p>
+  </section>
+
+  <section id="navegador">
+    <h2>9. Cookies e armazenamento no navegador</h2>
+    <p>O site <b>não usa cookies de publicidade nem de rastreamento</b>.</p>
+    <p>O que fica guardado no seu navegador:</p>
+    <ul>
+      <li>Um código aleatório, para contar as visitas sem saber quem você é.</li>
+      <li>No agendamento, o seu nome, celular, e-mail, carro e placa, para você não precisar digitar de novo da próxima vez, só neste aparelho. A data de nascimento e o orçamento ficam só até você fechar a aba.</li>
+    </ul>
+    <p>Para apagar, é só limpar os dados do site nas configurações do navegador. Quando você vai para o Mercado Pago, o WhatsApp ou o Instagram, valem as políticas de privacidade deles.</p>
+  </section>
+
+  <section id="direitos">
+    <h2>10. Seus direitos e como pedir</h2>
+    <p>Pela LGPD (art. 18), você pode, a qualquer momento:</p>
+    <ul>
+      <li>confirmar se temos dados seus e pedir uma cópia deles;</li>
+      <li>corrigir dados incompletos ou errados;</li>
+      <li>pedir que os seus dados sejam apagados, bloqueados ou deixem de identificar você, quando não forem mais necessários ou a lei não exigir que fiquem guardados;</li>
+      <li>retirar a autorização para mostrar a sua avaliação no site;</li>
+      <li>saber com quem os seus dados são compartilhados;</li>
+      <li>pedir para não receber mais as mensagens automáticas do WhatsApp (lembrete e aviso de carro pronto).</li>
+    </ul>
+    <p>Para pedir, escreva para <a href="mailto:blincarestetica@gmail.com">blincarestetica@gmail.com</a> ou chame no WhatsApp <a href="https://wa.me/5521996578427" target="_blank" rel="noopener">(21) 99657-8427</a>. Respondemos em até 15 dias. Se não ficar satisfeito, você também pode reclamar na Autoridade Nacional de Proteção de Dados, pelo site <a href="https://www.gov.br/anpd" target="_blank" rel="noopener">gov.br/anpd</a>.</p>
+  </section>
+
+  <section id="mudancas">
+    <h2>11. Mudanças nesta política</h2>
+    <p>Se esta política mudar, a data no topo da página será atualizada.</p>
+  </section>
+</main>
+
+<footer class="rodape">
+  <p class="gutter">© 2026 Blin Car · Estética automotiva · São João de Meriti - RJ</p>
+</footer>
+</body>
+</html>
