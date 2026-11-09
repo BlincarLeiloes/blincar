@@ -2836,6 +2836,15 @@ function textoSinal(a) {
   return `Sinal de ${v} pago`;
 }
 
+// Link para o próprio cliente remarcar (só os serviços de REGRAS.remarcarPeloSite, como retoque, e dentro das remarcações).
+function linkRemarcarZap(a) {
+  const r = AG.dados && AG.dados.regras;
+  if (!r || !Array.isArray(r.remarcarPeloSite) || !r.remarcarPeloSite.some(x => x.toLowerCase() === String(a.servico).toLowerCase())) return "";
+  if ((a.remarcacao || 0) >= r.remarcacoes || a.recebidoEm || a.data < AG.dados.hoje) return "";
+  const link = `${AG.dados.site}?remarcar=${encodeURIComponent(a.id)}`;
+  return linkZap(a.telefone, `Olá, ${primeiroNomeDe(a.cliente)}! Para remarcar o seu ${a.servico.toLowerCase()}, que está marcado para ${dataLonga(a.data).toLowerCase()}${a.horario ? `, às ${horaBR(a.horario)}` : ""}, é só escolher a nova data por aqui, sem pagar de novo: ${link}`);
+}
+
 // "comData": mostra o dia junto (nos quadros fora do calendário).
 function itemAgendamento(a, comData) {
   const max = AG.dados.regras.remarcacoes;
@@ -2930,6 +2939,7 @@ function itemAgendamento(a, comData) {
       chegou && !a.recebidoEm ? botao("pedir-naoveio", "Não veio") : "",
       !chegou ? (a.presenca ? botao("presenca-nao", "Desfazer presença") : botao("presenca", "Cliente confirmou presença")) : "",
       !chegou && !a.presenca && lembrar ? el("a", { class: "mini", href: lembrar, target: "_blank", rel: "noopener" }, "Pedir confirmação no WhatsApp") : "",
+      !chegou && linkRemarcarZap(a) ? el("a", { class: "mini", href: linkRemarcarZap(a), target: "_blank", rel: "noopener" }, "Mandar link para remarcar") : "",
       botao("editar", "Editar"), botao("despagar", "Desfazer sinal pago"), botao("pedir-desmarcar", "Desmarcar", "mini perigo"));
   }
   return el("div", { class: "ag ag-" + a.sit + (pendente(a) ? " pag-pend" : ""), "data-ag": a.id }, topo, info, obs, comEntrada(a) ? contaCarro(a) : "", acoes);
@@ -4483,7 +4493,7 @@ function criarDemo() {
       "Pintura geral": { dias: { 1: 2, 2: 2 }, aCadaSemanas: 2, semanaInicial: "2026-10-19" }
     },
     sinal: 50, avisoDias: 2, avaliacaoDias: 5, remarcacoes: 3, prazoMinutos: 10, antecedenciaDias: 1, janelaDias: 120,
-    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1
+    horarios: ["10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"], carrosPorHorario: 1, remarcarPeloSite: ["Retoque"]
   };
   const hoje = hojeAqui();
   const especiais = {};

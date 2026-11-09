@@ -213,6 +213,9 @@ address{font-style:normal}
 .credito-ig svg{flex:none}
 .credito-ig:hover span{text-decoration:underline}
 .carregando{opacity:.6;pointer-events:none}
+.lista{margin:0;padding:0;list-style:none;display:grid;gap:10px;font-size:.9375rem}
+.lista li{padding-left:16px;position:relative}
+.lista li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--gold)}
 </style>
 </head>
 <body>
@@ -230,8 +233,8 @@ address{font-style:normal}
 
 <main class="page gutter">
   <section>
-    <h1>Agende seu serviço</h1>
-    <p class="lede">Confira a disponibilidade e agende a data que for melhor para você. A vaga é garantida com o sinal, no Pix ou no cartão de crédito.</p>
+    <h1 id="titulo">Agende seu serviço</h1>
+    <p class="lede" id="lede">Confira a disponibilidade e agende a data que for melhor para você. A vaga é garantida com o sinal, no Pix ou no cartão de crédito.</p>
   </section>
 
   <ol class="etapas" aria-label="Etapas do agendamento">
@@ -320,6 +323,33 @@ address{font-style:normal}
     </aside>
   </div>
 
+  <!-- Remarcar pelo link (agendar/?remarcar=ID): confirma o celular do agendamento -->
+  <div class="duas" id="vRemarcar" hidden>
+    <form class="bloco" id="fRemarcar" novalidate>
+      <div class="titulo-sec"><h2>Confirme o seu celular</h2></div>
+      <p class="nota" style="margin-bottom:18px">Para sua segurança, coloque o celular (WhatsApp) que está no seu agendamento.</p>
+      <div class="campos">
+        <div class="field">
+          <label for="rmTelefone">Celular (WhatsApp)</label>
+          <input type="tel" id="rmTelefone" autocomplete="tel-national" inputmode="tel" placeholder="(21) 99999-9999" aria-describedby="rmTelefone-err">
+          <p class="err" id="rmTelefone-err" hidden>Coloque o celular com DDD.</p>
+        </div>
+      </div>
+      <p class="msg" id="rmErro" role="alert" hidden style="margin-top:18px"></p>
+      <button class="btn btn-red largura" type="submit" id="rmContinuar" style="margin-top:22px">Ver datas para remarcar</button>
+    </form>
+    <aside class="resumo" aria-label="Como funciona a remarcação">
+      <h2>Como funciona</h2>
+      <ul class="lista">
+        <li>O sinal que você pagou continua valendo. Não precisa pagar de novo.</li>
+        <li>Você escolhe a nova data e o horário entre as vagas livres.</li>
+        <li>A Blin Car recebe o aviso na hora, e a confirmação chega no seu e-mail.</li>
+        <li>Pintura geral é remarcada com a equipe, pelo WhatsApp.</li>
+      </ul>
+      <p class="nota">Seus dados ficam só com a Blin Car. <a href="../privacidade/" target="_blank" rel="noopener">Política de privacidade</a></p>
+    </aside>
+  </div>
+
   <!-- Etapa 2: serviço e data -->
   <div class="duas" id="vData" hidden>
     <div class="bloco" id="vDataPrincipal">
@@ -330,7 +360,7 @@ address{font-style:normal}
       <p class="faixa credito" id="faixaCredito" hidden></p>
       <p class="faixa info" id="faixaAgendado" hidden></p>
 
-      <div class="titulo-sec"><h2>Escolha o serviço</h2></div>
+      <div class="titulo-sec" id="tServicos"><h2>Escolha o serviço</h2></div>
       <fieldset class="servicos" id="servicos">
         <legend>Qual serviço você quer?</legend>
       </fieldset>
@@ -367,7 +397,7 @@ address{font-style:normal}
         <ul id="regras"></ul>
       </details>
       <div class="pagamento" id="rPagamento"></div>
-      <p class="nota">Ao agendar, você recebe a confirmação e os avisos no seu e-mail.</p>
+      <p class="nota" id="rNota">Ao agendar, você recebe a confirmação e os avisos no seu e-mail.</p>
       <button type="button" class="btn btn-red largura" id="agendar" aria-disabled="true">Agendar</button>
     </aside>
   </div>
@@ -421,7 +451,8 @@ const digitos = s => String(s || "").replace(/\D/g, "");
 const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || "").trim());
 const suave = () => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
-const E = { cadastro: null, dados: null, credito: null, agendado: null, servico: "", data: "", horario: "", avisoHorario: "", mes: "", verificado: false, forma: "pix" };
+// remarcar: { id, telefone, agendamento } quando a pessoa veio pelo link de remarcar (agendar/?remarcar=ID).
+const E = { cadastro: null, dados: null, credito: null, agendado: null, remarcar: null, servico: "", data: "", horario: "", avisoHorario: "", mes: "", verificado: false, forma: "pix" };
 
 // Nome, celular, e-mail, carro e placa ficam lembrados neste aparelho; o nascimento e o orçamento, só até fechar a aba.
 function lembrar(acao, valor) {
@@ -461,9 +492,104 @@ function etapa(n) {
     if (i + 1 === n) li.setAttribute("aria-current", "step");
     else li.removeAttribute("aria-current");
   });
-  $("#vDados").hidden = n !== 1;
+  $("#vDados").hidden = n !== 1 || !!E.remarcar;
+  $("#vRemarcar").hidden = n !== 1 || !E.remarcar;
   $("#vData").hidden = n !== 2;
   $("#vResultado").hidden = n !== 3;
+}
+
+/* ---------- Remarcar pelo link ---------- */
+
+const TEXTOS = {
+  doc: document.title, titulo: $("#titulo").textContent, lede: $("#lede").textContent, cal: $("#tCal").textContent,
+  etapas: ["#e1", "#e2", "#e3"].map(s => $(s).textContent)
+};
+
+// Liga ou desliga o modo "remarcar": muda os títulos e esconde a escolha do serviço (o serviço é o do agendamento).
+function modoRemarcar(ligar) {
+  document.title = ligar ? "Remarcar agendamento · Blin Car" : TEXTOS.doc;
+  $("#titulo").textContent = ligar ? "Remarcar agendamento" : TEXTOS.titulo;
+  $("#lede").textContent = ligar ? "Escolha a nova data e o horário entre as vagas livres. O sinal que você pagou continua valendo." : TEXTOS.lede;
+  $("#tCal").textContent = ligar ? "Escolha a nova data" : TEXTOS.cal;
+  const etapas = ligar ? ["Confirmar celular", "Nova data", "Pronto"] : TEXTOS.etapas;
+  ["#e1", "#e2", "#e3"].forEach((s, i) => { $(s).textContent = etapas[i]; });
+  ["#tServicos", "#servicos", "#verificar", "#trocarDados"].forEach(s => { $(s).hidden = ligar; });
+}
+
+// Do agendamento normal para a remarcação (botão "Remarcar este agendamento").
+function irRemarcar(id, telefone) {
+  E.remarcar = { id, telefone: "", agendamento: null };
+  try { history.replaceState(null, "", `${location.pathname}?remarcar=${encodeURIComponent(id)}`); } catch {}
+  modoRemarcar(true);
+  etapa(1);
+  $("#rmTelefone").value = telefone || "";
+  if (telefone) $("#fRemarcar").requestSubmit();
+  window.scrollTo({ top: 0 });
+}
+
+function sairRemarcar() {
+  E.remarcar = null;
+  E.dados = null;
+  E.servico = "";
+  modoRemarcar(false);
+}
+
+$("#rmTelefone").addEventListener("input", () => {
+  if ($("#rmTelefone").getAttribute("aria-invalid") === "true") conferirTelefoneRemarcar();
+});
+
+function conferirTelefoneRemarcar() {
+  const tel = digitos($("#rmTelefone").value).replace(/^55(?=\d{10,11}$)/, "");
+  const ruim = tel.length < 10 || tel.length > 11;
+  $("#rmTelefone-err").hidden = !ruim;
+  $("#rmTelefone").setAttribute("aria-invalid", String(ruim));
+  return !ruim;
+}
+
+// Confere o celular do agendamento: se pode remarcar sozinho, abre o calendário; se não, explica e manda falar no WhatsApp.
+$("#fRemarcar").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!conferirTelefoneRemarcar()) return $("#rmTelefone").focus();
+  const telefone = $("#rmTelefone").value.trim();
+  const botao = $("#rmContinuar");
+  mostrar($("#rmErro"), "");
+  botao.disabled = true;
+  botao.textContent = "Um instante…";
+  try {
+    const r = await api("cliente_remarcacao", { id: E.remarcar.id, telefone });
+    if (!r || !r.ok) return mostrar($("#rmErro"), (r && r.mensagem) || MSG_REDE);
+    E.remarcar.telefone = telefone;
+    E.remarcar.agendamento = r.agendamento;
+    if (!r.pode) return mostrarResultado(r.agendamento, "nao_remarca", r);
+    E.dados = r.agenda;
+    abrirRemarcarData();
+  } catch {
+    mostrar($("#rmErro"), MSG_REDE);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Ver datas para remarcar";
+  }
+});
+
+function abrirRemarcarData() {
+  const a = E.remarcar.agendamento;
+  etapa(2);
+  E.credito = null;
+  E.servico = E.dados.servicos[0].nome;
+  E.data = "";
+  E.horario = "";
+  E.avisoHorario = "";
+  E.verificado = true;
+  $("#ola").textContent = `Olá, ${a.cliente}! Escolha a nova data do seu ${a.servico.toLowerCase()}.`;
+  $("#faixaCredito").hidden = true;
+  const fa = $("#faixaAgendado");
+  fa.hidden = false;
+  fa.replaceChildren("Agendamento atual: ", el("b", {}, diaEHora(a.data, a.horario)),
+    `. O sinal de ${reais(a.sinal)} que você pagou continua valendo (remarcação ${a.remarcacao + 1} de ${a.de}).`);
+  mostrar($("#dataErro"), "");
+  desenharCalendario(true);
+  desenharResumo();
+  window.scrollTo({ top: 0 });
 }
 
 /* ---------- Etapa 1: cadastro ---------- */
@@ -601,7 +727,19 @@ async function abrirData() {
   }
   const fa = $("#faixaAgendado");
   fa.hidden = !E.agendado;
-  if (E.agendado) fa.replaceChildren("Você já tem ", el("b", {}, `${E.agendado.servico.toLowerCase()} em ${dataLonga(E.agendado.data)}${E.agendado.horario ? `, às ${horaBR(E.agendado.horario)}` : ""}`), ". Pode agendar outro carro ou outro serviço aqui.");
+  if (E.agendado) {
+    const ag = E.agendado;
+    const filhos = ["Você já tem ", el("b", {}, `${ag.servico.toLowerCase()} em ${diaEHora(ag.data, ag.horario)}`), ". Pode agendar outro carro ou outro serviço aqui."];
+    if (ag.remarcar) {
+      const b = el("button", { type: "button", class: "linkbtn", id: "remarcarAgendado" }, "Remarcar este agendamento");
+      b.addEventListener("click", () => irRemarcar(ag.id, E.cadastro.telefone));
+      filhos.push(" Precisa mudar a data? ", b);
+    } else if (ag.motivo === "equipe" && WHATSAPP) {
+      const texto = `Olá! Sou ${E.cadastro.nome} e queria remarcar o meu agendamento de ${ag.servico.toLowerCase()}, marcado para ${diaEHora(ag.data, ag.horario)}.`;
+      filhos.push(" Para remarcar a pintura geral, ", el("a", { href: zap(texto), target: "_blank", rel: "noopener" }, "fale com a gente no WhatsApp"), ".");
+    }
+    fa.replaceChildren(...filhos);
+  }
   desenharResumo();
   window.scrollTo({ top: 0 });
   await carregarAgenda();
@@ -612,10 +750,25 @@ async function carregarAgenda() {
   caixa.classList.add("carregando");
   mostrar($("#dataErro"), "");
   try {
-    const d = await api("cliente_agenda", null, E.cadastro ? { email: E.cadastro.email } : null);
-    if (!d || !d.ok) throw new Error();
-    E.dados = d;
-    desenharServicos();
+    if (E.remarcar) {
+      const r = await api("cliente_remarcacao", { id: E.remarcar.id, telefone: E.remarcar.telefone });
+      if (r && r.ok && !r.pode) {
+        mostrarResultado(r.agendamento, "nao_remarca", r);
+        return false;
+      }
+      if (r && !r.ok && r.mensagem) {
+        mostrar($("#dataErro"), r.mensagem);
+        return false;
+      }
+      if (!r || !r.ok) throw new Error();
+      E.remarcar.agendamento = r.agendamento;
+      E.dados = r.agenda;
+    } else {
+      const d = await api("cliente_agenda", null, E.cadastro ? { email: E.cadastro.email } : null);
+      if (!d || !d.ok) throw new Error();
+      E.dados = d;
+      desenharServicos();
+    }
     if (E.verificado) desenharCalendario(false);
     desenharResumo();
     return true;
@@ -757,6 +910,7 @@ function escolher(data, irAoMes) {
   if (data !== E.data) E.horario = "";
   E.avisoHorario = "";
   E.data = data;
+  mostrar($("#dataErro"), "");
   if (irAoMes) E.mes = data.slice(0, 7);
   desenharCalendario(false);
   desenharResumo();
@@ -793,6 +947,7 @@ $("#disp").addEventListener("click", e => {
   if (!b) return;
   E.horario = b.dataset.hora;
   E.avisoHorario = "";
+  mostrar($("#dataErro"), "");
   desenharDisponibilidade();
   desenharResumo();
   const igual = document.querySelector(`#disp [data-hora="${E.horario}"]`);
@@ -815,8 +970,14 @@ function desenharResumo() {
   const o = E.dados && E.data ? ofertaDe(E.data) : {};
   dd("#rServico", E.servico ? `${E.servico}${o.preco ? ` · ${reais(o.preco)}` : ""}` : "", "Escolha o serviço");
   dd("#rDia", !diaLivre ? "" : pronto ? diaEHora(E.data, E.horario) : `${dataLonga(E.data)} · escolha o horário`, "Escolha uma data");
-  dd("#rCarro", E.cadastro ? `${E.cadastro.carro} · ${E.cadastro.placa}` : "", "");
-  dd("#rOrcamento", E.cadastro ? reais(valorReais(E.cadastro.orcamento)) : "", "");
+  const rm = E.remarcar && E.remarcar.agendamento;
+  if (rm) {
+    dd("#rCarro", rm.placa ? `${rm.carro} · ${rm.placa}` : rm.carro, "");
+    dd("#rOrcamento", rm.orcamento ? reais(rm.orcamento) : "", "");
+  } else {
+    dd("#rCarro", E.cadastro ? `${E.cadastro.carro} · ${E.cadastro.placa}` : "", "");
+    dd("#rOrcamento", E.cadastro ? reais(valorReais(E.cadastro.orcamento)) : "", "");
+  }
   const sinal = E.dados ? E.dados.sinal : 50;
   const remarcacoes = E.dados ? E.dados.remarcacoes : 3;
   const prazo = E.dados ? E.dados.prazoMinutos : 10;
@@ -824,7 +985,11 @@ function desenharResumo() {
   if (taxa == null) E.forma = "pix";
   const apagar = E.forma === "cartao" ? sinal + taxa : sinal;
   const pag = $("#rPagamento");
-  if (E.credito) {
+  if (rm) {
+    pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
+      el("div", { class: "linha-val" }, el("span", {}, "Sinal já pago"), el("b", {}, reais(rm.sinal))),
+      el("div", { class: "linha-val total" }, el("span", {}, "A pagar agora"), el("b", {}, reais(0))));
+  } else if (E.credito) {
     pag.replaceChildren(el("h3", {}, "Informações de pagamento"),
       el("div", { class: "linha-val" }, el("span", {}, "Sinal"), el("b", {}, reais(E.credito.valor))),
       el("div", { class: "linha-val" }, el("span", {}, "Seu crédito"), el("b", {}, "− " + reais(E.credito.valor))),
@@ -850,20 +1015,26 @@ function desenharResumo() {
       el("div", { class: "linha-val total" }, el("span", {}, "Sinal no Pix"), el("b", {}, reais(sinal))),
       el("p", { class: "nota" }, "Descontado do valor do serviço."));
   }
-  const regras = E.credito
+  const regras = rm
+    ? [`O sinal de ${reais(rm.sinal)} que você pagou continua valendo e é descontado do valor do serviço.`,
+      `Esta é a remarcação ${rm.remarcacao + 1} de ${rm.de}.`,
+      "Ao remarcar, a data antiga fica livre para outra pessoa."]
+    : E.credito
     ? [`O crédito de ${reais(E.credito.valor)} vale como sinal deste agendamento. Não precisa pagar de novo.`]
     : [`O sinal de ${reais(sinal)} garante a sua vaga e é descontado do valor do serviço.`,
       `Depois de tocar em agendar, você tem ${prazo} minutos para pagar. Se não pagar a tempo, a reserva é cancelada e você precisa agendar de novo.`];
-  if (!E.credito && taxa != null) {
+  if (!rm && !E.credito && taxa != null) {
     regras.push(`No cartão de crédito, só à vista, o sinal fica ${reais(sinal + taxa)}: os ${reais(taxa)} são a taxa do cartão e não são descontados do serviço.`);
   }
-  regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${remarcacoes} vezes).`);
+  if (!rm) regras.push(`Se não puder vir, o sinal não se perde: vira crédito para remarcar (até ${remarcacoes} vezes).`);
   if (usaHorario()) regras.push("Chegue no horário escolhido: cada horário recebe um carro.");
   regras.push("O endereço e a confirmação chegam no seu e-mail. No dia, você recebe um lembrete.");
   $("#regras").replaceChildren(...regras.map(t => el("li", {}, t)));
+  $("#rNota").textContent = rm ? "Ao remarcar, a confirmação chega no seu e-mail e a Blin Car é avisada na hora."
+    : "Ao agendar, você recebe a confirmação e os avisos no seu e-mail.";
   const botao = $("#agendar");
   if (botao.dataset.enviando) return;
-  botao.textContent = E.credito ? "Remarcar com meu crédito" : `Agendar e pagar ${reais(apagar)}`;
+  botao.textContent = rm ? "Remarcar para esta data" : E.credito ? "Remarcar com meu crédito" : `Agendar e pagar ${reais(apagar)}`;
   if (pronto) botao.removeAttribute("aria-disabled");
   else botao.setAttribute("aria-disabled", "true");
 }
@@ -884,13 +1055,22 @@ $("#agendar").addEventListener("click", async () => {
     $("#dataErro").scrollIntoView({ behavior: suave(), block: "center" });
     return;
   }
+  const rm = E.remarcar && E.remarcar.agendamento;
+  if (rm && E.data === rm.data && (E.horario || "") === (rm.horario || "")) {
+    mostrar($("#dataErro"), "Essa já é a data do seu agendamento. Escolha outro dia ou outro horário.");
+    return $("#dataErro").scrollIntoView({ behavior: suave(), block: "center" });
+  }
   mostrar($("#dataErro"), "");
   botao.dataset.enviando = "1";
   botao.setAttribute("aria-disabled", "true");
-  botao.textContent = E.credito ? "Remarcando…" : "Abrindo o pagamento…";
+  botao.textContent = rm || E.credito ? "Remarcando…" : "Abrindo o pagamento…";
   let indo = false;
   try {
-    const r = await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, horario: E.horario, servico: E.servico, forma: E.forma });
+    const r = rm
+      ? await api("cliente_remarcar", { id: E.remarcar.id, telefone: E.remarcar.telefone, data: E.data, horario: E.horario })
+      : await api("cliente_agendar", { cadastro: E.cadastro, data: E.data, horario: E.horario, servico: E.servico, forma: E.forma });
+    if (rm && r && r.ok) return mostrarResultado(r.agendamento, "remarcado_link", r.antes);
+    if (rm && r && r.erro === "nao_remarca") return mostrarResultado(rm, "nao_remarca", r);
     if (r && r.ok && r.tipo === "pagar") {
       indo = true;
       location.href = r.link;
@@ -960,6 +1140,7 @@ function preencher(c) {
 // Volta ao começo, com os dados lembrados neste aparelho (o crédito, se houver, aparece de novo).
 function recomecar() {
   try { history.replaceState(null, "", location.pathname); } catch {}
+  if (E.remarcar) sairRemarcar();
   E.data = "";
   E.horario = "";
   E.verificado = false;
@@ -981,7 +1162,8 @@ function mostrarResultado(a, tipo, extra) {
   const caixa = $("#vResultado");
   const detalhes = a && a.data ? el("dl", { class: "detalhes" },
     el("div", {}, el("dt", {}, "Serviço"), el("dd", {}, a.servico)),
-    el("div", {}, el("dt", {}, "Dia"), el("dd", {}, diaEHora(a.data, a.horario))),
+    el("div", {}, el("dt", {}, tipo === "remarcado_link" ? "Nova data" : "Dia"), el("dd", {}, diaEHora(a.data, a.horario))),
+    tipo === "remarcado_link" && extra && extra.data ? el("div", {}, el("dt", {}, "Antes"), el("dd", {}, el("s", {}, diaEHora(extra.data, extra.horario)))) : "",
     a.carro ? el("div", {}, el("dt", {}, "Carro"), el("dd", {}, a.placa ? `${a.carro} · ${a.placa}` : a.carro)) : "",
     a.orcamento ? el("div", {}, el("dt", {}, "Orçamento"), el("dd", {}, reais(a.orcamento))) : "") : "";
   const onde = el("address", {}, "Rua da Separação, Lt 17, Qd 23 · Vilar dos Teles, São João de Meriti - RJ · próximo ao 21º BPM");
@@ -997,6 +1179,23 @@ function mostrarResultado(a, tipo, extra) {
       detalhes, onde,
       el("p", { class: "nota" }, "Enviamos a confirmação para o seu e-mail. No dia, você recebe um lembrete. Se não puder vir, o sinal vira crédito para remarcar."),
       el("div", { class: "acoes" }, mapa)];
+  } else if (tipo === "remarcado_link") {
+    filhos = [selo("ok"),
+      el("h2", {}, "Agendamento remarcado"),
+      el("p", { class: "lede" }, `Pronto${a.cliente ? ", " + a.cliente : ""}! A nova data está confirmada, o sinal continua valendo e a Blin Car já foi avisada. Estamos esperando você!`),
+      detalhes, onde,
+      el("p", { class: "nota" }, "Enviamos a confirmação para o seu e-mail. No dia, você recebe um lembrete."),
+      el("div", { class: "acoes" }, mapa)];
+  } else if (tipo === "nao_remarca") {
+    const equipe = extra && extra.motivo === "equipe";
+    const texto = a && a.data
+      ? `Olá! ${a.cliente ? `Sou ${a.cliente} e ` : ""}queria remarcar o meu agendamento de ${a.servico.toLowerCase()}, marcado para ${diaEHora(a.data, a.horario)}.`
+      : "Olá! Queria remarcar o meu agendamento na Blin Car.";
+    filhos = [selo("espera"),
+      el("h2", {}, equipe ? "Vamos ver a melhor semana com você" : "Fale com a gente para remarcar"),
+      el("p", { class: "lede" }, (extra && extra.mensagem) || "Fale com a gente no WhatsApp."),
+      detalhes,
+      el("div", { class: "acoes" }, ajuda(texto))];
   } else if (tipo === "aguardando") {
     const pagar = a.link ? el("a", { class: "btn btn-red", href: a.link }, a.linkCartao ? `Pagar no Pix · ${reais(a.sinal)}` : "Voltar para o pagamento") : "";
     const cartao = a.linkCartao ? el("a", { class: "btn btn-line", href: a.linkCartao }, `Pagar no cartão · ${reais(a.valorCartao)}`) : "";
@@ -1083,13 +1282,23 @@ if (WHATSAPP) {
 }
 const salvo = lembrar("ler");
 if (salvo) preencher(salvo);
-const volta = new URLSearchParams(location.search).get("ag");
+const busca = new URLSearchParams(location.search);
+const volta = busca.get("ag");
+const remarcarId = busca.get("remarcar");
+if (remarcarId && !volta) {
+  // Link de remarcar: confirma o celular do agendamento (já vem preenchido se este aparelho lembra).
+  E.remarcar = { id: remarcarId, telefone: "", agendamento: null };
+  modoRemarcar(true);
+  etapa(1);
+  if (salvo && salvo.telefone) $("#rmTelefone").value = salvo.telefone;
+}
 if (!API) {
   $("#semApi").hidden = false;
   $("#continuar").disabled = true;
+  $("#rmContinuar").disabled = true;
 } else if (volta) {
   acompanhar(volta);
-} else {
+} else if (!E.remarcar) {
   // Já busca a agenda enquanto a pessoa preenche: o resumo mostra o sinal e os serviços de verdade.
   api("cliente_agenda").then(d => {
     if (!d || !d.ok || E.dados) return;
