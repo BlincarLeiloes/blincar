@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pintura geral ou R$ 2 mil no Pix · Blin Car Leilões</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Ação da Blin Car Leilões: concorra a uma pintura geral ou R$ 2 mil no Pix. A partir de 51 bilhetes, cada um sai por R$ 1,00.">
+<meta property="og:title" content="Pintura geral ou R$ 2 mil no Pix · Blin Car Leilões">
+<meta property="og:description" content="A partir de 51 bilhetes, cada um sai por R$ 1,00. Sorteio ao vivo no Instagram e no TikTok.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blincarleiloes.github.io/blincar/pre-venda/">
+<meta property="og:image" content="https://blincarleiloes.github.io/blincar/pre-venda/arte.jpg">
+<meta property="og:image:width" content="1080">
+<meta property="og:image:height" content="1080">
+<meta property="og:image:alt" content="Pintura geral ou R$ 2 mil no Pix, ação da Blin Car Leilões">
+<meta name="theme-color" content="#f7f3ee">
+<link rel="icon" href="../favicon.ico" sizes="32x32">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Página simples da ação: uma coluna só, no celular e no computador */
+:root{
+  --bg:#f7f3ee;--card:#ffffff;--line:#ebe4da;--fg:#2b2623;--muted:#6e6660;
+  --red:#d62b30;--red-dark:#b82025;--red-soft:#fdeeee;--green:#1c8f4c;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 17px/1.55 "Nunito",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+a{color:inherit}
+img{max-width:100%;height:auto;display:block}
+.nowrap{white-space:nowrap}
+:focus-visible{outline:3px solid #f2b705;outline-offset:3px;border-radius:8px}
+
+.pagina{max-width:480px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+.marca{margin:0 0 16px;text-align:center;font-weight:800;font-size:1.125rem}
+.marca span{color:var(--red)}
+
+/* Abertura: foto da oficina com o título embaixo, no mesmo card */
+.abertura{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 8px 28px rgba(60,30,20,.08)}
+.abertura img{width:100%;aspect-ratio:2/1;object-fit:cover;object-position:right center}
+.abertura .corpo{padding:18px 20px 22px;text-align:center}
+.de{margin:0 0 6px;font-size:.9375rem;font-weight:700;color:var(--muted)}
+h1{margin:0;font-weight:800;font-size:1.75rem;line-height:1.2;text-wrap:balance}
+h1 span{color:var(--red)}
+.intro{margin:10px 0 0;color:var(--muted)}
+.intro b{color:var(--fg)}
+
+/* As duas opções de prêmio lado a lado */
+.opcoes{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opcao{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.opcao .visual{aspect-ratio:4/3;display:block;width:100%}
+.opcao img.visual{object-fit:cover;object-position:62% center}
+.opcao .grana{display:grid;place-content:center;text-align:center;background:#e9f6ee;color:#17693a}
+.grana b{display:block;font-weight:800;font-size:2rem;line-height:1}
+.grana span{font-weight:700;font-size:1rem}
+.opcao p{margin:0;padding:10px 12px 12px;font-size:.9375rem;line-height:1.35}
+.opcao p b{display:block;font-size:1rem}
+.opcao p span{color:var(--muted)}
+.ou{position:absolute;left:50%;top:0;transform:translate(-50%,-50%);margin-top:calc((100% - 10px) / 2 * .375);width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;font-size:.9375rem;color:var(--muted);box-shadow:0 2px 8px rgba(60,30,20,.08)}
+
+.cartao{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 18px 20px;margin-top:16px}
+h2{margin:0 0 12px;font-weight:800;font-size:1.1875rem}
+
+.precos{margin:0;padding:0;list-style:none}
+.precos li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 12px;border-radius:12px}
+.precos li+li{margin-top:4px}
+.precos b{font-weight:800;white-space:nowrap}
+.precos .melhor{background:var(--red-soft)}
+.precos .melhor b{color:var(--red)}
+
+.botao{display:flex;align-items:center;justify-content:center;width:100%;min-height:58px;margin-top:18px;padding:14px 20px;border-radius:999px;background:var(--red);color:#fff;font-weight:800;font-size:1.25rem;text-decoration:none;box-shadow:0 4px 0 var(--red-dark)}
+.botao:hover{background:#c8252a}
+.botao:active{transform:translateY(2px);box-shadow:0 2px 0 var(--red-dark)}
+.obs{margin:10px 0 0;text-align:center;font-size:.9375rem;color:var(--muted)}
+
+.passos{margin:0;padding:0;list-style:none;counter-reset:p}
+.passos li{counter-increment:p;position:relative;padding-left:40px;min-height:28px}
+.passos li+li{margin-top:12px}
+.passos li::before{content:counter(p);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--red-soft);color:var(--red);font-weight:800;font-size:.9375rem;display:grid;place-items:center}
+
+.lista{margin:0;padding-left:20px}
+.lista li+li{margin-top:8px}
+.lista li::marker{color:var(--red)}
+
+.grupo{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;margin-top:14px;padding:12px 18px;border-radius:999px;border:2px solid var(--green);color:var(--green);font-weight:800;text-decoration:none}
+.grupo:hover{background:#edf8f1}
+.grupo svg{width:20px;height:20px;flex:none}
+
+.links{margin:22px 0 0;text-align:center;font-size:.9375rem;color:var(--muted)}
+.links a{font-weight:700;color:var(--fg)}
+
+.rodape{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);text-align:center;font-size:.875rem;color:var(--muted)}
+.rodape p{margin:0}
+.rodape p+p{margin-top:6px}
+.rodape b{color:var(--fg)}
+</style>
+</head>
+<body>
+<main class="pagina">
+  <p class="marca">Blin Car <span>Leilões</span></p>
+
+  <section class="abertura">
+    <img src="pintor.jpg" width="1308" height="564" alt="Pintor da Blin Car pintando um carro na cabine de pintura">
+    <div class="corpo">
+      <p class="de">Ação da Blin Car Leilões</p>
+      <h1>Concorra a uma <span>pintura geral</span> ou <span>R$ 2 mil</span> <span class="nowrap" style="color:inherit">no Pix</span></h1>
+      <p class="intro">Com 51 bilhetes ou mais, cada um sai por <b>R$ 1,00</b>.</p>
+      <a class="botao" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">Compre aqui</a>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <h2>O prêmio</h2>
+    <div class="opcoes">
+      <div class="opcao">
+        <img class="visual" src="carro.jpg" width="1010" height="510" loading="lazy" alt="Carro preto com pintura nova">
+        <p><b>Pintura geral</b><span>Com polimento de brinde</span></p>
+      </div>
+      <div class="opcao">
+        <div class="visual grana" aria-hidden="true"><b>R$ 2 mil</b><span>no Pix</span></div>
+        <p><b>Dinheiro no Pix</b><span>R$ 2.000 direto na conta</span></p>
+      </div>
+      <span class="ou" aria-hidden="true">ou</span>
+    </div>
+  </section>
+
+  <section class="cartao">
+    <h2>Valor do bilhete</h2>
+    <ul class="precos">
+      <li><span>1 a 25 bilhetes</span><b>R$ 5,00 cada</b></li>
+      <li><span>26 a 50 bilhetes</span><b>R$ 1,60 cada</b></li>
+      <li class="melhor"><span>51 bilhetes ou mais</span><b>R$ 1,00 cada</b></li>
+    </ul>
+    <a class="botao" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">Compre aqui</a>
+    <p class="obs">Você escolhe os bilhetes e paga no Pix.</p>
+  </section>
+
+  <section class="cartao">
+    <h2>Como funciona</h2>
+    <ol class="passos">
+      <li>Toque em “Compre aqui”.</li>
+      <li>Escolha quantos bilhetes quer e preencha seu nome, telefone e <span class="nowrap">e-mail</span>.</li>
+      <li>Pague no Pix. Seus números aparecem logo depois do pagamento.</li>
+      <li>Quando 90% dos bilhetes forem vendidos, o sorteio é feito ao vivo no Instagram e no TikTok.</li>
+    </ol>
+  </section>
+
+  <section class="cartao">
+    <h2>Bom saber</h2>
+    <ul class="lista">
+      <li>A pintura geral é feita com as portas fechadas.</li>
+      <li>O frete não está incluso. Quem ganhar a pintura leva o carro até a oficina, em Vilar dos Teles, São João de Meriti.</li>
+      <li>Se você ganhar e não estiver vendo a live, a gente entra em contato.</li>
+    </ul>
+    <a class="grupo" href="https://chat.whatsapp.com/Czi3qDr47sS6sxB3wRvsyg" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8.5 9.5c.3 2.6 3.4 5.7 6 6"/></svg>
+      Entrar no grupo do WhatsApp
+    </a>
+    <p class="obs">A data e a hora do sorteio são avisadas no grupo.</p>
+  </section>
+
+  <a class="botao" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">Compre aqui</a>
+
+  <p class="links">
+    <a href="https://www.instagram.com/blincar_leiloes/" target="_blank" rel="noopener">Instagram</a> ·
+    <a href="https://www.tiktok.com/@blincarestetica" target="_blank" rel="noopener">TikTok</a> ·
+    <a href="https://wa.me/5521997484737?text=Ol%C3%A1!%20Tenho%20uma%20d%C3%BAvida%20sobre%20a%20a%C3%A7%C3%A3o%20da%20pintura%20geral%20ou%20R%24%202%20mil%20no%20Pix." target="_blank" rel="noopener">Tirar dúvida</a>
+  </p>
+
+  <footer class="rodape">
+    <p>Blin Car · São João de Meriti - RJ · <a href="../privacidade/">Privacidade</a></p>
+    <p>Desenvolvido por <b>Arthur Castilho Lourenço</b> · <a href="https://www.instagram.com/castilhoarthurr/" target="_blank" rel="noopener">@castilhoarthurr</a></p>
+  </footer>
+</main>
+</body>
+</html>
