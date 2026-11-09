@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pintura geral ou R$ 2 mil no Pix · Blin Car Leilões</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Ação exclusiva Blin Car Leilões: concorra a uma pintura geral com polimento de brinde ou R$ 2 mil no Pix. Com 51 bilhetes ou mais, cada um sai por R$ 1,00.">
+<meta property="og:title" content="Pintura geral ou R$ 2 mil no Pix · Blin Car Leilões">
+<meta property="og:description" content="Com 51 bilhetes ou mais, cada um sai por R$ 1,00. Sorteio ao vivo no Instagram e no TikTok.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blincarleiloes.github.io/blincar/pre-venda/">
+<meta property="og:image" content="https://blincarleiloes.github.io/blincar/pre-venda/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Pintura geral ou R$ 2 mil no Pix, ação da Blin Car Leilões">
+<meta name="theme-color" content="#0a0a0c">
+<link rel="icon" href="../favicon.ico" sizes="32x32">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&display=swap">
+<link rel="preload" as="image" href="arte-640.jpg" imagesrcset="arte-640.jpg 640w, arte.jpg 1080w" imagesizes="(min-width:900px) 500px, 100vw">
+<style>
+/* Página da ação (pré-venda): escura, vermelho e dourado como a arte do Instagram.
+   Celular: arte, chamada, preços, prêmio, passos, sorteio e dúvidas em uma coluna, com botão fixo embaixo.
+   A partir de 900px: chamada à esquerda e arte à direita. */
+:root{
+  --bg:#0a0a0c;--surface:#141417;--surface-2:#1c1c21;--line:#2a2a31;--line-2:#3b3b44;
+  --fg:#f6f4f0;--muted:#a9a8af;
+  --red:#e3262c;--red-hi:#ff4146;--red-glow:rgba(227,38,44,.5);
+  --gold:#ffc81f;--gold-hi:#ffe46b;--gold-lo:#ff9f0a;--gold-ink:#1d1400;
+  --wa:#25d366;--wa-soft:#6fe39d;
+  --display:"Saira","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.55 var(--body);-webkit-text-size-adjust:100%;overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%}
+h1,h2,h3{text-wrap:balance}
+p{text-wrap:pretty}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto}
+.wrap.gutter{max-width:1152px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+/* Texto dourado da grana (sem suporte, fica dourado liso) */
+.grana{color:var(--gold)}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .grana{background:linear-gradient(180deg,var(--gold-hi) 0%,var(--gold) 55%,var(--gold-lo) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+}
+
+/* Topo */
+.bar{position:relative;z-index:2;border-bottom:1px solid var(--line)}
+.bar-in{padding-block:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mark{display:grid;text-decoration:none;line-height:1}
+.mark .stars{color:var(--gold);font-size:.625rem;letter-spacing:.3em}
+.mark .word{font:italic 800 1.625rem/1 var(--display);font-stretch:75%;letter-spacing:.02em}
+.mark .word b{color:var(--red);font-weight:800}
+.mark .tag{font-size:.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid rgba(227,38,44,.55);border-radius:999px;background:rgba(227,38,44,.12);font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red-hi);box-shadow:0 0 0 3px rgba(255,65,70,.25)}
+
+/* Abertura */
+.hero{position:relative;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:-90px 0 0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(42% 38% at 8% 22%,rgba(227,38,44,.42),transparent 70%),
+    radial-gradient(38% 30% at 96% 8%,rgba(227,38,44,.32),transparent 70%),
+    radial-gradient(50% 40% at 70% 88%,rgba(227,38,44,.18),transparent 70%)}
+.hero-in{display:grid;gap:26px;padding-block:20px 44px}
+.arte{margin:0;border-radius:22px;overflow:hidden;aspect-ratio:1;background:#1a0607;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07),0 24px 70px -18px var(--red-glow)}
+.arte img{display:block;width:100%;height:100%;object-fit:cover}
+.selo{margin:0 0 14px;font-size:.75rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.selo b{color:var(--fg)}
+h1{margin:0;font:italic 900 clamp(2.9rem,13vw,5.25rem)/.86 var(--display);font-stretch:70%;text-transform:uppercase;letter-spacing:-.01em}
+h1 .ou{display:block;margin:.1em 0 .06em;font-size:.46em;line-height:1;color:var(--red-hi);letter-spacing:.04em}
+h1 .grana{display:inline-block;padding-right:.06em}
+.lede{margin:18px 0 0;max-width:30em;font-size:1.0625rem;color:var(--muted)}
+.lede b{color:var(--fg);font-weight:700}
+.precos-mini{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.precos-mini li{padding:7px 12px;border:1px solid var(--line-2);border-radius:999px;font-size:.875rem;color:var(--muted);background:rgba(20,20,23,.7)}
+.precos-mini b{color:var(--fg);font-weight:700}
+.precos-mini .top{border-color:rgba(255,200,31,.6);background:rgba(255,200,31,.1);color:var(--fg)}
+.precos-mini .top b{color:var(--gold)}
+.acoes{display:grid;gap:10px;margin-top:22px}
+.garantia{margin:12px 0 0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8125rem;color:var(--muted)}
+.garantia span{display:inline-flex;align-items:center;gap:6px}
+.garantia svg{width:15px;height:15px;color:var(--wa-soft);flex:none}
+@media (min-width:600px){.acoes{grid-template-columns:auto auto;justify-content:start}}
+@media (min-width:900px){
+  .hero-in{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);align-items:center;gap:56px;padding-block:56px 80px}
+  .arte{order:2}
+}
+
+/* Botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:13px 20px;border-radius:14px;border:1px solid transparent;background:transparent;color:var(--fg);font:700 1.0625rem/1.2 var(--body);text-decoration:none;cursor:pointer;text-align:center;transition:transform .15s,box-shadow .15s,background-color .15s,border-color .15s}
+.btn svg{width:20px;height:20px;flex:none}
+.btn-red{background:linear-gradient(180deg,var(--red-hi),var(--red));color:#fff;box-shadow:0 12px 32px -10px var(--red-glow),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn-red:hover{box-shadow:0 16px 40px -10px rgba(227,38,44,.75),inset 0 1px 0 rgba(255,255,255,.25)}
+.btn-xl{min-height:60px;padding-inline:26px;font-size:1.1875rem;font-weight:800}
+.btn-wa{border-color:rgba(37,211,102,.5);color:var(--wa-soft)}
+.btn-wa:hover{border-color:var(--wa);background:rgba(37,211,102,.08)}
+.btn-line{border-color:var(--line-2)}
+.btn-line:hover{border-color:var(--muted)}
+.btn-sm{min-height:44px;padding:10px 14px;font-size:.9375rem;border-radius:12px}
+@media (prefers-reduced-motion:no-preference){.btn:active{transform:scale(.98)}}
+
+/* Seções */
+.secao{padding-block:44px}
+.secao+.secao{border-top:1px solid var(--line)}
+.kicker{margin:0 0 10px;font-size:.75rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--red-hi)}
+h2{margin:0;font:italic 900 clamp(2.1rem,8.5vw,3.25rem)/.92 var(--display);font-stretch:70%;text-transform:uppercase}
+.sub{margin:12px 0 0;max-width:36em;color:var(--muted)}
+.sub b{color:var(--fg);font-weight:600}
+@media (min-width:900px){.secao{padding-block:72px}}
+
+/* Preços */
+.faixas{list-style:none;margin:26px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.faixa{position:relative;display:grid;gap:4px;justify-items:center;text-align:center;padding:22px 8px 16px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.faixa .qtd{font-size:.8125rem;font-weight:700;color:var(--muted);line-height:1.25}
+.faixa .val{font:italic 900 clamp(1.6rem,7.5vw,2.5rem)/1 var(--display);font-stretch:72%;white-space:nowrap}
+.faixa .cada{font-size:.8125rem;color:var(--muted)}
+.faixa .etq{position:absolute;top:-11px;left:50%;transform:translateX(-50%);padding:3px 9px;border-radius:999px;font-size:.6875rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.faixa.meio .etq{background:var(--red);color:#fff}
+.faixa.top{border-color:rgba(255,200,31,.75);background:linear-gradient(180deg,rgba(255,200,31,.14),rgba(255,200,31,0) 75%),var(--surface);box-shadow:0 14px 40px -18px rgba(255,200,31,.45)}
+.faixa.top .etq{background:var(--gold);color:var(--gold-ink)}
+@media (min-width:600px){.faixa{padding:26px 16px 20px}}
+
+.calc{margin-top:16px;display:grid;gap:18px;padding:20px;border:1px solid var(--line);border-radius:22px;background:var(--surface)}
+@media (min-width:600px){.calc{padding:28px}}
+@media (min-width:900px){
+  .precos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:start}
+  .calc{margin-top:0}
+}
+.calc-tit{margin:0;font-weight:700;font-size:1rem}
+.stepper{display:grid;grid-template-columns:56px minmax(0,1fr) 56px;gap:8px}
+.stepper button{height:58px;border-radius:14px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--fg);font:600 1.75rem/1 var(--body);cursor:pointer;display:grid;place-items:center}
+.stepper button:hover{border-color:var(--muted)}
+.stepper button:disabled{opacity:.4;cursor:default}
+.stepper input{width:100%;min-width:0;height:58px;text-align:center;font:italic 900 2.25rem/1 var(--display);font-stretch:75%;color:var(--fg);background:var(--bg);border:1px solid var(--line-2);border-radius:14px;padding:0 6px}
+.stepper input:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+.atalhos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.atalhos button{min-height:42px;padding:8px 4px;border-radius:999px;border:1px solid var(--line-2);background:transparent;color:var(--fg);font:600 .9375rem/1 var(--body);cursor:pointer;font-variant-numeric:tabular-nums}
+.atalhos button:hover{border-color:var(--muted)}
+.atalhos button[aria-pressed="true"]{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+.total{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px;padding-top:16px;border-top:1px dashed var(--line-2)}
+.total .rot{display:block;font-size:.8125rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.total .valor{display:block;font:italic 900 clamp(2.5rem,12vw,3.25rem)/1 var(--display);font-stretch:72%;font-variant-numeric:tabular-nums}
+.total .det{font-size:.9375rem;color:var(--muted);line-height:1.45}
+@media (min-width:600px){.total .det{text-align:right}}
+.total .det b{color:var(--fg)}
+.total s{color:var(--muted)}
+.dica{margin:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 14px;padding:12px 14px;border-radius:14px;background:rgba(255,200,31,.09);border:1px solid rgba(255,200,31,.35);font-size:.9375rem}
+.dica b{color:var(--gold)}
+.dica button{min-height:40px;padding:8px 14px;border-radius:10px;border:0;background:var(--gold);color:var(--gold-ink);font:800 .9375rem/1 var(--body);cursor:pointer;white-space:nowrap}
+.dica.ok{background:rgba(37,211,102,.08);border-color:rgba(37,211,102,.35)}
+.dica.ok b{color:var(--wa-soft)}
+.calc .btn{width:100%}
+.calc .nota{margin:-6px 0 0;font-size:.875rem;color:var(--muted);text-align:center}
+
+/* Prêmio */
+.premios{margin-top:26px;display:grid;gap:12px}
+.premio{border:1px solid var(--line);border-radius:22px;overflow:hidden;background:var(--surface);min-width:0}
+.premio img{display:block;width:100%;aspect-ratio:2/1;object-fit:cover;background:#1a0607}
+.premio .corpo{padding:18px 20px 22px}
+.premio:first-child .corpo{padding-bottom:40px}
+.premio .opc{margin:0 0 6px;font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.premio h3{margin:0;font:italic 900 2rem/1 var(--display);font-stretch:72%;text-transform:uppercase}
+.check{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:8px}
+.check li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start}
+.check svg{width:22px;height:22px;margin-top:1px;color:var(--red-hi)}
+.premio.pix .check svg{color:var(--gold)}
+.ou-badge{justify-self:center;display:grid;place-items:center;width:64px;height:64px;margin:-32px 0;position:relative;z-index:1;border-radius:50%;background:linear-gradient(180deg,var(--red-hi),var(--red));box-shadow:0 0 0 6px var(--bg),0 10px 30px -6px var(--red-glow);font:italic 900 1.5rem/1 var(--display);font-stretch:75%;text-transform:uppercase}
+@media (min-width:760px){
+  .premios{grid-template-columns:minmax(0,1fr) 0 minmax(0,1fr);gap:0 20px;align-items:stretch}
+  .ou-badge{align-self:center;margin:0 -32px}
+  .premio:first-child .corpo{padding-bottom:22px}
+}
+
+/* Como participar */
+.passos{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:12px;counter-reset:p}
+.passos li{counter-increment:p;display:grid;grid-template-columns:52px 1fr;gap:4px 14px;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.passos li::before{content:counter(p,decimal-leading-zero);grid-row:span 2;font:italic 900 2.25rem/1 var(--display);font-stretch:72%;color:var(--red-hi)}
+.passos b{font-weight:700;font-size:1.0625rem;line-height:1.3}
+.passos span{color:var(--muted);font-size:.9375rem}
+@media (min-width:900px){
+  .passos{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .passos li{grid-template-columns:1fr;align-content:start}
+  .passos li::before{grid-row:auto;margin-bottom:10px}
+}
+
+/* Sorteio */
+.numeros{list-style:none;margin:26px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.numeros li{padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface);display:grid;gap:6px;align-content:start}
+.numeros .n{font:italic 900 clamp(2.25rem,10vw,3rem)/1 var(--display);font-stretch:72%}
+.numeros .n.vermelho{color:var(--red-hi)}
+.numeros span{font-size:.9375rem;color:var(--muted)}
+.numeros .largo{grid-column:1/-1;grid-template-columns:auto 1fr;align-items:center;gap:6px 16px}
+.numeros .largo svg{width:44px;height:44px;color:var(--red-hi);grid-row:span 2}
+.numeros .largo b{font-size:1.0625rem}
+@media (min-width:900px){.numeros{grid-template-columns:1fr 1fr 2fr}.numeros .largo{grid-column:auto}}
+.redes{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+
+/* Avaliações aprovadas no painel */
+.avals{list-style:none;margin:26px 0 0;padding:0;display:grid;gap:10px}
+@media (min-width:900px){.avals{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.aval{border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:16px 18px;display:grid;gap:8px;align-content:start;min-width:0}
+.aval .est{color:var(--gold);letter-spacing:.12em;font-size:1rem;line-height:1}
+.aval blockquote{margin:0;overflow-wrap:anywhere}
+.aval .quem{font-size:.8125rem;color:var(--muted)}
+.aval .quem b{color:var(--fg);font-weight:600}
+
+/* Dúvidas */
+.faq{margin-top:26px;border-top:1px solid var(--line)}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 2px;font-weight:700;font-size:1.0625rem}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"";flex:none;width:12px;height:12px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-3px) rotate(45deg);transition:transform .2s}
+.faq details[open] summary::after{transform:translateY(3px) rotate(-135deg)}
+.faq .resp{padding:0 2px 20px;color:var(--muted);max-width:44em}
+.faq .resp p{margin:0}
+.faq .resp p+p{margin-top:10px}
+.faq .resp b{color:var(--fg);font-weight:600}
+.faq address{font-style:normal;color:var(--fg)}
+.faq .acoes-mini{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.duvida{margin-top:24px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;color:var(--muted)}
+@media (min-width:900px){.duvidas{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;align-items:start}.faq{margin-top:0}}
+
+/* Chamada final */
+.final{position:relative;isolation:isolate;text-align:center;padding-block:64px;border-top:1px solid var(--line);overflow:hidden}
+.final::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 70% at 50% 100%,rgba(227,38,44,.38),transparent 70%)}
+.final h2{font-size:clamp(2.4rem,10vw,4rem)}
+.final .sub{margin-inline:auto}
+.final .btn{margin-top:24px}
+
+/* Rodapé */
+.rodape{border-top:1px solid var(--line)}
+.rodape p{margin:0 auto;max-width:1120px;padding-block:18px 0;font-size:.8125rem;color:var(--muted)}
+.rodape p:first-child{padding-top:22px}
+.rodape .credito{max-width:none;margin:22px 0 0;padding:22px 16px 26px;border-top:1px solid var(--line);text-align:center;font-size:1rem;color:var(--muted)}
+.rodape .credito b{font-weight:700;color:var(--fg)}
+.credito-ig{display:flex;width:max-content;max-width:100%;margin:12px auto 0;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;color:var(--fg);font-size:.95rem;font-weight:600;text-decoration:none}
+.credito-ig:hover span{text-decoration:underline}
+
+/* Botão fixo no celular: aparece quando os outros botões de compra saem da tela */
+.fixo{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:rgba(10,10,12,.94);border-top:1px solid var(--line);transform:translateY(110%);visibility:hidden}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){.fixo{background:rgba(10,10,12,.8);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}}
+.fixo.on{transform:none;visibility:visible}
+@media (prefers-reduced-motion:no-preference){.fixo{transition:transform .25s ease,visibility .25s}}
+.fixo .txt{min-width:0;line-height:1.2}
+.fixo .txt b{display:block;font:italic 900 1.125rem/1.05 var(--display);font-stretch:75%;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fixo .txt span{font-size:.8125rem;color:var(--muted)}
+.fixo .btn{min-height:48px;padding:10px 18px;font-size:1rem;flex:none}
+body.com-fixo{padding-bottom:84px}
+@media (min-width:900px){.fixo{display:none}body.com-fixo{padding-bottom:0}}
+</style>
+</head>
+<body class="com-fixo">
+
+<header class="bar">
+  <div class="bar-in wrap gutter">
+    <a class="mark" href="#topo" aria-label="Blin Car Leilões">
+      <span class="stars" aria-hidden="true">★★★★★</span>
+      <span class="word">BLIN <b>CAR</b></span>
+      <span class="tag">Leilões</span>
+    </a>
+    <span class="pill">Ação exclusiva</span>
+  </div>
+</header>
+
+<main id="topo">
+  <section class="hero">
+    <div class="hero-in wrap gutter">
+      <figure class="arte">
+        <img src="arte-640.jpg" srcset="arte-640.jpg 640w, arte.jpg 1080w" sizes="(min-width:900px) 500px, 100vw" width="1080" height="1080"
+          alt="Arte da ação da Blin Car Leilões: pintura geral ou R$ 2 mil no Pix, com um carro preto pintado e um celular com o Pix">
+      </figure>
+      <div>
+        <p class="selo">Ação exclusiva <b>@blincar_leiloes</b></p>
+        <h1>Pintura geral <span class="ou">ou</span> <span class="grana">R$ 2 mil</span> no Pix</h1>
+        <p class="lede">A pintura vem com <b>todo o material incluso e polimento de brinde</b>. Quanto mais bilhetes você leva, mais barato sai cada um.</p>
+        <ul class="precos-mini" aria-label="Preço de cada bilhete">
+          <li>1 a 25: <b>R$ 5,00</b></li>
+          <li>26 a 50: <b>R$ 1,60</b></li>
+          <li class="top">51 ou mais: <b>R$ 1,00</b> cada</li>
+        </ul>
+        <div class="acoes">
+          <a class="btn btn-red btn-xl cta" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">
+            Quero meus bilhetes
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-wa" href="https://chat.whatsapp.com/Czi3qDr47sS6sxB3wRvsyg" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8.5 9.5c.3 2.6 3.4 5.7 6 6"/></svg>
+            Entrar no grupo da ação
+          </a>
+        </div>
+        <p class="garantia">
+          <span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></svg>Pagamento no Pix</span>
+          <span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></svg>Sorteio ao vivo</span>
+          <span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></svg>Oficina em São João de Meriti</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao gutter" id="bilhetes" aria-labelledby="tBilhetes">
+    <div class="wrap precos">
+      <div>
+        <p class="kicker">Bilhetes</p>
+        <h2 id="tBilhetes">Quanto mais bilhetes, <span class="grana">mais barato</span></h2>
+        <p class="sub">O preço de cada bilhete cai conforme a quantidade. <b>Com 51 ou mais, cada um sai por R$ 1,00.</b></p>
+        <ul class="faixas">
+          <li class="faixa"><span class="qtd">1 a 25<br>bilhetes</span><span class="val">R$ 5,00</span><span class="cada">cada</span></li>
+          <li class="faixa meio"><span class="etq">68% menos</span><span class="qtd">26 a 50<br>bilhetes</span><span class="val">R$ 1,60</span><span class="cada">cada</span></li>
+          <li class="faixa top"><span class="etq">Melhor preço</span><span class="qtd">51 ou mais<br>bilhetes</span><span class="val grana">R$ 1,00</span><span class="cada">cada</span></li>
+        </ul>
+      </div>
+
+      <div class="calc" id="calc">
+        <p class="calc-tit" id="calcTit">Quantos bilhetes você quer?</p>
+        <div class="stepper" role="group" aria-labelledby="calcTit">
+          <button type="button" id="menos" aria-label="Um bilhete a menos">−</button>
+          <input type="text" id="qtd" inputmode="numeric" pattern="[0-9]*" maxlength="5" value="51" aria-label="Quantidade de bilhetes" autocomplete="off">
+          <button type="button" id="mais" aria-label="Um bilhete a mais">+</button>
+        </div>
+        <div class="atalhos" id="atalhos" aria-label="Quantidades prontas">
+          <button type="button" data-q="1">1</button>
+          <button type="button" data-q="10">10</button>
+          <button type="button" data-q="26">26</button>
+          <button type="button" data-q="51">51</button>
+          <button type="button" data-q="100">100</button>
+        </div>
+        <div class="total" aria-live="polite">
+          <div><span class="rot">Total</span><span class="valor" id="total">R$ 51,00</span></div>
+          <div class="det"><span id="cada"><b>R$ 1,00</b> por bilhete</span><br><span id="antes"></span></div>
+        </div>
+        <p class="dica" id="dica" aria-live="polite"><span id="dicaTxt"></span><button type="button" id="dicaBtn" hidden></button></p>
+        <a class="btn btn-red btn-xl cta" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">
+          Continuar no site da ação
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <p class="nota" id="calcNota">Lá você escolhe 51 bilhetes e paga no Pix.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao gutter" id="premio" aria-labelledby="tPremio">
+    <div class="wrap">
+      <p class="kicker">Prêmio</p>
+      <h2 id="tPremio">Um prêmio, <span class="grana">duas opções</span></h2>
+      <div class="premios">
+        <article class="premio">
+          <img src="pintura.jpg" width="520" height="260" loading="lazy" alt="Carro preto com pintura nova e brilhando">
+          <div class="corpo">
+            <p class="opc">Opção 1</p>
+            <h3>Pintura geral</h3>
+            <ul class="check">
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".18"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l3 3 6-6.5"/></svg>Todo o material incluso</li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".18"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l3 3 6-6.5"/></svg>Polimento de brinde</li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".18"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l3 3 6-6.5"/></svg>Feita com as portas fechadas, na oficina da Blin Car</li>
+            </ul>
+          </div>
+        </article>
+        <span class="ou-badge" aria-hidden="true">ou</span>
+        <article class="premio pix">
+          <img src="pix.jpg" width="461" height="212" loading="lazy" alt="Notas de 100 reais ao lado de um celular com o Pix">
+          <div class="corpo">
+            <p class="opc">Opção 2</p>
+            <h3 class="grana">R$ 2.000 no Pix</h3>
+            <ul class="check">
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".18"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l3 3 6-6.5"/></svg>Dois mil reais direto na conta do ganhador</li>
+              <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".18"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M7.5 12.5l3 3 6-6.5"/></svg>Sem precisar levar o carro na oficina</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao gutter" id="como" aria-labelledby="tComo">
+    <div class="wrap">
+      <p class="kicker">Passo a passo</p>
+      <h2 id="tComo">Como participar</h2>
+      <ol class="passos">
+        <li><b>Toque em “Quero meus bilhetes”</b><span>Abre o site da ação, na plataforma Rifei.</span></li>
+        <li><b>Escolha a quantidade</b><span>Com 51 ou mais, cada bilhete sai por R$ 1,00.</span></li>
+        <li><b>Preencha e pague no Pix</b><span>Nome, telefone e e-mail. O pedido fica reservado por 10 minutos para você pagar e mandar o comprovante.</span></li>
+        <li><b>Receba seus números</b><span>Eles aparecem depois do pagamento, em “Meus bilhetes”, no site da ação.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="secao gutter" id="sorteio" aria-labelledby="tSorteio">
+    <div class="wrap">
+      <p class="kicker">Sorteio</p>
+      <h2 id="tSorteio">Ao vivo, <span class="grana">na frente de todo mundo</span></h2>
+      <ul class="numeros">
+        <li><span class="n">10.000</span><span>bilhetes na ação</span></li>
+        <li><span class="n vermelho">90%</span><span>vendidos e o sorteio é marcado</span></li>
+        <li class="largo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5.5" width="14" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="currentColor" d="M17.5 10l4-2.5v9l-4-2.5z"/><circle cx="7" cy="9.5" r="1.6" fill="currentColor"/></svg>
+          <b>Transmissão no Instagram e no TikTok</b>
+          <span>Se você ganhar e não estiver assistindo, a gente entra em contato.</span>
+        </li>
+      </ul>
+      <p class="sub">Data e horário saem primeiro no <b>grupo do WhatsApp da ação</b> e nas redes da Blin Car.</p>
+      <div class="redes">
+        <a class="btn btn-wa btn-sm" href="https://chat.whatsapp.com/Czi3qDr47sS6sxB3wRvsyg" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M8.5 9.5c.3 2.6 3.4 5.7 6 6"/></svg>
+          Grupo da ação
+        </a>
+        <a class="btn btn-line btn-sm" href="https://www.instagram.com/blincar_leiloes/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="17.3" cy="6.7" r="1.2" fill="currentColor"/></svg>
+          @blincar_leiloes
+        </a>
+        <a class="btn btn-line btn-sm" href="https://www.tiktok.com/@blincarestetica" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.4 2.6 2.3 4.4 5 4.6"/></svg>
+          @blincarestetica
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao gutter" id="avaliacoes" aria-labelledby="tAval" hidden>
+    <div class="wrap">
+      <p class="kicker">Quem já pintou com a gente</p>
+      <h2 id="tAval">O que os clientes dizem</h2>
+      <ul class="avals" id="avLista"></ul>
+    </div>
+  </section>
+
+  <section class="secao gutter" id="duvidas" aria-labelledby="tDuvidas">
+    <div class="wrap duvidas">
+      <div>
+        <p class="kicker">Dúvidas</p>
+        <h2 id="tDuvidas">Perguntas frequentes</h2>
+        <div class="duvida">
+          <span>Não achou a resposta?</span>
+          <a class="btn btn-line btn-sm" id="contato" href="https://wa.me/5521997484737" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+        </div>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Quando vai ser o sorteio?</summary>
+          <div class="resp"><p>Quando <b>90% dos bilhetes</b> forem vendidos. A data e o horário são avisados no grupo do WhatsApp da ação e no Instagram e TikTok da Blin Car.</p></div>
+        </details>
+        <details>
+          <summary>Como vejo os meus números?</summary>
+          <div class="resp"><p>Os números são aleatórios e aparecem <b>logo depois do pagamento</b>. Para ver de novo, abra o site da ação e toque em “Meus bilhetes”.</p></div>
+        </details>
+        <details>
+          <summary>O que entra na pintura geral?</summary>
+          <div class="resp"><p>Pintura do carro todo com <b>todo o material incluso</b> e <b>polimento de brinde</b>. A pintura é feita com as portas fechadas, na oficina da Blin Car.</p></div>
+        </details>
+        <details>
+          <summary>O transporte do carro está incluso?</summary>
+          <div class="resp"><p><b>Não.</b> Quem ganhar a pintura leva o carro até a oficina e busca quando ficar pronto.</p></div>
+        </details>
+        <details>
+          <summary>Onde fica a Blin Car?</summary>
+          <div class="resp">
+            <address>Rua da Separação, Lt 17, Qd 23<br>Vilar dos Teles, São João de Meriti - RJ</address>
+            <p>Próximo ao 21º BPM.</p>
+            <div class="acoes-mini"><a class="btn btn-line btn-sm" href="https://www.google.com/maps/search/?api=1&amp;query=Rua%20da%20Separa%C3%A7%C3%A3o%2C%20Vilar%20dos%20Teles%2C%20S%C3%A3o%20Jo%C3%A3o%20de%20Meriti%20-%20RJ" target="_blank" rel="noopener">Abrir no Google Maps</a></div>
+          </div>
+        </details>
+        <details>
+          <summary>Como eu pago?</summary>
+          <div class="resp"><p>No <b>Pix</b>, pelo site da ação. Depois de pagar, mande o comprovante por lá mesmo. O pedido fica reservado por 10 minutos.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final gutter" aria-labelledby="tFinal">
+    <div class="wrap">
+      <h2 id="tFinal">Pintura geral ou <span class="grana">R$ 2 mil</span> no Pix</h2>
+      <p class="sub">Com 51 bilhetes ou mais, cada um sai por R$ 1,00.</p>
+      <a class="btn btn-red btn-xl cta" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">
+        Quero meus bilhetes
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </section>
+</main>
+
+<div class="fixo" id="fixo">
+  <div class="txt"><b>Pintura ou R$ 2 mil</b><span>51+ bilhetes: R$ 1,00 cada</span></div>
+  <a class="btn btn-red" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix" tabindex="-1">Quero meus bilhetes</a>
+</div>
+
+<footer class="rodape">
+  <p class="gutter">Ação exclusiva Blin Car Leilões. A compra, o pagamento e os números ficam no site da ação, na plataforma Rifei.</p>
+  <p class="gutter">Blin Car · Estética automotiva · São João de Meriti - RJ · <a href="../">Site da Blin Car</a> · <a href="../privacidade/">Política de privacidade</a></p>
+  <p class="credito">Desenvolvido por <b>Arthur Castilho Lourenço</b>
+    <a class="credito-ig" href="https://www.instagram.com/castilhoarthurr/" target="_blank" rel="noopener" aria-label="Instagram de Arthur Castilho Lourenço, @castilhoarthurr"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><defs><radialGradient id="igCor" cx="28%" cy="105%" r="130%"><stop offset="0" stop-color="#fdd56a"/><stop offset=".12" stop-color="#fdd56a"/><stop offset=".45" stop-color="#f6503c"/><stop offset=".65" stop-color="#d82b8a"/><stop offset="1" stop-color="#5b4fe0"/></radialGradient></defs><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#igCor)"/><rect x="5.6" y="5.6" width="12.8" height="12.8" rx="3.9" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" stroke-width="1.7"/><circle cx="16" cy="8" r="1" fill="#fff"/></svg><span>@castilhoarthurr</span></a></p>
+</footer>
+
+<script src="../config.js?v=2"></script>
+<script>
+// Ação na Rifei: link, preços e contato. Se mudar algo lá, mude aqui também.
+const ACAO = {
+  // Mensagem pronta do botão "Chamar no WhatsApp" (número de contato da ação na Rifei)
+  whatsapp: "5521997484737",
+  mensagem: "Olá! Vim pela página da ação (pintura geral ou R$ 2 mil no Pix) e tenho uma dúvida.",
+  // Preço de cada bilhete, em centavos, a partir de cada quantidade (promoção da Rifei)
+  faixas: [{ de: 51, preco: 100 }, { de: 26, preco: 160 }, { de: 1, preco: 500 }],
+  maximo: 10000
+};
+
+const $ = s => document.querySelector(s);
+const reais = c => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const precoDe = q => ACAO.faixas.find(f => q >= f.de).preco;
+const totalDe = q => q * precoDe(q);
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+
+// Calculadora: mostra o total e quando vale a pena levar mais bilhetes
+const campo = $("#qtd");
+let qtd = 51;
+
+function definir(q, deCampo) {
+  q = Math.max(1, Math.min(ACAO.maximo, Math.floor(Number(q)) || 1));
+  qtd = q;
+  if (!deCampo) campo.value = String(q);
+  const preco = precoDe(q), total = totalDe(q), cheio = q * ACAO.faixas[ACAO.faixas.length - 1].preco;
+  $("#total").textContent = reais(total);
+  $("#cada").innerHTML = `<b>${reais(preco)}</b> por bilhete`;
+  $("#antes").innerHTML = total < cheio ? `sem promoção: <s>${reais(cheio)}</s>` : "";
+  $("#menos").disabled = q <= 1;
+  $("#mais").disabled = q >= ACAO.maximo;
+  document.querySelectorAll("#atalhos button").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.q) === q)));
+  $("#calcNota").textContent = `Lá você escolhe ${plural(q, "bilhete", "bilhetes")} e paga no Pix.`;
+
+  // Próxima faixa de preço: se levar mais custa menos (ou quase o mesmo), avisa
+  const prox = ACAO.faixas.filter(f => f.de > q).pop();
+  const dica = $("#dica"), txt = $("#dicaTxt"), btn = $("#dicaBtn");
+  dica.classList.toggle("ok", !prox);
+  if (!prox) {
+    txt.innerHTML = `<b>Melhor preço:</b> cada bilhete sai por ${reais(preco)}.`;
+    btn.hidden = true;
+    return;
+  }
+  const dif = totalDe(prox.de) - total;
+  txt.innerHTML = dif <= 0
+    ? `Com <b>${prox.de} bilhetes</b> você paga <b>${reais(totalDe(prox.de))}</b>, menos que agora.`
+    : `Por mais <b>${reais(dif)}</b> você leva <b>${prox.de} bilhetes</b>, a ${reais(prox.preco)} cada.`;
+  btn.textContent = `Mudar para ${prox.de}`;
+  btn.dataset.q = prox.de;
+  btn.hidden = false;
+}
+
+$("#menos").addEventListener("click", () => definir(qtd - 1));
+$("#mais").addEventListener("click", () => definir(qtd + 1));
+$("#dicaBtn").addEventListener("click", e => definir(e.currentTarget.dataset.q));
+document.querySelectorAll("#atalhos button").forEach(b => b.addEventListener("click", () => definir(b.dataset.q)));
+campo.addEventListener("input", () => {
+  const limpo = campo.value.replace(/\D/g, "").slice(0, 5);
+  if (campo.value !== limpo) campo.value = limpo;
+  if (limpo) definir(limpo, true);
+});
+campo.addEventListener("blur", () => definir(campo.value));
+campo.addEventListener("focus", () => campo.select());
+definir(qtd);
+
+// WhatsApp de dúvidas já com a mensagem
+$("#contato").href = `https://wa.me/${ACAO.whatsapp}?text=${encodeURIComponent(ACAO.mensagem)}`;
+
+// Botão fixo (celular): aparece sempre que nenhum outro botão de compra está na tela
+const fixo = $("#fixo");
+const visiveis = new Set();
+function atualizarFixo() {
+  const on = visiveis.size === 0;
+  fixo.classList.toggle("on", on);
+  fixo.querySelector("a").tabIndex = on ? 0 : -1;
+}
+if ("IntersectionObserver" in window) {
+  const obs = new IntersectionObserver(itens => {
+    itens.forEach(i => i.isIntersecting ? visiveis.add(i.target) : visiveis.delete(i.target));
+    atualizarFixo();
+  });
+  document.querySelectorAll(".cta, .rodape").forEach(el => obs.observe(el));
+} else {
+  document.body.classList.remove("com-fixo");
+}
+
+// Avaliações aprovadas no painel (as mesmas do site). Sem nenhuma, a seção fica escondida.
+const URL_PLANILHA = String((window.BLINCAR || {}).metricas || "");
+function itemAvaliacao(a) {
+  const li = document.createElement("li");
+  li.className = "aval";
+  const est = document.createElement("span");
+  est.className = "est";
+  est.setAttribute("role", "img");
+  est.setAttribute("aria-label", `${a.nota} de 5 estrelas`);
+  est.textContent = "★".repeat(a.nota) + "☆".repeat(5 - a.nota);
+  li.append(est);
+  if (a.comentario) {
+    const q = document.createElement("blockquote");
+    q.textContent = `“${a.comentario}”`;
+    li.append(q);
+  }
+  const quem = document.createElement("span");
+  quem.className = "quem";
+  const nome = document.createElement("b");
+  nome.textContent = a.nome;
+  quem.append(nome, ` · ${[a.carro, String(a.servico || "").toLowerCase(), a.quando].filter(Boolean).join(" · ")}`);
+  li.append(quem);
+  return li;
+}
+if (URL_PLANILHA) {
+  fetch(`${URL_PLANILHA}?acao=avaliacoes`, { cache: "no-store" }).then(r => r.json()).then(d => {
+    const lista = d && d.ok && Array.isArray(d.avaliacoes) ? d.avaliacoes.filter(a => a.nota >= 4 && a.nota <= 5 && a.comentario) : [];
+    if (!lista.length) return;
+    $("#avLista").replaceChildren(...lista.slice(0, 3).map(itemAvaliacao));
+    $("#avaliacoes").hidden = false;
+  }).catch(() => {});
+}
+</script>
+</body>
+</html>
