@@ -38,10 +38,28 @@ img{max-width:100%;height:auto;display:block}
 .marca{margin:0 0 16px;text-align:center;font-weight:800;font-size:1.125rem}
 .marca span{color:var(--red)}
 
-.arte{border-radius:22px;box-shadow:0 6px 24px rgba(60,30,20,.12)}
+/* Abertura: foto da oficina com o título embaixo, no mesmo card */
+.abertura{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 8px 28px rgba(60,30,20,.08)}
+.abertura img{width:100%;aspect-ratio:2/1;object-fit:cover;object-position:right center}
+.abertura .corpo{padding:18px 20px 22px;text-align:center}
+.de{margin:0 0 6px;font-size:.9375rem;font-weight:700;color:var(--muted)}
+h1{margin:0;font-weight:800;font-size:1.75rem;line-height:1.2;text-wrap:balance}
+h1 span{color:var(--red)}
+.intro{margin:10px 0 0;color:var(--muted)}
+.intro b{color:var(--fg)}
 
-h1{margin:22px 0 8px;text-align:center;font-weight:800;font-size:1.75rem;line-height:1.2}
-.intro{margin:0 0 20px;text-align:center;color:var(--muted)}
+/* As duas opções de prêmio lado a lado */
+.opcoes{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opcao{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.opcao .visual{aspect-ratio:4/3;display:block;width:100%}
+.opcao img.visual{object-fit:cover;object-position:62% center}
+.opcao .grana{display:grid;place-content:center;text-align:center;background:#e9f6ee;color:#17693a}
+.grana b{display:block;font-weight:800;font-size:2rem;line-height:1}
+.grana span{font-weight:700;font-size:1rem}
+.opcao p{margin:0;padding:10px 12px 12px;font-size:.9375rem;line-height:1.35}
+.opcao p b{display:block;font-size:1rem}
+.opcao p span{color:var(--muted)}
+.ou{position:absolute;left:50%;top:0;transform:translate(-50%,-50%);margin-top:calc((100% - 10px) / 2 * .375);width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;font-size:.9375rem;color:var(--muted);box-shadow:0 2px 8px rgba(60,30,20,.08)}
 
 .cartao{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 18px 20px;margin-top:16px}
 h2{margin:0 0 12px;font-weight:800;font-size:1.1875rem}
@@ -84,11 +102,30 @@ h2{margin:0 0 12px;font-weight:800;font-size:1.1875rem}
 <main class="pagina">
   <p class="marca">Blin Car <span>Leilões</span></p>
 
-  <img class="arte" src="arte-640.jpg" srcset="arte-640.jpg 640w, arte.jpg 1080w" sizes="(min-width:520px) 448px, 100vw" width="1080" height="1080"
-    alt="Arte da ação da Blin Car Leilões: pintura geral ou R$ 2 mil no Pix">
+  <section class="abertura">
+    <img src="pintor.jpg" width="1308" height="564" alt="Pintor da Blin Car pintando um carro na cabine de pintura">
+    <div class="corpo">
+      <p class="de">Ação da Blin Car Leilões</p>
+      <h1>Concorra a uma <span>pintura geral</span> ou <span>R$ 2 mil</span> <span class="nowrap" style="color:inherit">no Pix</span></h1>
+      <p class="intro">Com 51 bilhetes ou mais, cada um sai por <b>R$ 1,00</b>.</p>
+      <a class="botao" href="https://apprf.com/pintura-geral-ou-2-mil-reais-no-pix">Compre aqui</a>
+    </div>
+  </section>
 
-  <h1>Pintura geral ou R$ 2 mil no Pix</h1>
-  <p class="intro">Quem ganhar leva uma pintura geral com todo o material incluso e polimento de brinde, ou R$ 2 mil no Pix.</p>
+  <section class="cartao">
+    <h2>O prêmio</h2>
+    <div class="opcoes">
+      <div class="opcao">
+        <img class="visual" src="carro.jpg" width="1010" height="510" loading="lazy" alt="Carro preto com pintura nova">
+        <p><b>Pintura geral</b><span>Com polimento de brinde</span></p>
+      </div>
+      <div class="opcao">
+        <div class="visual grana" aria-hidden="true"><b>R$ 2 mil</b><span>no Pix</span></div>
+        <p><b>Dinheiro no Pix</b><span>R$ 2.000 direto na conta</span></p>
+      </div>
+      <span class="ou" aria-hidden="true">ou</span>
+    </div>
+  </section>
 
   <section class="cartao">
     <h2>Valor do bilhete</h2>
