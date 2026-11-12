@@ -438,6 +438,11 @@ a.mini{text-decoration:none;display:inline-flex;align-items:center}
 
 /* Fechamento do mês: soma dos orçamentos */
 .fech-tit{display:grid;gap:2px}
+/* "Ver mais" / "Resumir": lista do fechamento e explicações das regras */
+.ver-mais{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px}
+.ver-mais svg{width:16px;height:16px;flex:none;transition:transform .2s}
+.ver-mais[aria-expanded="true"] svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.ver-mais svg{transition:none}}
 .fech-resumo{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .fech-resumo > div{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px;background:var(--bg);min-width:0}
 .fech-resumo span{font-size:.8125rem;color:var(--muted)}
@@ -704,7 +709,6 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     <section class="bloco destaque" id="agConfirmar" hidden></section>
     <section class="bloco alerta" id="agRemarcar" hidden></section>
     <section class="bloco alerta" id="agPendentes" hidden></section>
-    <section class="bloco" id="agCreditos" hidden></section>
     <p class="estado" id="agContagem"></p>
     <div class="kpis kpis-4" id="agResumo"></div>
     <section class="bloco">
@@ -738,7 +742,6 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
           <p class="nota">Soma dos orçamentos dos carros com sinal pago. É o valor bruto, antes dos gastos.</p>
         </div>
         <div class="ag-acoes">
-          <button type="button" class="mini" id="fechAbrir" aria-expanded="false" aria-controls="fechLista">Ver carro por carro</button>
           <button type="button" class="mini mini-icone" data-pdf>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5"/><path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>
             <span>Baixar PDF do mês</span>
@@ -748,11 +751,14 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <div class="fech-resumo" id="fechResumo"></div>
       <p class="nota" id="fechNota" hidden></p>
       <p class="err" id="fechErro" role="alert" hidden></p>
+      <button type="button" class="mini ver-mais" id="fechAbrir" aria-expanded="false" aria-controls="fechLista"><span>Ver carro por carro</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
       <div class="fech-lista" id="fechLista" hidden></div>
     </section>
-    <section class="bloco">
-      <h2>Regras das vagas</h2>
+    <section class="bloco" id="agCreditos" hidden></section>
+    <section class="bloco" aria-labelledby="regrasTitulo">
+      <h2 id="regrasTitulo">Regras das vagas</h2>
       <ul class="dicas" id="agRegras"></ul>
+      <button type="button" class="mini ver-mais" id="regrasMais" aria-expanded="false" aria-controls="agRegras"><span>Ver todas as explicações</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     </section>
     <p class="aviso-ok toast" id="agAviso" role="status" hidden></p>
   </section>
@@ -1943,8 +1949,9 @@ function desenharLegenda(d) {
 
 /* ---------- Fechamento do mês: soma dos orçamentos dos carros com sinal pago ---------- */
 
+// A lista carro por carro sempre começa resumida (fechada) ao entrar no painel.
 const FECH = { aberto: false, editando: null };
-try { FECH.aberto = localStorage.getItem("blincar:fechamento") === "aberto"; } catch {}
+try { localStorage.removeItem("blincar:fechamento"); } catch {}
 
 const somaOrcamentos = lista => lista.reduce((t, a) => t + (a.orcamento || 0), 0);
 const nomeDoMes = mes => MESES[Number(mes.slice(5, 7)) - 1];
@@ -2023,7 +2030,7 @@ function desenharFechamento(d) {
   $("#fechNota").hidden = !notas.length;
   const botao = $("#fechAbrir");
   botao.hidden = !f.carros.length;
-  botao.textContent = FECH.aberto ? "Fechar a lista" : "Ver carro por carro";
+  botao.querySelector("span").textContent = FECH.aberto ? "Resumir lista" : `Ver carro por carro (${plural(f.carros.length, "carro", "carros")})`;
   botao.setAttribute("aria-expanded", String(FECH.aberto));
   const lista = $("#fechLista");
   lista.hidden = !FECH.aberto || !f.carros.length;
@@ -2031,7 +2038,15 @@ function desenharFechamento(d) {
   lista.replaceChildren(...Object.keys(f.porDia).sort().map(data => el("div", { class: "fech-dia" },
     el("h3", {}, maiuscula(dataCurta(data)), el("span", {}, `${plural(f.porDia[data].length, "carro", "carros")} · ${reais(somaOrcamentos(f.porDia[data]))}`)),
     ...f.porDia[data].map(itemFechamento))),
-  el("div", { class: "fech-total" }, el("span", {}, `Total bruto de ${mes} · ${plural(f.carros.length, "carro", "carros")}`), el("b", {}, reais(f.bruto))));
+  el("div", { class: "fech-total" }, el("span", {}, `Total bruto de ${mes} · ${plural(f.carros.length, "carro", "carros")}`), el("b", {}, reais(f.bruto))),
+  botaoVerMais("Resumir lista", true, { "data-fech-resumir": "", "aria-controls": "fechLista" }));
+}
+
+// Botão "Ver mais" / "Resumir" com a setinha (vira para cima quando está aberto).
+function botaoVerMais(texto, aberto, extra = {}) {
+  const b = el("button", { type: "button", class: "mini ver-mais", "aria-expanded": String(aberto), ...extra }, el("span", {}, texto));
+  b.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
+  return b;
 }
 
 function cancelarFechamento() {
@@ -2045,10 +2060,18 @@ function cancelarFechamento() {
 $("#fechAbrir").addEventListener("click", () => {
   FECH.aberto = !FECH.aberto;
   FECH.editando = null;
-  try { localStorage.setItem("blincar:fechamento", FECH.aberto ? "aberto" : "fechado"); } catch {}
   if (AG.dados) desenharFechamento(AG.dados);
 });
 $("#fechLista").addEventListener("click", e => {
+  // "Resumir lista" lá no fim: fecha e volta para o começo do fechamento.
+  if (e.target.closest("[data-fech-resumir]")) {
+    FECH.aberto = false;
+    FECH.editando = null;
+    if (AG.dados) desenharFechamento(AG.dados);
+    $("#agFech").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    $("#fechAbrir").focus({ preventScroll: true });
+    return;
+  }
   const editar = e.target.closest("[data-fech-editar]");
   if (editar && !AG.ocupado) {
     FECH.editando = editar.dataset.fechEditar;
@@ -2945,9 +2968,13 @@ function itemAgendamento(a, comData) {
   return el("div", { class: "ag ag-" + a.sit + (pendente(a) ? " pag-pend" : ""), "data-ag": a.id }, topo, info, obs, comEntrada(a) ? contaCarro(a) : "", acoes);
 }
 
+// Regras das vagas: começa resumida (os dias de cada serviço e o sinal); "Ver todas as explicações" abre o resto.
+const REGRAS_UI = { aberto: false, d: null };
+
 function desenharRegras(d) {
+  REGRAS_UI.d = d;
   const r = d.regras;
-  const itens = Object.keys(r.servicos).map(nome => {
+  const servicos = Object.keys(r.servicos).map(nome => {
     const s = r.servicos[nome];
     const dias = Object.keys(s.dias).map(k => `${SEMANA[k]} (${plural(s.dias[k], "vaga", "vagas")})`);
     let txt = `${nome}: ${juntar(dias)}.`;
@@ -2960,17 +2987,33 @@ function desenharRegras(d) {
     }
     return txt;
   });
+  const itens = [];
   itens.push("Para mudar um dia (fechar, mudar as vagas ou criar uma promoção com preço), abra o dia e toque em \"Editar serviços e vagas\". O site dos clientes muda na hora.");
   itens.push("No painel dá para agendar em qualquer dia e serviço, mesmo passando do limite. O site dos clientes respeita as vagas e mostra \"Vagas esgotadas\" quando lota.");
   itens.push(`A vaga só fica garantida com o sinal de ${reais(r.sinal)} pago: quem pagar primeiro fica com ela. Pelo site ou pelo link mandado daqui, o cliente tem ${r.prazoMinutos ?? r.prazoSiteMinutos} minutos para pagar o Pix; se não pagar, a reserva sai da agenda e da planilha sozinha.`);
   itens.push(`O sinal é descontado do serviço. Se o cliente não vier, toque em "Não veio": o sinal vira crédito para remarcar pelo site, até ${r.remarcacoes} vezes.`);
   itens.push(`No dia do carro, às 8h, o cliente recebe um e-mail lembrando. ${r.avisoDias} dias antes, vocês recebem um e-mail (e aparece aqui) para ligar e confirmar.`);
-  if (d.whatsapp) itens.push(`WhatsApp ligado: ${r.avisoDias} dias antes, às 8h, o cliente recebe o lembrete com os botões "Confirmo" e "Preciso remarcar". Quem confirmar fica com a presença confirmada sozinho; quem pedir para remarcar gera um e-mail para vocês. O aviso de carro pronto sai da aba Recebidos.`);
+  const sozinho = Array.isArray(r.remarcarPeloSite) ? r.remarcarPeloSite : [];
+  if (sozinho.length) {
+    const outros = Object.keys(r.servicos).filter(n => !sozinho.some(x => x.toLowerCase() === n.toLowerCase())).map(n => n.toLowerCase());
+    itens.push(`${juntar(sozinho)}: o cliente remarca sozinho pelo link ("Mandar link para remarcar" em cada carro), escolhendo entre as vagas livres, sem pagar de novo (até ${r.remarcacoes} vezes). Vocês recebem um e-mail com a data antiga e a nova.${outros.length ? ` ${maiuscula(juntar(outros))}: vocês encaixam numa das outras semanas e mudam em "Editar".` : ""}`);
+  }
+  if (d.whatsapp) itens.push(`WhatsApp ligado: ${r.avisoDias} dias antes, às 8h, o cliente recebe o lembrete com os botões "Confirmo" e "Preciso remarcar". Quem confirmar fica com a presença confirmada sozinho; quem pedir para remarcar recebe o link${sozinho.length ? ` (${juntar(sozinho).toLowerCase()})` : ""} ou o aviso de que a equipe vai combinar, e vocês recebem um e-mail. O aviso de carro pronto sai da aba Recebidos.`);
   itens.push(d.mp
     ? "Mercado Pago ligado: o sinal é confirmado sozinho quando o cliente paga."
     : "Mercado Pago ainda não ligado: o site dos clientes não consegue receber o sinal. Para ligar, veja o LEIA-ME.");
-  $("#agRegras").replaceChildren(...itens.map(t => el("li", {}, t)));
+  const resumo = `Sinal de ${reais(r.sinal)} garante a vaga e é descontado do serviço. Se o cliente não vier, vira crédito para remarcar (até ${r.remarcacoes} vezes).`;
+  const lista = REGRAS_UI.aberto ? servicos.concat(itens) : servicos.concat(resumo);
+  $("#agRegras").replaceChildren(...lista.map(t => el("li", {}, t)));
+  const botao = $("#regrasMais");
+  botao.querySelector("span").textContent = REGRAS_UI.aberto ? "Resumir explicações" : "Ver todas as explicações";
+  botao.setAttribute("aria-expanded", String(REGRAS_UI.aberto));
 }
+
+$("#regrasMais").addEventListener("click", () => {
+  REGRAS_UI.aberto = !REGRAS_UI.aberto;
+  if (REGRAS_UI.d) desenharRegras(REGRAS_UI.d);
+});
 
 /* Dica ao passar o mouse no mês */
 
