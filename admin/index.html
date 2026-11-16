@@ -334,6 +334,11 @@ button.cel:hover{border-color:var(--muted)}
 .ag-conta.devendo{border-color:var(--red)}
 .ag-conta.devendo .conta-linha b{color:var(--err)}
 .ag.ag-entregue.pag-pend{border-color:var(--red)}
+/* Aviso "Recebemos a sua entrada" (WhatsApp e e-mail) */
+.conta-avisar{display:flex;align-items:center;gap:8px;font-size:.9375rem;font-weight:600;cursor:pointer;min-height:36px}
+.conta-avisar input{width:18px;height:18px;margin:0;accent-color:var(--ok-fg)}
+.conta-aviso{display:grid;gap:6px;margin-top:4px;padding-top:8px;border-top:1px dashed var(--line);font-size:.875rem}
+.ag-conta .rc-previa{max-width:460px}
 .ag-conta .sub{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .conta-campo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:.9375rem;font-weight:600}
 .conta-campo input{flex:1 1 140px;max-width:220px;font:400 16px/1.4 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-height:40px}
@@ -406,7 +411,7 @@ button.cel:hover{border-color:var(--muted)}
 .rc-quando input{font:400 16px/1.4 var(--body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px;color-scheme:light dark}
 .rc-quando input:disabled{opacity:.5}
 .rc-msg{display:grid;gap:6px}
-.rc-previa{margin:0;padding:10px 12px;border-radius:12px 12px 12px 3px;background:var(--ok-bg);color:var(--fg);font-size:.875rem;line-height:1.45;overflow-wrap:anywhere}
+.rc-previa{margin:0;padding:10px 12px;border-radius:12px 12px 12px 3px;background:var(--ok-bg);color:var(--fg);font-size:.875rem;line-height:1.45;overflow-wrap:anywhere;white-space:pre-line}
 .rc-botoes{display:flex;gap:6px;flex-wrap:wrap}
 .rc-botoes span{border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.8125rem;font-weight:600;color:var(--c-wa)}
 .cl-ferramentas{display:grid;gap:10px}
@@ -2816,6 +2821,46 @@ const textoEntrada = a => {
   return partes.join(" · ");
 };
 
+// Mensagem "Recebemos a sua entrada" (o mesmo texto da planilha): nome, entrada, carro, orçamento, já pago e quanto falta.
+function textoAvisoEntrada(a, entrada) {
+  const modelo = AG.dados && AG.dados.modeloEntrada;
+  if (!modelo || !a.orcamento || !(entrada > 0)) return "";
+  const pago = Math.round(((a.sinal || 0) + entrada) * 100) / 100;
+  const falta = Math.max(Math.round((a.orcamento - pago) * 100) / 100, 0);
+  const v = [primeiroNomeDe(a.cliente), reais(entrada), a.carro || "carro", reais(a.orcamento), reais(pago), falta ? reais(falta) : "R$ 0,00 (está tudo pago)"];
+  return modelo.replace(/\{\{(\d)\}\}/g, (_, n) => v[n - 1] || "");
+}
+
+// Por onde o aviso da entrada sai sozinho: WhatsApp (se ligado) e e-mail (se o cliente tem).
+const canaisEntrada = a => [AG.dados && AG.dados.whatsapp && numeroWhatsApp(a.telefone) ? "no WhatsApp" : "", a.email ? "no e-mail" : ""].filter(Boolean);
+
+// Embaixo da conta: se o cliente já foi avisado da entrada no WhatsApp, e os botões para avisar.
+function linhaAvisoEntrada(a) {
+  if (!a.entrada || !a.orcamento) return "";
+  const av = a.wa && a.wa.entrada;
+  const falhou = !!av && (av.situacao === "Não enviada" || av.situacao === "Não entregue");
+  const texto = textoAvisoEntrada(a, a.entrada);
+  const cel = texto ? linkZap(a.telefone, texto) : "";
+  const status = !av ? (AG.dados.whatsapp ? el("span", { class: "sub" }, "O aviso da entrada ainda não foi pelo WhatsApp.") : "")
+    : falhou ? el("span", { class: "err-txt" }, `O aviso da entrada não foi pelo WhatsApp${av.detalhe ? `: ${av.detalhe}` : "."}`)
+    : el("span", { class: "ok-txt" }, `✓ Cliente avisado da entrada no WhatsApp: ${situacaoWA(av.situacao)} (${quandoWA(av.em)}).`);
+  const avisar = canaisEntrada(a).length
+    ? el("button", { type: "button", class: "mini", "data-acao": "entrada-avisar", "data-id": a.id }, av && !falhou ? "Avisar de novo" : "Avisar o cliente") : "";
+  const celular = cel && (!av || falhou) ? el("a", { class: "mini", href: cel, target: "_blank", rel: "noopener" }, "Mandar pelo celular") : "";
+  if (!status && !avisar && !celular) return "";
+  return el("div", { class: "conta-aviso" }, status, avisar || celular ? el("div", { class: "ag-acoes" }, avisar, celular) : "");
+}
+
+// "Cliente avisado no WhatsApp e no e-mail." (ou por que não foi), depois de salvar ou de "Avisar o cliente".
+function resumoAvisoEntrada(av) {
+  if (!av) return "";
+  const foi = [av.whatsapp && av.whatsapp.ok ? (av.whatsapp.semModelo ? "no WhatsApp (conversa aberta)" : "no WhatsApp") : "", av.email ? "no e-mail" : ""].filter(Boolean);
+  let t = foi.length ? ` Cliente avisado ${juntar(foi)}.` : "";
+  if (av.whatsapp && !av.whatsapp.ok) t += ` O WhatsApp não foi: ${av.whatsapp.mensagem}`;
+  else if (!foi.length) t += " Não deu para avisar sozinho: use \"Mandar pelo celular\" no carro.";
+  return t;
+}
+
 // Quadro da entrada no carro: o que o cliente deu ao deixar o carro e quanto falta receber.
 function contaCarro(a) {
   if (AG.entrada === a.id) {
@@ -2823,6 +2868,7 @@ function contaCarro(a) {
       el("label", { class: "conta-campo" }, "Entrada (R$)",
         el("input", { type: "text", inputmode: "decimal", autocomplete: "off", placeholder: "Ex.: 800,00", value: a.entrada ? numeroBR(a.entrada) : "" })),
       el("span", { class: "sub" }, "Quanto o cliente deu ao deixar o carro. Fica descontado do orçamento, junto com o sinal."),
+      ...camposAvisoEntrada(a),
       el("p", { class: "err", role: "alert", hidden: "" }),
       el("div", { class: "ag-acoes" },
         el("button", { type: "submit", class: "mini mini-forte" }, "Salvar entrada"),
@@ -2845,8 +2891,34 @@ function contaCarro(a) {
     el("div", { class: "conta-linha" },
       el("span", {}, `${rotuloFalta(a)}: `, valor),
       el("button", { type: "button", class: "mini", "data-acao": "entrada", "data-id": a.id }, a.entrada ? "Mudar entrada" : "Registrar entrada")),
-    el("span", { class: "sub" }, conta));
+    el("span", { class: "sub" }, conta),
+    linhaAvisoEntrada(a));
 }
+
+// No formulário da entrada: "Avisar o cliente no WhatsApp e no e-mail" (marcado) e a mensagem como ele vai receber.
+function camposAvisoEntrada(a) {
+  if (!a.orcamento) return [el("span", { class: "sub" }, "Ponha o orçamento do carro para o cliente receber o aviso da entrada com quanto falta pagar.")];
+  const canais = canaisEntrada(a);
+  if (!canais.length) return [el("span", { class: "sub" }, "Depois de salvar, use \"Mandar pelo celular\" para avisar o cliente.")];
+  const texto = textoAvisoEntrada(a, a.entrada || 0);
+  return [
+    el("label", { class: "conta-avisar" }, el("input", { type: "checkbox", name: "avisar", checked: "" }), `Avisar o cliente ${juntar(canais)}`.replace("e-mail", "e\u2011mail")),
+    el("p", { class: "rc-previa", "data-entrada-previa": "", ...(texto ? {} : { hidden: "" }) }, texto)
+  ];
+}
+
+// A prévia acompanha o valor digitado (e some se desmarcar "Avisar o cliente").
+document.addEventListener("input", e => {
+  const form = e.target.closest && e.target.closest("[data-entrada-form]");
+  if (!form || !AG.dados) return;
+  const previa = form.querySelector("[data-entrada-previa]");
+  if (!previa) return;
+  const a = AG.dados.agendamentos.find(x => x.id === form.dataset.entradaForm);
+  const avisar = form.querySelector("input[name=avisar]");
+  const texto = a ? textoAvisoEntrada(a, valorReais(form.querySelector("input[type=text]").value)) : "";
+  previa.textContent = texto;
+  previa.hidden = !texto || (avisar && !avisar.checked);
+});
 
 // Como o sinal foi pago: no Pix ou no cartão quem confirma é o Mercado Pago; "à mão" é alguém que marcou no painel.
 function textoSinal(a) {
@@ -3415,7 +3487,10 @@ document.addEventListener("click", e => {
   if (acao === "entrada" || acao === "entrada-cancelar") {
     AG.entrada = acao === "entrada" ? a.id : null;
     agendaDesenhar();
-    return acao === "entrada" ? focarNaTela(`[data-entrada-form="${a.id}"] input`) : focarNaTela(`[data-acao="entrada"][data-id="${a.id}"]`);
+    return acao === "entrada" ? focarNaTela(`[data-entrada-form="${a.id}"] input[type=text]`) : focarNaTela(`[data-acao="entrada"][data-id="${a.id}"]`);
+  }
+  if (acao === "entrada-avisar") {
+    return executar("agenda_entrada_avisar", { id: a.id }, d => (resumoAvisoEntrada(d.avisoEntrada) || " Pronto.").trim());
   }
   if (acao === "recebido") return executar("agenda_recebido", { id: a.id }, `Carro de ${a.cliente} recebido na oficina. Já dá para registrar a entrada. Ele aparece na aba Recebidos.`);
   if (acao === "ver-recebidos") {
@@ -3468,7 +3543,9 @@ document.addEventListener("submit", async e => {
   const id = form.dataset.entradaForm;
   const a = AG.dados.agendamentos.find(x => x.id === id);
   const erroForm = form.querySelector(".err");
-  const texto = form.querySelector("input").value.trim();
+  const texto = form.querySelector("input[type=text]").value.trim();
+  const caixa = form.querySelector("input[name=avisar]");
+  const avisar = !!(caixa && caixa.checked);
   const valor = valorReais(texto);
   if (texto && !valor) return mostrarErro(erroForm, "Confira o valor (ex.: 800,00) ou deixe em branco.");
   if (valor > 200000) return mostrarErro(erroForm, "Confira o valor da entrada.");
@@ -3477,9 +3554,10 @@ document.addEventListener("submit", async e => {
   const msg = d => {
     const novo = d.agendamentos.find(x => x.id === id);
     const falta = novo ? faltaReceber(novo) : null;
-    return (valor ? `Entrada de ${reais(valor)} registrada.` : "Entrada apagada.") + (falta === null ? "" : ` ${rotuloFalta(novo)}: ${reais(falta)}.`);
+    return (valor ? `Entrada de ${reais(valor)} registrada.` : "Entrada apagada.") + (falta === null ? "" : ` ${rotuloFalta(novo)}: ${reais(falta)}.`) +
+      resumoAvisoEntrada(d.avisoEntrada);
   };
-  const deu = await executar("agenda_entrada", { id, entrada: valor }, msg, erroForm, () => { AG.entrada = null; });
+  const deu = await executar("agenda_entrada", { id, entrada: valor, avisar }, msg, erroForm, () => { AG.entrada = null; });
   if (deu) focarNaTela(`[data-acao="entrada"][data-id="${id}"]`);
 });
 document.addEventListener("keydown", e => {
@@ -4484,7 +4562,7 @@ function desenharWhats() {
     el("b", {}, feito ? "✓ " : "", titulo), ...conteudo);
   const corpo = [el("div", { class: "dlg-topo" },
     el("div", {}, el("h2", { id: "waTitulo" }, "WhatsApp"),
-      el("p", { class: "sub" }, "O número da oficina continua no celular. Daqui saem só o lembrete de 2 dias e o aviso de carro pronto, e todo mundo que manda mensagem entra na aba Clientes.")),
+      el("p", { class: "sub" }, "O número da oficina continua no celular. Daqui saem só o lembrete de 2 dias, o aviso de carro pronto e o de entrada recebida, e todo mundo que manda mensagem entra na aba Clientes.")),
     el("button", { type: "button", class: "mini", "data-wa": "fechar" }, "Fechar"))];
   if (!d) {
     corpo.push(WA.erro ? el("p", { class: "err", role: "alert" }, WA.erro) : el("p", { class: "nota" }, "Conferindo o WhatsApp…"));
@@ -4655,6 +4733,8 @@ function criarDemo() {
   const aviseAntes = "Estamos esperando você! Caso não consiga vir, por favor nos avise com antecedência.";
   const textoProntoAgora = `Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} ficou pronto e já pode ser retirado. Endereço: ${endereco}. ${aviseAntes}`;
   const textoProntoHora = `Olá, {{1}}! Aqui é da Blin Car. O seu {{2}} vai ficar pronto {{3}}, e você já pode vir buscar a partir desse horário. Endereço: ${endereco}. ${aviseAntes}`;
+  const textoEntrada = "Olá, {{1}}! Aqui é da Blin Car. Recebemos a sua entrada de {{2}} para o serviço do seu {{3}}. Obrigado pela confiança!\n\n" +
+    "Orçamento total: {{4}}\nJá pago (sinal + entrada): {{5}}\nFalta pagar: {{6}}\n\nQualquer dúvida, é só responder esta mensagem.";
   const textoLembrete = "Olá, {{1}}! Aqui é da Blin Car. Passando para lembrar que o seu {{2}} está agendado para {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você confirma que vai trazer o carro?";
   const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), whatsapp: true,
     modelosPronto: { agora: { texto: textoProntoAgora, botoes: ["Estou indo", "Vou outro dia"] }, hora: { texto: textoProntoHora, botoes: ["Vou buscar", "Vou outro dia"] } },
@@ -4694,8 +4774,15 @@ function criarDemo() {
       { chave: "prontoAgora", titulo: "Carro pronto (já pode buscar)", nome: "blincar_carro_pronto_agora", status: "APPROVED", motivo: "", texto: textoProntoAgora,
         botoes: ["Estou indo", "Vou outro dia"], exemplo: ["Carlos", "Onix 2019 prata"] },
       { chave: "prontoHora", titulo: "Carro pronto (com horário)", nome: "blincar_carro_pronto_horario", status: "APPROVED", motivo: "", texto: textoProntoHora,
-        botoes: ["Vou buscar", "Vou outro dia"], exemplo: ["Carlos", "Onix 2019 prata", "hoje às 16h"] }] });
+        botoes: ["Vou buscar", "Vou outro dia"], exemplo: ["Carlos", "Onix 2019 prata", "hoje às 16h"] },
+      { chave: "entrada", titulo: "Entrada recebida", nome: "blincar_entrada_recebida", status: "APPROVED", motivo: "", texto: textoEntrada,
+        botoes: [], exemplo: ["Carlos", "R$ 800,00", "Onix 2019 prata", "R$ 2.000,00", "R$ 850,00", "R$ 1.150,00"] }] });
   const falha = (erro, mensagem) => ({ ok: false, erro, mensagem });
+  // No exemplo, o aviso da entrada "vai" sempre (nada sai de verdade).
+  const avisoEntradaDemo = a => {
+    a.wa = Object.assign({}, a.wa, { entrada: { em: agora(), situacao: "Enviada" } });
+    return { texto: "", email: !!a.email, whatsapp: { ok: true } };
+  };
   const naoAchou = () => falha("nao_encontrado", "Esse agendamento não existe mais. Atualize a agenda.");
   const credito = (a, nivel, motivo) => creditos.push({ id: "cr" + (++seq), cliente: a.cliente, email: a.email, telefone: a.telefone,
     valor: a.sinal, nivel, motivo, origem: a.id, situacao: "disponivel" });
@@ -4716,6 +4803,7 @@ function criarDemo() {
     const porData = (a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
     return Object.assign({
       ok: true, mes: m, hoje, agora: agora(), regras, dias, mp: true, taxaCartao: 5, site: new URL("../agendar/", location.href).href,
+      whatsapp: true, modeloEntrada: textoEntrada,
       meses: { ...mesesSite }, carrosPorMes: c.reduce((t, a) => { t[a.data.slice(0, 7)] = (t[a.data.slice(0, 7)] || 0) + 1; return t; }, {}),
       avaliacoesNovas: avaliacoes.filter(v => !v.decidida).length,
       agendamentos: vis.filter(a => a.data >= ini && a.data <= fim).map(publico).sort(porData),
@@ -4853,8 +4941,16 @@ function criarDemo() {
       if (!(a.sit === "entregue" || (a.sit === "confirmado" && a.recebidoEm))) return falha("situacao", "A entrada só pode ser registrada depois do \"Carro recebido\".");
       const entrada = valorReais(extra.entrada);
       if (a.orcamento && entrada > a.orcamento) return falha("dados", `A entrada passa do valor do orçamento (${reais(a.orcamento)}).`);
+      const mudou = entrada !== (a.entrada || 0);
       a.entrada = entrada;
-      return mes(m);
+      return mes(m, extra.avisar && mudou && entrada > 0 && a.orcamento ? { avisoEntrada: avisoEntradaDemo(a) } : {});
+    }
+    if (acao === "agenda_entrada_avisar") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (!a.entrada) return falha("dados", "Registre a entrada primeiro.");
+      if (!a.orcamento) return falha("dados", "Ponha o orçamento do carro para o cliente saber quanto falta pagar.");
+      return mes(m, { avisoEntrada: avisoEntradaDemo(a) });
     }
     if (acao === "agenda_orcamento") {
       const a = comSit().find(x => x.id === extra.id);
