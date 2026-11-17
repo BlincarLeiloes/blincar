@@ -69,8 +69,14 @@ Onde pôr a câmera
 
 Problemas
 ---------
-- "Não achei nenhuma câmera na rede": confira a fonte 12V e o cabo da câmera
-  no roteador, e se o computador está na internet desse roteador.
+- Se ele não achar a câmera do jeito comum, ele pede para tirar a câmera da
+  tomada por uns segundos (e ligar de novo): assim ele descobre qual aparelho
+  da rede é ela e procura o vídeo em outras portas. O que ele viu fica no
+  procurar.log.
+- "Nenhum aparelho sumiu": a câmera não está na mesma rede do computador.
+  Confira o cabo da câmera no roteador e se o computador está na internet
+  desse mesmo roteador. Se a câmera veio de outro lugar, segure o reset dela
+  por 10 segundos e procure de novo.
 - "A câmera pede senha": é a senha que vocês criaram no aplicativo da câmera.
   O procurar-camera.bat pergunta; digite e aperte Enter.
 - "A planilha não aceitou a chave": no painel, Recebidos > Câmera >

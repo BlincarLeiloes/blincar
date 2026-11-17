@@ -491,8 +491,11 @@ def testar(cfg, arquivo):
 
 CAMINHOS = ["/live/ch00_0", "/live/ch00_1", "/onvif1", "/onvif2", "/11", "/12", "/stream1", "/h264/ch1/main/av_stream",
             "/cam/realmonitor?channel=1&subtype=0", "/live", "/ch0_0.h264", "/av0_0", "/"]
-# Sem senha e o usuário "admin" sem senha. Se a câmera pedir senha, vocês passam a dela: procurar-camera.bat SENHA
+# Sem senha e o usuário "admin" sem senha. Se a câmera pedir senha, o procurar-camera.bat pergunta a dela.
 USUARIOS = [("", ""), ("admin", "")]
+# Portas onde as câmeras costumam mandar o vídeo (RTSP) e outras que ajudam a reconhecer o aparelho.
+PORTAS_RTSP = [554, 8554, 10554, 5554]
+PORTAS_OUTRAS = [80, 81, 443, 8000, 8080, 8800, 8899, 34567, 5000, 9527, 23]
 
 
 def meu_ip():
@@ -512,6 +515,20 @@ def porta_aberta(ip, porta=554, tempo=0.6):
             return True
     except OSError:
         return False
+
+
+def responde_ping(ip):
+    """O aparelho responde ao ping? (procura "TTL=" na resposta, que só aparece quando ele responde de verdade)."""
+    import subprocess
+    if os.name == "nt":
+        cmd, extra = ["ping", "-n", "1", "-w", "700", ip], {"creationflags": 0x08000000}
+    else:
+        cmd, extra = ["ping", "-c", "1", "-W", "1", ip], {}
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=4, **extra)
+    except Exception:
+        return False
+    return "ttl=" in (r.stdout or "").lower()
 
 
 def resposta_rtsp(ip, caminho, porta=554, tempo=2.5):
@@ -548,53 +565,147 @@ def pega_imagem(url):
         cap.release()
 
 
-def procurar(cfg, ip_camera="", senha_extra=""):
+def varrer(base, meu, portas):
+    """{ip: [portas abertas]} de todos os aparelhos da rede (base.1 a base.254) com alguma dessas portas."""
+    pares = [(f"{base}.{i}", p) for i in range(1, 255) if f"{base}.{i}" != meu for p in portas]
+    achados = {}
+    with concurrent.futures.ThreadPoolExecutor(128) as ex:
+        for (ip, p), ok in zip(pares, ex.map(lambda par: porta_aberta(*par), pares)):
+            if ok:
+                achados.setdefault(ip, []).append(p)
+    return achados
+
+
+def aparelhos(base, meu):
+    """{ip: [portas abertas]} de todo aparelho que responde (ping ou alguma porta conhecida)."""
+    achados = varrer(base, meu, PORTAS_RTSP + PORTAS_OUTRAS)
+    ips = [f"{base}.{i}" for i in range(1, 255) if f"{base}.{i}" != meu]
+    with concurrent.futures.ThreadPoolExecutor(64) as ex:
+        for ip, ok in zip(ips, ex.map(responde_ping, ips)):
+            if ok:
+                achados.setdefault(ip, [])
+    return achados
+
+
+def portas_de_video(ip):
+    """Portas desse aparelho que respondem como vídeo de câmera (RTSP)."""
+    portas = [p for p in sorted(set(PORTAS_RTSP + PORTAS_OUTRAS)) if porta_aberta(ip, p, 1.5)]
+    return [p for p in portas if resposta_rtsp(ip, "/", p) > 0], portas
+
+
+def tentar_camera(cfg, ip, porta, usuarios):
+    """Tenta abrir o vídeo nessa porta. Devolve (url, pediu_senha)."""
     import cv2
+    codigos = {c: resposta_rtsp(ip, c, porta) for c in CAMINHOS}
+    abertos = [c for c in CAMINHOS if codigos[c] == 200]
+    pede = [c for c in CAMINHOS if codigos[c] == 401]
+    tentativas = [(c, "", "") for c in abertos] + [(c, u, s) for u, s in usuarios if u for c in pede]
+    for caminho, usuario, senha in tentativas:
+        url = com_senha(ip, caminho, usuario, senha, porta)
+        img = pega_imagem(url)
+        if img is None:
+            continue
+        cfg["camera"] = url
+        salvar_config(cfg)
+        foto = PASTA / "foto-camera.jpg"
+        cv2.imwrite(str(foto), img)
+        print(f"\nACHEI A CÂMERA: {ip} (imagem de {img.shape[1]}x{img.shape[0]}).")
+        print(f"Guardei o endereço no {ARQ_CONFIG.name} e tirei uma foto: {foto}")
+        return url, False
+    return None, bool(pede)
+
+
+def anotar(texto):
+    print(texto)
+    with open(PASTA / "procurar.log", "a", encoding="utf-8") as f:
+        f.write(texto + "\n")
+
+
+def descobrir_camera(base, meu):
+    """A câmera não respondeu como câmera: acha qual aparelho é ela, tirando da tomada e vendo quem some."""
+    anotar(f"\n--- {datetime.now():%d/%m %H:%M} Descobrindo qual aparelho é a câmera ---")
+    antes = aparelhos(base, meu)
+    anotar(f"Aparelhos na rede agora ({len(antes)}):")
+    for ip in sorted(antes, key=lambda x: int(x.split(".")[-1])):
+        anotar(f"  {ip}   portas: {', '.join(map(str, sorted(antes[ip]))) or 'nenhuma das conhecidas'}")
+    input("\nAgora TIRE A CÂMERA DA TOMADA, espere uns 20 segundos e aperte Enter...")
+    depois = aparelhos(base, meu)
+    sumiram = sorted(set(antes) - set(depois), key=lambda x: int(x.split(".")[-1]))
+    input("Pode LIGAR A CÂMERA de novo. Espere 1 minuto (ela demora para ligar) e aperte Enter...")
+    if not sumiram:
+        anotar("Nenhum aparelho sumiu quando a câmera foi desligada: ela não está na mesma rede deste computador.\n"
+               "  - Confira se o computador está na internet do MESMO roteador em que a câmera está no cabo\n"
+               "    (se tiver repetidor ou duas redes, ligue o computador direto na rede do roteador);\n"
+               "  - a câmera pode ter guardado o endereço da oficina antiga: segure o botão de reset dela por 10 segundos,\n"
+               "    espere 1 minuto e rode o procurar-camera.bat de novo.")
+        return None
+    if len(sumiram) > 1:
+        anotar(f"Sumiram {len(sumiram)} aparelhos: {', '.join(sumiram)}. Rode de novo (pode ter sido outro aparelho saindo da rede).")
+        return None
+    ip = sumiram[0]
+    anotar(f"A câmera é o aparelho {ip}. Portas abertas: {', '.join(map(str, sorted(antes[ip]))) or 'nenhuma das conhecidas'}.")
+    return ip
+
+
+def procurar(cfg, ip_camera="", senha_extra=""):
     print("Procurando a câmera na rede (pode levar 1 ou 2 minutos)...")
-    if ip_camera:
-        candidatos = [ip_camera]
-    else:
-        meu = meu_ip()
-        if not meu:
-            raise SystemExit("Este computador não está em nenhuma rede. Conecte no Wi-Fi ou no cabo do roteador da oficina.")
-        base = ".".join(meu.split(".")[:3])
-        print(f"Este computador: {meu}. Olhando os aparelhos de {base}.1 a {base}.254...")
-        with concurrent.futures.ThreadPoolExecutor(64) as ex:
-            ips = [f"{base}.{i}" for i in range(1, 255) if f"{base}.{i}" != meu]
-            candidatos = [ip for ip, ok in zip(ips, ex.map(porta_aberta, ips)) if ok]
-    if not candidatos:
-        raise SystemExit("Não achei nenhuma câmera na rede. Confira se ela está ligada (fonte 12V) e com o cabo no roteador, "
-                         "e se este computador está na internet do mesmo roteador.")
+    meu = meu_ip()
+    if not meu and not ip_camera:
+        raise SystemExit("Este computador não está em nenhuma rede. Conecte no Wi-Fi ou no cabo do roteador da oficina.")
+    base = ".".join(meu.split(".")[:3])
     usuarios = list(USUARIOS)
     if senha_extra:
         usuarios = [("admin", senha_extra)] + usuarios
+    if ip_camera:
+        candidatos = {ip_camera: portas_de_video(ip_camera)[0]}
+    else:
+        print(f"Este computador: {meu}. Olhando os aparelhos de {base}.1 a {base}.254...")
+        candidatos = varrer(base, meu, PORTAS_RTSP)
+        # A câmera que já foi descoberta antes (tirando da tomada) entra com todas as portas de vídeo dela.
+        conhecida = str(cfg.get("camera_ip") or "")
+        if conhecida.startswith(base + ".") and conhecida not in candidatos:
+            portas = portas_de_video(conhecida)[0]
+            if portas:
+                candidatos[conhecida] = portas
     pediu_senha = []
-    for ip in candidatos:
-        print(f"Aparelho com vídeo em {ip}. Testando...")
-        codigos = {c: resposta_rtsp(ip, c) for c in CAMINHOS}
-        abertos = [c for c in CAMINHOS if codigos[c] == 200]
-        com_senha_pedida = [c for c in CAMINHOS if codigos[c] == 401]
-        tentativas = [(c, "", "") for c in abertos] + [(c, u, s) for u, s in usuarios if u for c in com_senha_pedida]
-        for caminho, usuario, senha in tentativas:
-            url = com_senha(ip, caminho, usuario, senha)
-            img = pega_imagem(url)
-            if img is None:
-                continue
-            cfg["camera"] = url
-            salvar_config(cfg)
-            foto = PASTA / "foto-camera.jpg"
-            cv2.imwrite(str(foto), img)
-            print(f"\nACHEI A CÂMERA: {ip} (imagem de {img.shape[1]}x{img.shape[0]}).")
-            print(f"Guardei o endereço no {ARQ_CONFIG.name} e tirei uma foto: {foto}")
-            return url
-        if com_senha_pedida:
-            pediu_senha.append(ip)
+    for ip, portas in candidatos.items():
+        for porta in portas:
+            print(f"Aparelho com vídeo em {ip} (porta {porta}). Testando...")
+            url, pede = tentar_camera(cfg, ip, porta, usuarios)
+            if url:
+                return url
+            if pede:
+                pediu_senha.append(ip)
     if pediu_senha:
         # Código 3: o procurar-camera.bat pergunta a senha e tenta de novo.
-        print(f"A câmera em {', '.join(pediu_senha)} pede senha." + (" Essa senha não abriu." if senha_extra else "") +
+        print(f"A câmera em {', '.join(sorted(set(pediu_senha)))} pede senha." + (" Essa senha não abriu." if senha_extra else "") +
               " É a senha que vocês criaram no aplicativo da câmera.")
         raise SystemExit(3)
-    raise SystemExit("Achei aparelho com vídeo, mas não consegui abrir a imagem. Tire um print desta janela e mande para o Arthur.")
+    if candidatos and not ip_camera:
+        print("Achei aparelho com vídeo, mas não consegui abrir a imagem.")
+    else:
+        print("Não achei a câmera do jeito comum (porta de vídeo 554).")
+    if ip_camera or not sys.stdin or not sys.stdin.isatty():
+        raise SystemExit("Confira se a câmera está ligada (fonte 12V) e com o cabo no roteador, e se este computador está na "
+                         "internet do mesmo roteador. Depois rode o procurar-camera.bat de novo.")
+    ip = descobrir_camera(base, meu)
+    if not ip:
+        raise SystemExit(1)
+    cfg["camera_ip"] = ip
+    salvar_config(cfg)
+    # Achou o aparelho: vê se alguma porta dele responde como vídeo de câmera.
+    portas_video, portas = portas_de_video(ip)
+    for porta in portas_video:
+        print(f"A porta {porta} de {ip} responde como vídeo. Testando...")
+        url, pede = tentar_camera(cfg, ip, porta, usuarios)
+        if url:
+            return url
+        if pede:
+            print(f"A câmera em {ip} pede senha. É a senha que vocês criaram no aplicativo da câmera.")
+            raise SystemExit(3)
+    anotar(f"A câmera ({ip}) está na rede, mas não manda o vídeo para o computador: só para o aplicativo dela.\n"
+           f"Portas abertas: {', '.join(map(str, portas)) or 'nenhuma'}. Tire um print desta janela e mande para o Arthur.")
+    raise SystemExit(1)
 
 
 # ---------- Verificar ----------
