@@ -1,0 +1,79 @@
+﻿LEITOR DE PLACAS - BLIN CAR
+===========================
+
+O que ele faz
+-------------
+Fica ligado no computador da oficina, olhando a câmera do portão. Quando um
+carro da agenda passa:
+- chegou: marca "Carro recebido" no painel sozinho e manda um e-mail;
+- saiu: manda um e-mail e, no painel (aba Recebidos), pergunta se foi
+  entregue e se pagou o restante. Se a entrada já tinha pagado tudo, marca
+  "Veículo entregue" sozinho;
+- placa que não está na agenda: só fica anotada.
+Se o computador estiver desligado, nada se perde no painel: vocês marcam à mão,
+como sempre. Sem internet, ele guarda as leituras e manda quando voltar.
+
+
+Instalar (uma vez)
+------------------
+1) No painel da Blin Car: aba Recebidos > botão "Câmera" > "Ligar a câmera".
+   Baixa o arquivo config-blincar.json (vai para a pasta Downloads).
+2) No mesmo lugar, "Baixar o leitor de placas". Clique com o botão direito no
+   leitor-placas.zip > "Extrair tudo..." e escolha uma pasta que não vai ser
+   apagada (por exemplo, Documentos\leitor-placas).
+3) A câmera: fonte 12V dela e cabo de rede no roteador. O computador precisa
+   estar na internet desse mesmo roteador (cabo ou Wi-Fi).
+4) Abra o instalar.bat (dois cliques). Ele:
+   - instala o Python, se faltar (depois peça para abrir o instalar.bat de novo);
+   - instala a leitura de placas (alguns minutos, precisa de internet);
+   - faz o leitor ligar junto com o Windows;
+   - pergunta se pode deixar o computador sem dormir na tomada (diga S);
+   - procura a câmera na rede e abre uma foto dela, para conferir.
+   Se o Windows avisar "O Windows protegeu o computador", toque em
+   "Mais informações" > "Executar assim mesmo".
+5) Abra o iniciar.bat para ligar agora (ou reinicie o computador). A janela
+   mostra cada placa lida. Pode minimizar; fechar a janela desliga o leitor.
+
+
+Arquivos da pasta
+-----------------
+instalar.bat         instala tudo (uma vez)
+iniciar.bat          liga o leitor com uma janela mostrando as placas
+procurar-camera.bat  acha a câmera de novo (se ela mudou de lugar na rede).
+                     Se a câmera pedir senha, ele pergunta.
+verificar.bat        confere a configuração, a câmera e a planilha
+testar-foto.bat      arraste uma foto ou vídeo de um carro em cima dele: mostra
+                     as placas que ele consegue ler (bom para escolher o lugar
+                     da câmera)
+parar.bat            desliga o leitor
+config-blincar.json  endereço da planilha, chave e câmera (não mande para
+                     ninguém: quem tiver a chave consegue mandar placas)
+fotos\               foto de cada carro que passou, por dia (apaga sozinho
+                     depois de 30 dias)
+leitor.log           o que ele fez; mande para o Arthur se algo der errado
+
+
+Onde pôr a câmera
+-----------------
+- Na pilastra do lado de dentro, a uns 2,5 m de altura, virada para DENTRO
+  da oficina (de costas para a rua), mirando onde o carro passa logo depois
+  do portão, a uns 3 ou 4 metros dela.
+- A placa precisa aparecer grande e de frente (no máximo meio de lado).
+  Use o testar-foto.bat com uma foto tirada do lugar para conferir: a placa
+  lida precisa ter uns 100 pixels de largura ou mais.
+- À noite, deixe uma luz acesa no caminho do carro.
+- Se a câmera pega mais coisa do que o caminho (rua, pátio), dá para limitar
+  a parte da imagem no config-blincar.json com "area": [esquerda, topo,
+  direita, baixo], em frações de 0 a 1. Ex.: "area": [0.3, 0.4, 1, 1].
+
+
+Problemas
+---------
+- "Não achei nenhuma câmera na rede": confira a fonte 12V e o cabo da câmera
+  no roteador, e se o computador está na internet desse roteador.
+- "A câmera pede senha": é a senha que vocês criaram no aplicativo da câmera.
+  O procurar-camera.bat pergunta; digite e aperte Enter.
+- "A planilha não aceitou a chave": no painel, Recebidos > Câmera >
+  "Baixar a configuração de novo" e troque o config-blincar.json desta pasta.
+- No painel (Recebidos > Câmera) aparece se o leitor está ligado e vendo a
+  câmera, e as últimas placas lidas.

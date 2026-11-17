@@ -436,6 +436,15 @@ button.cel:hover{border-color:var(--muted)}
 .wa-passo.feito{border-color:var(--ok-fg)}
 .wa-passo .sub{font-size:.8125rem;color:var(--muted);overflow-wrap:anywhere}
 .wa-modelo{display:grid;gap:6px;border-top:1px dashed var(--line);padding-top:8px}
+/* Câmera do portão */
+.cam-leituras{margin:0;padding:0;list-style:none;display:grid;gap:6px;max-height:340px;overflow:auto}
+.cam-leituras li{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:4px 10px;align-items:baseline;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:.875rem}
+.cam-leituras time{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cam-leituras .placa{font-weight:700;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.cam-leituras .fora{color:var(--muted)}
+.cam-leituras .forte{font-weight:600}
+@media (max-width:520px){.cam-leituras li{grid-template-columns:auto minmax(0,1fr)}.cam-leituras li > span:last-child{grid-column:1/-1}}
+.cam-saiu{border-color:var(--gold)}
 #dlgPag{width:min(1040px,calc(100% - 24px))}
 @media (min-width:720px){.pag-colunas{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
 a.mini{text-decoration:none;display:inline-flex;align-items:center}
@@ -811,9 +820,11 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <div class="filtros">
         <button type="button" class="mini" id="rcAtualizar">Atualizar</button>
         <button type="button" class="mini mini-icone" data-abrir-wa aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1.2-.5-2.3-1.6-2.8-2.8l.9-1-1-2z"/></svg>WhatsApp</button>
+        <button type="button" class="mini mini-icone" data-abrir-cam aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13.2" r="3.3"/></svg>Câmera</button>
       </div>
     </div>
     <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp.</p>
+    <p class="nota" id="rcCamera" hidden></p>
     <p class="aviso" id="rcSemWa" hidden><b>O WhatsApp ainda não está ligado.</b> Para mandar o aviso de carro pronto, toque em "WhatsApp" e siga os passos.</p>
     <p class="err" id="rcErro" role="alert" hidden></p>
     <div class="kpis kpis-4" id="rcResumo"></div>
@@ -836,6 +847,10 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg dlg-largo" id="dlgPag" aria-labelledby="pagTitulo">
   <div class="dlg-corpo" id="pagCorpo"></div>
+</dialog>
+
+<dialog class="dlg dlg-largo" id="dlgCam" aria-labelledby="camTitulo">
+  <div class="dlg-corpo" id="camCorpo"></div>
 </dialog>
 
 <dialog class="dlg dlg-largo" id="dlgWa" aria-labelledby="waTitulo">
@@ -4162,6 +4177,15 @@ function rcDesenhar() {
   const d = RC.dados;
   const lista = $("#rcLista");
   $("#rcSemWa").hidden = !d || d.whatsapp;
+  const cam = d && d.camera;
+  $("#rcCamera").hidden = !cam || !cam.ligada;
+  if (cam && cam.ligada) {
+    $("#rcCamera").className = cam.online && cam.leitor && cam.leitor.camera ? "nota" : "aviso";
+    $("#rcCamera").textContent = cam.online && cam.leitor && cam.leitor.camera
+      ? "Câmera do portão ligada: a chegada e a saída dos carros da agenda são marcadas sozinhas."
+      : cam.online ? "O leitor de placas está ligado, mas não consegue ver a câmera. Toque em \"Câmera\" para ver o que houve."
+      : "O leitor de placas está desligado: a chegada e a saída não estão sendo marcadas sozinhas. Marquem aqui no painel.";
+  }
   if (!d) {
     $("#rcResumo").replaceChildren();
     return lista.replaceChildren(RC.erro ? "" : el("p", { class: "nota" }, "Carregando os carros…"));
@@ -4194,7 +4218,10 @@ function itemRecebido(a) {
   const pronto = a.wa && a.wa.pronto;
   const zap = linkZap(a.telefone);
   const falta = faltaReceber(a);
-  const selo = resp && resp.tipo === "indo" ? el("span", { class: "selo-sinal sim" }, "Cliente está vindo")
+  const cam = a.cam;
+  const saiu = !!(cam && cam.saidaPendente && cam.saida);
+  const selo = saiu ? el("span", { class: "selo-sinal alerta" }, "Saiu? Confirmar")
+    : resp && resp.tipo === "indo" ? el("span", { class: "selo-sinal sim" }, "Cliente está vindo")
     : resp ? el("span", { class: "selo-sinal nao" }, "Vem outro dia")
     : pronto && pronto.situacao !== "Não enviada" ? el("span", { class: "selo-sinal nao" }, "Avisado")
     : el("span", { class: "selo-sinal" }, `Na oficina ${diasNaOficina(a)}`);
@@ -4202,7 +4229,7 @@ function itemRecebido(a) {
   const dados = el("dl", { class: "rc-dados" },
     dado("Carro", `${a.carro}${a.placa ? ` · ${a.placa}` : ""}`),
     dado("Serviço", a.servico),
-    dado("Recebido", `${quandoTexto(a.recebidoEm)} (${diasNaOficina(a)})`),
+    dado("Recebido", `${quandoTexto(a.recebidoEm)} (${diasNaOficina(a)})${cam && cam.chegada && cam.chegada.tipo === "chegada" ? " · pela câmera" : ""}`),
     dado("Agendado para", dataLonga(a.data) + (a.horario ? `, às ${horaBR(a.horario)}` : "")),
     dado("Telefone", a.telefone),
     dado("Orçamento", a.orcamento ? reais(a.orcamento) : "sem orçamento"),
@@ -4218,7 +4245,13 @@ function itemRecebido(a) {
   if (resp) zapCaixa.push(el("span", { class: resp.tipo === "indo" ? "ok-txt" : "" }, `Cliente respondeu "${resp.texto || (resp.tipo === "indo" ? "Estou indo" : "Vou outro dia")}" em ${quandoWA(resp.em)}.`));
   else if (pronto && pronto.situacao !== "Não enviada") zapCaixa.push(el("span", { class: "sub" }, "O cliente ainda não respondeu."));
   let acoes;
-  if (RC.entregar === a.id) {
+  if (saiu && RC.entregar !== a.id) {
+    acoes = el("div", { class: "confirma cam-saiu", role: "alert" },
+      el("span", {}, `A câmera viu o carro saindo em ${quandoWA(cam.saida.em)}. Ele foi entregue? ` +
+        (falta === null ? "O carro está sem orçamento." : falta ? `Falta receber ${reais(falta)}.` : "Já estava tudo pago.")),
+      el("div", { class: "ag-acoes" }, botao("entregue-pago", "Sim, pagou tudo", "mini mini-ok"),
+        botao("entregue-pendente", "Sim, ficou pendente", "mini perigo"), botao("cam-ficou", "Não saiu")));
+  } else if (RC.entregar === a.id) {
     acoes = el("div", { class: "confirma", role: "alert" },
       el("span", {}, `Entregar o carro de ${a.cliente}. ` + (falta === null ? "O cliente já pagou tudo o que faltava do serviço?" : `O restante de ${reais(falta)} já foi pago?`)),
       el("div", { class: "ag-acoes" }, botao("entregue-pago", "Sim, pagou tudo", "mini mini-ok"),
@@ -4350,6 +4383,7 @@ $("#rcLista").addEventListener("click", e => {
     rcDesenhar();
     return rcFocar(`[data-rc-item="${a.id}"] [data-rc="entregue-pago"]`);
   }
+  if (acao === "cam-ficou") return rcAcao("agenda_camera_ficou", { id: a.id }, `Certo: o carro de ${a.cliente} continua na oficina.`, a.id);
   if (acao === "entregue-pago" || acao === "entregue-pendente") {
     const pago = acao === "entregue-pago";
     return rcAcao("agenda_entregue", { id: a.id, restantePago: pago },
@@ -4513,6 +4547,124 @@ $("#clBaixar").addEventListener("click", () => {
 });
 
 /* ---------- Janela do WhatsApp: chave, mensagens prontas (aprovação da Meta) e aviso das mensagens ---------- */
+
+/* ---------- Câmera do portão: leitor de placas no computador da oficina ---------- */
+
+const CAM = { dados: null, erro: "", aviso: "", ocupado: false, trocar: false };
+const LEITOR_ZIP = new URL("../leitor-placas.zip", location.href).href;
+
+async function abrirCamera() {
+  CAM.erro = "";
+  CAM.aviso = "";
+  CAM.trocar = false;
+  if (!$("#dlgCam").open) $("#dlgCam").showModal();
+  await camPedir("agenda_camera");
+}
+
+async function camPedir(acao, extra) {
+  if (CAM.ocupado) return;
+  CAM.ocupado = true;
+  CAM.erro = "";
+  desenharCamera();
+  try {
+    const d = await agendaPedir(acao, extra || {});
+    if (d && d.ok && "ligada" in d) {
+      CAM.dados = d;
+      if (d.config) {
+        baixarConfigLeitor(d.config);
+        CAM.aviso = "Baixamos o arquivo config-blincar.json. Ele vai para o computador da oficina, junto com o leitor (veja o LEIA-ME do leitor).";
+      } else if (d.exemplo) CAM.aviso = "No exemplo nada é baixado.";
+    } else if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
+    else CAM.erro = d && d.erro !== "acao" && d.mensagem ? d.mensagem : MSG_VERSAO;
+  } catch {
+    CAM.erro = MSG_REDE;
+  } finally {
+    CAM.ocupado = false;
+  }
+  CAM.trocar = false;
+  desenharCamera();
+}
+
+// O arquivo que o leitor lê: o endereço da planilha e a chave da câmera.
+function baixarConfigLeitor(c) {
+  const blob = new Blob([JSON.stringify({ planilha: c.planilha, chave: c.chave }, null, 2)], { type: "application/json" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: "config-blincar.json" });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+function situacaoLeitor(d) {
+  const l = d.leitor;
+  if (!l) return el("span", { class: "sub" }, "O leitor ainda não deu sinal. Depois de instalar no computador, ele avisa aqui a cada 5 minutos.");
+  if (d.online && l.camera) return el("span", { class: "ok-txt" }, `Ligado e vendo a câmera. Último sinal em ${quandoWA(l.em)}${l.versao ? ` (versão ${l.versao})` : ""}.`);
+  if (d.online) return el("span", { class: "err-txt" }, `O leitor está ligado, mas não consegue ver a câmera${l.erro ? `: ${l.erro}` : "."} Confira se a câmera está ligada e no cabo do roteador.`);
+  return el("span", { class: "err-txt" }, `Desligado desde ${quandoWA(l.em)}: o computador está desligado, sem internet ou o leitor foi fechado. Enquanto isso, marquem a chegada e a saída no painel.`);
+}
+
+function desenharCamera() {
+  const d = CAM.dados;
+  const corpo = [el("div", { class: "dlg-topo" },
+    el("div", {}, el("h2", { id: "camTitulo" }, "Câmera do portão"),
+      el("p", { class: "sub" }, "O leitor de placas, no computador da oficina, olha a câmera do portão. Carro da agenda que chega fica \"Carro recebido\" sozinho; quando ele sai, vocês recebem um e-mail e confirmam a entrega aqui na aba Recebidos.")),
+    el("button", { type: "button", class: "mini", "data-cam": "fechar" }, "Fechar"))];
+  if (!d) {
+    corpo.push(CAM.erro ? el("p", { class: "err", role: "alert" }, CAM.erro) : el("p", { class: "nota" }, "Conferindo a câmera…"));
+    return $("#camCorpo").replaceChildren(...corpo);
+  }
+  const passo = (feito, titulo, ...conteudo) => el("li", { class: "wa-passo" + (feito ? " feito" : "") }, el("b", {}, feito ? "✓ " : "", titulo), ...conteudo);
+  const ocupado = CAM.ocupado ? { disabled: "" } : {};
+  corpo.push(el("ol", { class: "wa-passos" },
+    passo(d.ligada, "Chave do leitor",
+      el("span", { class: "sub" }, d.ligada
+        ? "Criada. O arquivo config-blincar.json leva a chave e o endereço da planilha para o leitor."
+        : "Toque em \"Ligar a câmera\": cria a chave e baixa o arquivo config-blincar.json, que vai para o computador da oficina."),
+      el("div", { class: "ag-acoes" }, el("button", { type: "button", class: d.ligada ? "mini" : "btn btn-red", "data-cam": "ligar", ...ocupado },
+        CAM.ocupado ? "Um instante…" : d.ligada ? "Baixar a configuração de novo" : "Ligar a câmera"))),
+    passo(!!d.leitor, "Leitor de placas no computador",
+      el("span", { class: "sub" }, "Baixe o leitor no computador da oficina (Windows), descompacte e siga o LEIA-ME de dentro dele. Ele acha a câmera na rede sozinho."),
+      el("div", { class: "ag-acoes" }, el("a", { class: "mini", href: LEITOR_ZIP, download: "" }, "Baixar o leitor de placas"))),
+    passo(!!(d.online && d.leitor && d.leitor.camera), "Funcionando", situacaoLeitor(d))));
+  if (CAM.aviso) corpo.push(el("p", { class: "aviso-ok", role: "status" }, CAM.aviso));
+  if (CAM.erro) corpo.push(el("p", { class: "err", role: "alert" }, CAM.erro));
+  corpo.push(el("h3", {}, "Últimas placas lidas"));
+  corpo.push(d.eventos && d.eventos.length
+    ? el("ul", { class: "cam-leituras" }, ...d.eventos.map(e => el("li", {},
+      el("time", {}, quandoWA(e.em)),
+      el("span", { class: "placa" }, e.placa || e.placaAgenda || "—"),
+      el("span", { class: e.tipo === "fora" || e.tipo === "repetido" ? "fora" : e.tipo === "saida" || e.tipo === "chegada" ? "forte" : "" }, e.texto, e.cliente ? ` · ${e.cliente}` : ""))))
+    : el("p", { class: "nota" }, "Nenhuma placa lida ainda."));
+  const acoes = [el("button", { type: "button", class: "mini", "data-cam": "atualizar", ...ocupado }, CAM.ocupado ? "Conferindo…" : "Atualizar")];
+  if (d.ligada) acoes.push(CAM.trocar
+    ? el("span", { class: "confirma", role: "alert" }, "Trocar a chave? O leitor para de funcionar até receber o arquivo novo.",
+      el("span", { class: "ag-acoes" }, el("button", { type: "button", class: "mini perigo-cheio", "data-cam": "trocar-sim" }, "Sim, trocar"),
+        el("button", { type: "button", class: "mini", "data-cam": "trocar-nao" }, "Não")))
+    : el("button", { type: "button", class: "mini perigo", "data-cam": "trocar" }, "Trocar a chave"));
+  corpo.push(el("div", { class: "ag-acoes" }, ...acoes));
+  $("#camCorpo").replaceChildren(...corpo);
+}
+
+document.querySelectorAll("[data-abrir-cam]").forEach(b => b.addEventListener("click", abrirCamera));
+$("#dlgCam").addEventListener("click", e => {
+  if (e.target === $("#dlgCam")) return $("#dlgCam").close();
+  const b = e.target.closest("[data-cam]");
+  if (!b) return;
+  const acao = b.dataset.cam;
+  if (acao === "fechar") return $("#dlgCam").close();
+  if (acao === "ligar") return camPedir("agenda_camera_ligar");
+  if (acao === "atualizar") {
+    CAM.aviso = "";
+    return camPedir("agenda_camera");
+  }
+  if (acao === "trocar" || acao === "trocar-nao") {
+    CAM.trocar = acao === "trocar";
+    desenharCamera();
+    return focar(acao === "trocar" ? '[data-cam="trocar-nao"]' : '[data-cam="trocar"]');
+  }
+  if (acao === "trocar-sim") return camPedir("agenda_camera_ligar", { nova: true });
+});
+$("#dlgCam").addEventListener("close", () => { if (RC.dados) rcCarregar(); });
 
 const WA = { dados: null, erro: "", ocupado: false };
 
@@ -4684,6 +4836,10 @@ function criarDemo() {
     recebidoEm: `${somaDias(anterior("Retoque"), -2)} 09:10`, obs: "Retoque no capô" });
   tiago.wa = { pronto: { em: `${hoje} 08:30`, situacao: "Lida", retirada: "hoje às 10h" }, resposta: { tipo: "indo", em: `${hoje} 08:41`, situacao: "Recebida", texto: "Vou buscar" } };
   lista.push(tiago);
+  // Câmera do portão: o Tiago chegou pela câmera; o Renato foi visto saindo e falta confirmar a entrega.
+  tiago.cam = { chegada: { em: tiago.recebidoEm, tipo: "chegada" }, saidaPendente: false };
+  const renato = lista.find(a => a.cliente === "Renato (exemplo)");
+  renato.cam = { chegada: { em: renato.recebidoEm, tipo: "chegada" }, saida: { em: `${hoje} 11:20`, tipo: "saida" }, saidaPendente: true };
   // Lembrete do WhatsApp: Carlos confirmou tocando em "Confirmo".
   lista[0].wa = { lembrete: { em: `${somaDias(lista[0].data, -2)} 08:00`, situacao: "Lida" }, confirmou: { em: `${somaDias(lista[0].data, -2)} 08:12`, situacao: "Recebida" } };
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
@@ -4721,7 +4877,7 @@ function criarDemo() {
     sinal: a.sinal, pago: a.pago, obs: a.obs, sit: a.sit, link: a.link, linkCartao: a.linkCartao, presenca: a.presenca, origem: a.origem, remarcacao: a.remarcacao, orcamento: a.orcamento,
     forma: a.forma, situacao: a.situacao, prazo: a.prazo || `${a.criado.slice(0, 10)} 23:59`, criado: a.criado, entregueEm: a.entregueEm || "",
     recebidoEm: a.recebidoEm || "", entrada: a.entrada || 0, restante: a.restante || "", restantePagoEm: a.restantePagoEm || "", horario: a.horario || "",
-    avaliacao: a.avaliacao || null, wa: a.wa || null });
+    avaliacao: a.avaliacao || null, wa: a.wa || null, cam: a.cam || null });
   // Quem só conversou no WhatsApp (no exemplo).
   const conversas = [
     { telefone: "(21) 90000-0091", nomeWA: "Juliana Rocha", ultimaMensagem: `${somaDias(hoje, -3)} 14:20`, mensagens: 4, ultimoTexto: "Quanto fica a pintura do para-choque?" },
@@ -4736,7 +4892,20 @@ function criarDemo() {
   const textoEntrada = "Olá, {{1}}! Aqui é da Blin Car. Recebemos a sua entrada de {{2}} para o serviço do seu {{3}}. Obrigado pela confiança!\n\n" +
     "Orçamento total: {{4}}\nJá pago (sinal + entrada): {{5}}\nFalta pagar: {{6}}\n\nQualquer dúvida, é só responder esta mensagem.";
   const textoLembrete = "Olá, {{1}}! Aqui é da Blin Car. Passando para lembrar que o seu {{2}} está agendado para {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você confirma que vai trazer o carro?";
+  const leitorDemo = () => ({ em: agora(), camera: true, versao: "1.0", erro: "" });
+  const camDemo = extra => {
+    const renato = comSit().find(a => a.cliente === "Renato (exemplo)");
+    const tiago = comSit().find(a => a.cliente === "Tiago (exemplo)");
+    const ev = (em, tipo, texto, a, placa) => ({ em, tipo, texto, placa: placa || (a ? a.placa : ""), placaAgenda: a ? a.placa : "", cliente: a ? a.cliente : "", id: a ? a.id : "" });
+    return Object.assign({ ok: true, agora: agora(), ligada: true, online: true, leitor: leitorDemo(), eventos: [
+      ev(`${hoje} 11:20`, "saida", "Saiu: confirmar a entrega no painel", renato),
+      ev(`${hoje} 08:02`, "fora", "Placa fora da agenda", null, "KTR2C19"),
+      ev(tiago.recebidoEm, "chegada", "Chegou: marcado como recebido", tiago),
+      ev(renato.recebidoEm, "chegada", "Chegou: marcado como recebido", renato)
+    ] }, extra || {});
+  };
   const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), whatsapp: true,
+    camera: { ligada: true, online: true, leitor: leitorDemo() },
     modelosPronto: { agora: { texto: textoProntoAgora, botoes: ["Estou indo", "Vou outro dia"] }, hora: { texto: textoProntoHora, botoes: ["Vou buscar", "Vou outro dia"] } },
     recebidos: comSit().filter(a => a.sit === "confirmado" && a.recebidoEm).map(publico)
       .sort((x, y) => (x.recebidoEm < y.recebidoEm ? -1 : 1)) }, extra || {});
@@ -4891,6 +5060,14 @@ function criarDemo() {
     }
     if (acao === "agenda_avaliacoes") return painelAval();
     if (acao === "agenda_recebidos") return recebidos();
+    if (acao === "agenda_camera") return camDemo();
+    if (acao === "agenda_camera_ligar") return camDemo({ exemplo: true });
+    if (acao === "agenda_camera_ficou") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (a.cam) a.cam = Object.assign({}, a.cam, { saidaPendente: false });
+      return recebidos();
+    }
     if (acao === "agenda_clientes") return { ok: true, hoje, clientes: clientesDemo(), whatsapp: true, ultimoEvento: `${hoje} 08:41` };
     if (acao === "agenda_whatsapp" || acao === "agenda_whatsapp_ligar") return statusZap();
     if (acao === "agenda_pronto") {
