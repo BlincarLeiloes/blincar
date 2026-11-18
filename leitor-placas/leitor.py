@@ -256,6 +256,10 @@ class ErroCamera(Exception):
     pass
 
 
+SENHA_ERRADA = "A câmera não aceitou a senha. É a mesma senha que vocês usam no CMS of EseeCloud."
+RESPOSTAS_LOGIN = {}  # "ip:porta" -> o começo da resposta da câmera ao login (anotado no procurar.log)
+
+
 class Bubble:
     """Lê o vídeo "bubble" e devolve as imagens como o OpenCV (umas 8 por segundo, sempre a mais nova)."""
 
@@ -273,6 +277,7 @@ class Bubble:
         self.tempo = tempo
         self.sock = self.arq = self.dec = None
         self.erro, self.senha_errada, self.morto = "", False, False
+        self.login_duvidoso = self.viu_video = False
         self.entregue = 0.0
         if conectar:
             try:
@@ -334,9 +339,11 @@ class Bubble:
             raise ErroCamera("A câmera não aceita mais ninguém vendo agora. Feche o vídeo dela no celular e espere 1 minuto.")
         if comando != self.LOGIN or len(r) < 9 or r[4] != 3:
             raise ErroCamera("A câmera respondeu o login de um jeito que não entendi.")
+        RESPOSTAS_LOGIN[f"{self.ip}:{self.porta}"] = r[:16].hex(" ")
         if r[8] != 1:
-            self.senha_errada = True
-            raise ErroCamera("A câmera não aceitou a senha. É a mesma senha que vocês usam no CMS of EseeCloud.")
+            # Senha errada, ou um firmware que responde o login de outro jeito: pede o vídeo mesmo assim.
+            # Se o vídeo não vier, aí sim é a senha (ver read).
+            self.login_duvidoso = True
         m = re.search(rf"<stream{self.fluxo} [^>]+".encode(), bytes(xml))
         h265 = bool(m and b".265" in m.group(0))
         try:
@@ -365,6 +372,7 @@ class Bubble:
                 # Vídeo: tamanho (4) + tipo (1: quadro inteiro, 2: só o que mudou, 0: som) + canal (1) + o quadro.
                 if comando != self.VIDEO or len(p) < 7 or p[4] == 0:
                     continue
+                self.viu_video = True
                 try:
                     quadros = self.dec.decode(av.Packet(p[6:]))
                 except av.error.FFmpegError:
@@ -374,6 +382,9 @@ class Bubble:
                     return True, quadros[-1].to_ndarray(format="bgr24")
         except (OSError, ErroCamera) as e:
             self.erro = str(e) if isinstance(e, ErroCamera) else "A câmera parou de mandar imagem."
+            if self.login_duvidoso and not self.viu_video and "não aceita mais ninguém" not in self.erro:
+                self.senha_errada = True
+                self.erro = SENHA_ERRADA
             self.morto = True
             return False, None
 
@@ -1115,6 +1126,8 @@ def tentar_bubble(cfg, ip, porta, usuarios, relatorio):
             return url, False
         if "não aceitou a senha" in erro:
             pediu = True
+            anotar(f"  {ip}:{porta}: não abriu com a senha {'(vazia)' if not senha else 'digitada'}. "
+                   f"Resposta da câmera: {RESPOSTAS_LOGIN.get(f'{ip}:{porta}', '?')}")
             continue
         relatorio.append(f"  {ip}:{porta} (vídeo da EseeCloud): {erro}")
         break
