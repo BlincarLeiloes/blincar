@@ -4204,7 +4204,9 @@ function rcDesenhar() {
   if (cam && cam.ligada) {
     $("#rcCamera").className = cam.online && cam.leitor && cam.leitor.camera ? "nota" : "aviso";
     $("#rcCamera").textContent = cam.online && cam.leitor && cam.leitor.camera
-      ? "Câmera do portão ligada: a chegada e a saída dos carros da agenda são marcadas sozinhas."
+      ? (cam.leitor.modo === "mao"
+        ? "Câmera ligada: mostrem a placa na mão para a câmera. Carro que não chegou fica recebido; carro que já está aqui ganha a pergunta \"Está pronto?\"."
+        : "Câmera do portão ligada: a chegada e a saída dos carros da agenda são marcadas sozinhas.")
       : cam.online ? "O leitor de placas está ligado, mas não consegue ver a câmera. Toque em \"Câmera\" para ver o que houve."
       : "O leitor de placas está desligado: a chegada e a saída não estão sendo marcadas sozinhas. Marquem aqui no painel.";
   }
@@ -4287,7 +4289,10 @@ function itemRecebido(a) {
   const falta = faltaReceber(a);
   const cam = a.cam;
   const saiu = !!(cam && cam.saidaPendente && cam.saida);
+  // Mostraram a placa na mão: "o carro está pronto?" (some depois do aviso de carro pronto, da entrega ou do "Ainda não").
+  const perguntaPronto = !saiu && !!(cam && cam.prontoPergunta && cam.mostrada) && !(pronto && pronto.em >= cam.mostrada.em);
   const selo = saiu ? el("span", { class: "selo-sinal alerta" }, "Saiu? Confirmar")
+    : perguntaPronto ? el("span", { class: "selo-sinal alerta" }, "Está pronto?")
     : resp && resp.tipo === "indo" ? el("span", { class: "selo-sinal sim" }, "Cliente está vindo")
     : resp ? el("span", { class: "selo-sinal nao" }, "Vem outro dia")
     : pronto && pronto.situacao !== "Não enviada" ? el("span", { class: "selo-sinal nao" }, "Avisado")
@@ -4318,6 +4323,11 @@ function itemRecebido(a) {
         (falta === null ? "O carro está sem orçamento." : falta ? `Falta receber ${reais(falta)}.` : "Já estava tudo pago.")),
       el("div", { class: "ag-acoes" }, botao("entregue-pago", "Sim, pagou tudo", "mini mini-ok"),
         botao("entregue-pendente", "Sim, ficou pendente", "mini perigo"), botao("cam-ficou", "Não saiu")));
+  } else if (perguntaPronto && RC.entregar !== a.id && RC.pronto !== a.id) {
+    acoes = el("div", { class: "confirma cam-saiu", role: "alert" },
+      el("span", {}, `Vocês mostraram a placa na câmera em ${quandoWA(cam.mostrada.em)}. O carro está pronto para ir embora?`),
+      el("div", { class: "ag-acoes" }, botao("pronto", "Sim, avisar o cliente", "mini mini-ok"),
+        botao("entregar", "Já vai sair: entregar"), botao("cam-naopronto", "Ainda não")));
   } else if (RC.entregar === a.id) {
     acoes = el("div", { class: "confirma", role: "alert" },
       el("span", {}, `Entregar o carro de ${a.cliente}. ` + (falta === null ? "O cliente já pagou tudo o que faltava do serviço?" : `O restante de ${reais(falta)} já foi pago?`)),
@@ -4451,6 +4461,7 @@ $("#rcLista").addEventListener("click", e => {
     return rcFocar(`[data-rc-item="${a.id}"] [data-rc="entregue-pago"]`);
   }
   if (acao === "cam-ficou") return rcAcao("agenda_camera_ficou", { id: a.id }, `Certo: o carro de ${a.cliente} continua na oficina.`, a.id);
+  if (acao === "cam-naopronto") return rcAcao("agenda_camera_naopronto", { id: a.id }, `Certo: o carro de ${a.cliente} ainda não está pronto.`, a.id);
   if (acao === "entregue-pago" || acao === "entregue-pendente") {
     const pago = acao === "entregue-pago";
     return rcAcao("agenda_entregue", { id: a.id, restantePago: pago },
@@ -4693,6 +4704,11 @@ function desenharCamera() {
       el("span", { class: "sub" }, "Baixe o leitor no computador da oficina (Windows), descompacte e siga o LEIA-ME de dentro dele. Ele acha a câmera na rede sozinho."),
       el("div", { class: "ag-acoes" }, el("a", { class: "mini", href: LEITOR_ZIP, download: "" }, "Baixar o leitor de placas"))),
     passo(!!(d.online && d.leitor && d.leitor.camera), "Funcionando", situacaoLeitor(d))));
+  if (d.leitor && d.leitor.modo) corpo.push(el("p", { class: "nota" }, d.leitor.modo === "mao"
+    ? "Modo: placa mostrada na mão. Segure a placa perto da câmera, no lugar marcado (marcar-ponto.bat), até o computador apitar. " +
+      "Carro da agenda que ainda não chegou fica recebido; carro que já está na oficina ganha a pergunta \"Está pronto?\" em Recebidos; " +
+      "placa fora da agenda pergunta se quer agendar. Para trocar de modo, use o escolher-modo.bat no computador."
+    : "Modo: carros entrando e saindo pelo portão. Para usar a placa mostrada na mão, use o escolher-modo.bat no computador."));
   if (CAM.aviso) corpo.push(el("p", { class: "aviso-ok", role: "status" }, CAM.aviso));
   if (CAM.erro) corpo.push(el("p", { class: "err", role: "alert" }, CAM.erro));
   corpo.push(el("h3", {}, "Últimas placas lidas"));
@@ -4917,6 +4933,11 @@ function criarDemo() {
   tiago.cam = { chegada: { em: tiago.recebidoEm, tipo: "chegada" }, saidaPendente: false };
   const renato = lista.find(a => a.cliente === "Renato (exemplo)");
   renato.cam = { chegada: { em: renato.recebidoEm, tipo: "chegada" }, saida: { em: `${hoje} 11:20`, tipo: "saida" }, saidaPendente: true };
+  // Mostraram a placa do Bruno na mão: o painel pergunta se ele está pronto.
+  const bruno = novo(somaDias(anterior("Retoque"), -1), "Retoque", "Bruno (exemplo)", "Gol 2016 branco", true, { orcamento: 700, placa: "BRU1N00",
+    recebidoEm: `${somaDias(anterior("Retoque"), -1)} 10:05` });
+  bruno.cam = { chegada: { em: bruno.recebidoEm, tipo: "chegada" }, mostrada: { em: `${hoje} 10:40`, tipo: "mostrada" }, prontoPergunta: true, saidaPendente: false };
+  lista.push(bruno);
   // Lembrete do WhatsApp: Carlos confirmou tocando em "Confirmo".
   lista[0].wa = { lembrete: { em: `${somaDias(lista[0].data, -2)} 08:00`, situacao: "Lida" }, confirmou: { em: `${somaDias(lista[0].data, -2)} 08:12`, situacao: "Recebida" } };
   creditos.push({ id: "cr1", cliente: "Luana (exemplo)", email: "luana@exemplo.com", telefone: lista[7].telefone, valor: 50, nivel: 1, motivo: "Não veio", origem: lista[7].id, situacao: "disponivel" });
@@ -4969,7 +4990,7 @@ function criarDemo() {
   const textoEntrada = "Olá, {{1}}! Aqui é da Blin Car. Recebemos a sua entrada de {{2}} para o serviço do seu {{3}}. Obrigado pela confiança!\n\n" +
     "Orçamento total: {{4}}\nJá pago (sinal + entrada): {{5}}\nFalta pagar: {{6}}\n\nQualquer dúvida, é só responder esta mensagem.";
   const textoLembrete = "Olá, {{1}}! Aqui é da Blin Car. Passando para lembrar que o seu {{2}} está agendado para {{3}}. Endereço: Rua da Separação, Lt 17, Qd 23, Vilar dos Teles, São João de Meriti - RJ (próximo ao 21º BPM). Você confirma que vai trazer o carro?";
-  const leitorDemo = () => ({ em: agora(), camera: true, versao: "1.0", erro: "" });
+  const leitorDemo = () => ({ em: agora(), camera: true, versao: "1.2", erro: "", modo: "mao" });
   const camDemo = extra => {
     const renato = comSit().find(a => a.cliente === "Renato (exemplo)");
     const tiago = comSit().find(a => a.cliente === "Tiago (exemplo)");
@@ -5160,6 +5181,12 @@ function criarDemo() {
       }
       if (i !== -1) foraDemo.splice(i, 1);
       if (extra.opcao === "nao_avisar" && semAvisoDemo.indexOf(extra.placa) === -1) semAvisoDemo.push(extra.placa);
+      return recebidos();
+    }
+    if (acao === "agenda_camera_naopronto") {
+      const a = comSit().find(x => x.id === extra.id);
+      if (!a) return naoAchou();
+      if (a.cam) a.cam = Object.assign({}, a.cam, { prontoPergunta: false });
       return recebidos();
     }
     if (acao === "agenda_camera_ficou") {

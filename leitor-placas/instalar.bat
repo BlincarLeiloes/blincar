@@ -51,7 +51,8 @@ if not exist "config-blincar.json" if not exist "%USERPROFILE%\Downloads\config-
   echo e o leitor pega de la sozinho.
   echo.
 )
-echo Tudo instalado. Agora abra o marcar-area.bat e marque onde os carros passam.
+echo Tudo instalado. Agora abra o marcar-ponto.bat e marque o lugar onde voces vao
+echo mostrar a placa na mao para a camera.
 echo Depois, para ligar o leitor, abra o iniciar.bat.
 echo Nas proximas vezes ele liga sozinho quando o Windows ligar.
 pause

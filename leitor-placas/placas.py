@@ -157,8 +157,11 @@ class Passagens:
                 continue
             mexeu = andou(p["caixas"])
             if self.so_andando and not mexeu:
+                # Com 3 leituras ou mais no mesmo lugar é carro parado mesmo (o leitor anota no log);
+                # com menos, não dá para saber se andou: também fica de fora, sem anotar.
                 self.paradas += 1
-                self.placas_paradas.append(placa)
+                if n >= 3:
+                    self.placas_paradas.append(placa)
                 continue
             saida.append({"placa": placa, "confianca": round(conf, 3), "leituras": n, "direcao": direcao(p["larguras"]),
                           "inicio": p["inicio"], "fim": p["fim"], "melhor": p["melhor"], "andou": mexeu})

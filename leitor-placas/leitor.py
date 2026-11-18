@@ -11,6 +11,8 @@ Uso (os arquivos .bat da pasta fazem isso):
   python leitor.py --verificar   confere a configuração, a câmera e a planilha
   python leitor.py --tela        lê as placas na janela do "CMS of EseeCloud" (quando a câmera não manda o vídeo direto)
   python leitor.py --area        abre a imagem da câmera para marcar com o mouse onde os carros passam
+  python leitor.py --ponto       marca o lugar onde vocês mostram a placa na mão
+  python leitor.py --modo        escolhe o que conta: placa mostrada na mão ou carros entrando e saindo
 """
 import argparse
 import concurrent.futures
@@ -35,7 +37,7 @@ from pathlib import Path
 
 import placas
 
-VERSAO = "1.1"
+VERSAO = "1.2"
 PASTA = Path(__file__).resolve().parent
 ARQ_CONFIG = PASTA / "config-blincar.json"
 ARQ_FILA = PASTA / "fila.jsonl"
@@ -57,6 +59,13 @@ PADRAO = {
     "minutos_mesma_placa": 2,
     # Só conta carro andando (entrando ou saindo). Carro estacionado na frente da câmera não é lido de novo.
     "so_carro_andando": True,
+    # O que conta: "mao" (a placa mostrada na mão para a câmera) ou "carros" (carros entrando e saindo pelo portão).
+    "contar": "mao",
+    # Modo "mao": o lugar da imagem onde vocês mostram a placa (frações, como a area; vazio = qualquer lugar)
+    # e o tamanho mínimo da placa (fração da largura da imagem): placa de carro lá no fundo é menor e não conta.
+    "ponto": [],
+    "placa_na_mao": 0.05,
+    "segundos_mao": 2,
     "dias_guardar_fotos": 30,
     "minutos_ping": 5,
     "segundos_fila": 60,
@@ -127,7 +136,8 @@ def ler_config():
 
 
 def salvar_config(cfg):
-    guardar = {k: v for k, v in cfg.items() if k in ("planilha", "chave", "camera", "area") or v != PADRAO.get(k)}
+    # Estas ficam sempre no arquivo (assim o leitor ligado percebe quando mudam, mesmo voltando ao padrão).
+    guardar = {k: v for k, v in cfg.items() if k in ("planilha", "chave", "camera", "area", "contar", "ponto") or v != PADRAO.get(k)}
     ARQ_CONFIG.write_text(json.dumps(guardar, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -208,7 +218,8 @@ class Envio(threading.Thread):
                 ultimo_ping = agora
                 camera_avisada = self.estado["camera_ok"]
                 try:
-                    r = enviar(self.cfg, {"acao": "camera_ping", "camera": self.estado["camera_ok"], "erro": self.estado["camera_erro"]})
+                    r = enviar(self.cfg, {"acao": "camera_ping", "camera": self.estado["camera_ok"], "erro": self.estado["camera_erro"],
+                                          "modo": self.cfg.get("contar", "mao")})
                     if r.get("ok") is False and r.get("erro") == "chave":
                         log.info("A planilha não aceitou a chave. Baixe a configuração de novo no painel (Recebidos > Câmera).")
                 except Exception as e:
@@ -835,10 +846,44 @@ def recarregar(cfg, visto):
         novo = json.loads(ARQ_CONFIG.read_text(encoding="utf-8-sig"))
     except Exception:
         return set()
-    mudou = {k for k in ("area", "camera", "cms_programa") if k in novo and novo[k] != cfg.get(k)}
+    mudou = {k for k in ("area", "camera", "cms_programa", "contar", "ponto", "placa_na_mao") if k in novo and novo[k] != cfg.get(k)}
     for k in mudou:
         cfg[k] = novo[k]
     return set() if primeira else mudou
+
+
+def na_mao(caixa, tamanho, cfg):
+    """A placa foi mostrada na mão? Grande na imagem (perto da câmera) e no lugar marcado (ponto).
+    Devolve (sim, motivo): motivo "pequena" quando está no ponto mas longe demais."""
+    h, w = tamanho
+    x1, y1, x2, y2 = caixa
+    ponto = cfg.get("ponto") or []
+    if len(ponto) == 4:
+        cx, cy = (x1 + x2) / 2 / w, (y1 + y2) / 2 / h
+        if not (ponto[0] <= cx <= ponto[2] and ponto[1] <= cy <= ponto[3]):
+            return False, "fora"
+    if (x2 - x1) / w < float(cfg.get("placa_na_mao", 0.05)):
+        return False, "pequena"
+    return True, ""
+
+
+def apitar():
+    """Dois bipes no computador: a placa mostrada na mão foi lida."""
+    if os.name != "nt":
+        return
+
+    def tocar():
+        try:
+            import winsound
+            winsound.Beep(1500, 130)
+            winsound.Beep(2000, 200)
+        except Exception:
+            try:
+                import winsound
+                winsound.MessageBeep()
+            except Exception:
+                pass
+    threading.Thread(target=tocar, daemon=True).start()
 
 
 def rodar(cfg):
@@ -867,12 +912,20 @@ def rodar(cfg):
     passagens = placas.Passagens(pausa=cfg["segundos_fim_passagem"], min_leituras=cfg["min_leituras"],
                                  so_andando=bool(cfg.get("so_carro_andando", True)))
     ja_mandadas, avisadas_paradas = {}, {}
+    # Modo "mao": a placa segurada um instante, sem precisar andar. Conta (e apita) na 3ª leitura, com a placa ainda
+    # na mão. A mesma placa vista no ponto nos 10 minutos antes não conta de novo (placa largada ali, carro parado).
+    maos = placas.Passagens(pausa=float(cfg.get("segundos_mao", 2)), min_leituras=2, conf_sozinha=0.97, duracao_max=20)
+    avisos_pequena, vistas_mao = {}, {}
     intervalo = 1.0 / max(0.5, float(cfg["analises_por_segundo"]))
     ultimo_mov = 0.0
     ultima_limpeza = 0.0
     ultimo_quadro = 0.0
-    log.info("Pronto. Olhando o portão (feche esta janela para desligar).")
-    visto, ultima_olhada = {}, 0.0
+    if cfg.get("contar", "mao") == "mao":
+        log.info("Pronto. Mostrem a placa na mão para a câmera" + (" (no lugar marcado)" if cfg.get("ponto") else "") +
+                 ": o computador apita quando ler. Feche esta janela para desligar.")
+    else:
+        log.info("Pronto. Olhando o portão (feche esta janela para desligar).")
+    visto, ultima_olhada, mao_prontas = {}, 0.0, []
     recarregar(cfg, visto)
     try:
         while True:
@@ -894,15 +947,41 @@ def rodar(cfg):
             quadro, quando = cam.ultimo()
             if quadro is not None and quando != ultimo_quadro:
                 ultimo_quadro = quando
-                parte, x0, y0 = recortar(quadro, cfg["area"])
+                modo_mao = cfg.get("contar", "mao") == "mao"
+                # Modo "mao": olha só o ponto onde mostram a placa; modo "carros": a área por onde os carros passam.
+                parte, x0, y0 = recortar(quadro, (cfg.get("ponto") or []) if modo_mao else cfg["area"])
                 if mov.mexeu(parte):
                     ultimo_mov = inicio
                 # Lê enquanto algo se mexe e mais 3 segundos depois.
                 if inicio - ultimo_mov <= 3:
                     for placa, conf, (x1, y1, x2, y2) in ler_placas(alpr, parte, cfg["confianca_minima"]):
                         caixa = (x1 + x0, y1 + y0, x2 + x0, y2 + y0)
-                        passagens.adicionar(placa, conf, x2 - x1, inicio, (quadro, caixa, datetime.now()), caixa)
-            terminadas = passagens.terminadas(time.time())
+                        if not modo_mao:
+                            passagens.adicionar(placa, conf, x2 - x1, inicio, (quadro, caixa, datetime.now()), caixa)
+                            continue
+                        sim, motivo = na_mao(caixa, quadro.shape[:2], cfg)
+                        if sim:
+                            alvo = maos.adicionar(placa, conf, x2 - x1, inicio, (quadro, caixa, datetime.now()), caixa)
+                            if alvo is not None:
+                                chave_m = placas.mercosul(alvo["leituras"][0][0])
+                                if "antes" not in alvo:
+                                    alvo["antes"] = vistas_mao.get(chave_m, 0)
+                                vistas_mao[chave_m] = inicio
+                                if not alvo.get("contou") and len(alvo["leituras"]) >= 3:
+                                    alvo["contou"] = True
+                                    placa_v, conf_v = placas.votar(alvo["leituras"])
+                                    if inicio - alvo["antes"] > 600:
+                                        mao_prontas.append({"placa": placa_v, "confianca": round(conf_v, 3), "leituras": len(alvo["leituras"]),
+                                                            "direcao": "", "inicio": alvo["inicio"], "fim": inicio, "melhor": alvo["melhor"], "mao": True})
+                                    else:
+                                        log.info(f"Placa {placa_v} mostrada de novo: ela já foi vista aqui há pouco (menos de 10 minutos), não conta outra vez.")
+                        elif motivo == "pequena" and inicio - avisos_pequena.get(placa, 0) > 60:
+                            avisos_pequena[placa] = inicio
+                            log.info(f"Placa {placa} vista, mas pequena ({round(100 * (x2 - x1) / quadro.shape[1])}% da imagem): "
+                                     "para contar, mostre a placa mais perto da câmera.")
+            terminadas = passagens.terminadas(time.time()) + mao_prontas
+            mao_prontas = []
+            maos.terminadas(time.time())  # só fecha as passagens: a da mão já contou na 3ª leitura
             for placa in passagens.placas_paradas:
                 # Carro estacionado na frente da câmera: anota uma vez a cada 6 horas e não manda.
                 if time.time() - avisadas_paradas.get(placa, 0) > 6 * 3600:
@@ -920,9 +999,13 @@ def rodar(cfg):
                     foto = guardar_foto(quadro_m, p["placa"], quando_m, caixa_m)
                 except Exception as e:
                     foto = f"(não guardei a foto: {e})"
-                log.info(f"Placa {p['placa']}  ({p['leituras']} leituras, {round(p['confianca'] * 100)}%, {p['direcao'] or 'sem direção'})  foto: {foto}")
+                if p.get("mao"):
+                    apitar()
+                    log.info(f"Placa {p['placa']} mostrada na mão  ({p['leituras']} leituras, {round(p['confianca'] * 100)}%)  foto: {foto}")
+                else:
+                    log.info(f"Placa {p['placa']}  ({p['leituras']} leituras, {round(p['confianca'] * 100)}%, {p['direcao'] or 'sem direção'})  foto: {foto}")
                 envio.mandar({"acao": "camera_evento", "placa": p["placa"], "confianca": p["confianca"], "leituras": p["leituras"],
-                              "direcao": p["direcao"], "quando": quando_txt})
+                              "direcao": "" if p.get("mao") else p["direcao"], "quando": quando_txt, "mao": bool(p.get("mao"))})
             time.sleep(max(0.0, intervalo - (time.time() - inicio)))
     except KeyboardInterrupt:
         log.info("Leitor desligado.")
@@ -1128,7 +1211,10 @@ def achou_camera(cfg, url, ip, img):
     cv2.imwrite(str(foto), img)
     print(f"\nACHEI A CÂMERA: {ip} (imagem de {img.shape[1]}x{img.shape[0]}).")
     print(f"Guardei o endereço no {ARQ_CONFIG.name} e tirei uma foto: {foto}")
-    if not cfg.get("area"):
+    if cfg.get("contar", "mao") == "mao":
+        if not cfg.get("ponto"):
+            print("Agora abra o marcar-ponto.bat e marque o lugar onde vocês vão mostrar a placa na mão.")
+    elif not cfg.get("area"):
         print("Agora abra o marcar-area.bat e mostre com o mouse onde os carros passam.")
 
 
@@ -1341,7 +1427,8 @@ def usar_tela(cfg, titulo=""):
     print(f'Pronto! O leitor vai ler as placas na janela "{titulo}" ({img.shape[1]}x{img.shape[0]}).')
     print(f"Tirei uma foto do que ele está vendo: {foto}")
     print("Deixe o CMS aberto com o vídeo da câmera (pode ficar atrás de outras janelas, só não minimize).")
-    print("Agora abra o marcar-area.bat e mostre com o mouse onde os carros passam.")
+    print("Agora abra o " + ("marcar-ponto.bat e marque onde vocês vão mostrar a placa na mão."
+                             if cfg.get("contar", "mao") == "mao" else "marcar-area.bat e mostre com o mouse onde os carros passam."))
     return url
 
 
@@ -1366,8 +1453,22 @@ def desenhar_area(img, area):
     return img
 
 
-def marcar_area(cfg):
-    """Mostra a imagem da câmera para marcar com o mouse onde os carros passam. Guarda em "area"."""
+TEXTOS_MARCAR = {
+    "area": {"titulo": "Marcar onde os carros passam - Blin Car", "toda": "Usar a imagem toda",
+             "explica": "Arraste o mouse fazendo um retângulo em volta do lugar por onde os carros passam, com folga "
+                        "(a placa tem que caber inteira, do carro chegando até ele parar). Depois clique em Salvar.",
+             "salvo": "O leitor só vai olhar essa parte da imagem.", "tudo": "Pronto: o leitor vai olhar a imagem toda."},
+    "ponto": {"titulo": "Marcar onde vocês mostram a placa - Blin Car", "toda": "Qualquer lugar",
+              "explica": "Arraste o mouse fazendo um retângulo em volta do lugar onde vocês vão segurar a placa para a câmera "
+                         "(perto dela, onde não para carro). Com folga: a placa tem que caber inteira. Depois clique em Salvar.",
+              "salvo": "Só conta a placa mostrada nesse lugar.", "tudo": "Pronto: a placa mostrada em qualquer lugar conta (se estiver perto da câmera)."},
+}
+
+
+def marcar_area(cfg, chave="area"):
+    """Mostra a imagem da câmera para marcar com o mouse um retângulo: onde os carros passam ("area")
+    ou onde mostram a placa na mão ("ponto")."""
+    t = TEXTOS_MARCAR[chave]
     import base64
     import cv2
     if not cfg.get("camera"):
@@ -1380,15 +1481,12 @@ def marcar_area(cfg):
     import tkinter as tk
     h, w = img.shape[:2]
     raiz = tk.Tk()
-    raiz.title("Marcar onde os carros passam - Blin Car")
+    raiz.title(t["titulo"])
     escala = min(1.0, (raiz.winfo_screenwidth() - 60) / w, (raiz.winfo_screenheight() - 240) / h)
     pw, ph = max(1, int(w * escala)), max(1, int(h * escala))
     mostrar = cv2.resize(img, (pw, ph), interpolation=cv2.INTER_AREA) if escala < 1 else img
     foto = tk.PhotoImage(data=base64.b64encode(cv2.imencode(".png", mostrar)[1].tobytes()).decode("ascii"))
-    tk.Label(raiz, font=("Segoe UI", 11), justify="left", wraplength=max(420, pw),
-             text="Arraste o mouse fazendo um retângulo em volta do lugar por onde os carros passam, com folga "
-                  "(a placa tem que caber inteira, do carro chegando até ele parar). Depois clique em Salvar."
-             ).pack(padx=10, pady=(8, 4), anchor="w")
+    tk.Label(raiz, font=("Segoe UI", 11), justify="left", wraplength=max(420, pw), text=t["explica"]).pack(padx=10, pady=(8, 4), anchor="w")
     tela = tk.Canvas(raiz, width=pw, height=ph, cursor="crosshair", highlightthickness=0)
     tela.pack(padx=10)
     tela.create_image(0, 0, image=foto, anchor="nw")
@@ -1396,7 +1494,7 @@ def marcar_area(cfg):
     barra.pack(fill="x", padx=10, pady=8)
     aviso = tk.Label(barra, text="", fg="#b00000", font=("Segoe UI", 10))
     aviso.pack(side="left")
-    estado = {"inicio": None, "area": list(cfg.get("area") or []), "resultado": None}
+    estado = {"inicio": None, "area": list(cfg.get(chave) or []), "resultado": None}
 
     def desenhar(area):
         tela.delete("ret")
@@ -1433,7 +1531,7 @@ def marcar_area(cfg):
     tela.bind("<ButtonRelease-1>", soltou)
     fonte = ("Segoe UI", 11)
     tk.Button(barra, text="Cancelar", font=fonte, command=raiz.destroy).pack(side="right", padx=4)
-    tk.Button(barra, text="Usar a imagem toda", font=fonte, command=lambda: fim([])).pack(side="right", padx=4)
+    tk.Button(barra, text=t["toda"], font=fonte, command=lambda: fim([])).pack(side="right", padx=4)
     salvar = tk.Button(barra, text="Salvar", font=fonte + ("bold",), command=lambda: fim(estado["area"]),
                        state="normal" if estado["area"] else "disabled")
     salvar.pack(side="right", padx=4)
@@ -1442,17 +1540,41 @@ def marcar_area(cfg):
     if estado["resultado"] is None:
         print("Cancelado: nada mudou.")
         return None
-    cfg["area"] = estado["resultado"]
+    cfg[chave] = estado["resultado"]
     salvar_config(cfg)
-    previa = PASTA / "area-marcada.jpg"
-    cv2.imwrite(str(previa), desenhar_area(img, cfg["area"]))
-    if cfg["area"]:
-        lw, lh = round((cfg["area"][2] - cfg["area"][0]) * w), round((cfg["area"][3] - cfg["area"][1]) * h)
-        print(f"Área salva ({lw}x{lh} pixels). O leitor só vai olhar essa parte da imagem.")
+    previa = PASTA / ("area-marcada.jpg" if chave == "area" else "ponto-marcado.jpg")
+    cv2.imwrite(str(previa), desenhar_area(img, cfg[chave]))
+    if cfg[chave]:
+        lw, lh = round((cfg[chave][2] - cfg[chave][0]) * w), round((cfg[chave][3] - cfg[chave][1]) * h)
+        print(f"Salvo ({lw}x{lh} pixels). {t['salvo']}")
     else:
-        print("Pronto: o leitor vai olhar a imagem toda.")
-    print(f"Foto com a área marcada: {previa}")
-    return cfg["area"]
+        print(t["tudo"])
+    print(f"Foto com o lugar marcado: {previa}")
+    return cfg[chave]
+
+
+MODOS = {"mao": "Placa mostrada na mão", "carros": "Carros entrando e saindo pelo portão"}
+
+
+def escolher_modo(cfg, modo=""):
+    """O que o leitor conta: a placa mostrada na mão (padrão) ou os carros entrando e saindo."""
+    if not modo:
+        atual = cfg.get("contar", "mao")
+        print("O que o leitor de placas conta?")
+        print(f"  1) {MODOS['mao']}: mostrem a placa perto da câmera. Carro que não chegou fica recebido;")
+        print("     carro que já está na oficina: o painel pergunta se ele está pronto.")
+        print(f"  2) {MODOS['carros']}: para a câmera na pilastra, mirando o portão.")
+        print(f"Agora: {MODOS.get(atual, atual)}.")
+        r = input("Digite 1 ou 2 e aperte Enter (só Enter deixa como está): ").strip()
+        modo = {"1": "mao", "2": "carros"}.get(r, atual)
+    if modo not in MODOS:
+        raise SystemExit("Modo inválido: use mao ou carros.")
+    cfg["contar"] = modo
+    salvar_config(cfg)
+    print(f"Pronto: {MODOS[modo]}. O leitor ligado já passa a usar.")
+    if modo == "mao" and not cfg.get("ponto"):
+        print("Dica: abra o marcar-ponto.bat e marque o lugar onde vocês vão mostrar a placa.")
+    return modo
 
 
 # ---------- Verificar ----------
@@ -1474,7 +1596,7 @@ def verificar(cfg):
         ok = False
     if not falta:
         try:
-            r = enviar(cfg, {"acao": "camera_ping", "camera": True, "erro": ""})
+            r = enviar(cfg, {"acao": "camera_ping", "camera": True, "erro": "", "modo": cfg.get("contar", "mao")})
             print("Planilha:", "OK" if r.get("ok") else "não aceitou a chave (baixe a configuração de novo no painel)")
             ok &= bool(r.get("ok"))
         except Exception as e:
@@ -1494,6 +1616,8 @@ def main(args=None):
     p.add_argument("--tela", nargs="?", const=TITULO_CMS, metavar="TÍTULO",
                    help=f'lê as placas na janela do CMS (padrão: "{TITULO_CMS}")')
     p.add_argument("--area", action="store_true", help="marca com o mouse onde os carros passam")
+    p.add_argument("--ponto", action="store_true", help="marca com o mouse onde vocês mostram a placa na mão")
+    p.add_argument("--modo", nargs="?", const="", metavar="mao|carros", help="o que conta: placa na mão ou carros")
     p.add_argument("--escondido", action="store_true", help="sem janela (início com o Windows)")
     a = p.parse_args(args)
     cfg = ler_config()
@@ -1515,6 +1639,12 @@ def main(args=None):
         return 0
     if a.area:
         marcar_area(cfg)
+        return 0
+    if a.ponto:
+        marcar_area(cfg, "ponto")
+        return 0
+    if a.modo is not None:
+        escolher_modo(cfg, a.modo)
         return 0
     configurar_log(console=not a.escondido)
     try:

@@ -3,20 +3,32 @@
 
 O que ele faz
 -------------
-Fica ligado no computador da oficina, olhando a câmera do portão. Quando um
-carro da agenda passa:
-- chegou: marca "Carro recebido" no painel sozinho e manda um e-mail;
-- saiu: manda um e-mail e, no painel (aba Recebidos), pergunta se foi
-  entregue e se pagou o restante. Se a entrada já tinha pagado tudo, marca
-  "Veículo entregue" sozinho;
-- placa que não está na agenda: manda um e-mail perguntando se querem agendar
-  e, na aba Recebidos, aparece com "Agendar esse carro" (ele já entra como
-  recebido), "Ignorar" e "Não avisar mais esta placa".
+Fica ligado no computador da oficina, olhando a câmera. Tem dois jeitos
+(escolher-modo.bat):
+
+1) PLACA MOSTRADA NA MÃO (o padrão). Vocês seguram a placa perto da câmera,
+   no lugar marcado, até o computador apitar (uns 2 segundos):
+   - carro da agenda que ainda não chegou: fica "Carro recebido" no painel;
+   - carro que já está na oficina: chega um e-mail e, no painel (aba
+     Recebidos), ele ganha a pergunta "Está pronto?": "Sim, avisar o cliente"
+     (WhatsApp de carro pronto), "Já vai sair: entregar" ou "Ainda não";
+   - placa que não está na agenda: e-mail perguntando se querem agendar e, em
+     Recebidos, "Agendar esse carro".
+   As placas dos carros parados na oficina não contam: só a placa grande (perto
+   da câmera) e no lugar marcado (marcar-ponto.bat). A mesma placa mostrada de
+   novo em menos de 10 minutos não conta outra vez.
+
+2) CARROS ENTRANDO E SAINDO (para a câmera no portão, na pilastra). Quando um
+   carro da agenda passa:
+   - chegou: marca "Carro recebido" no painel sozinho e manda um e-mail;
+   - saiu: manda um e-mail e, no painel (aba Recebidos), pergunta se foi
+     entregue e se pagou o restante. Se a entrada já tinha pagado tudo, marca
+     "Veículo entregue" sozinho;
+   - placa que não está na agenda: e-mail perguntando se querem agendar.
+   Carro parado na frente da câmera não conta: só carro andando.
+
 Se o computador estiver desligado, nada se perde no painel: vocês marcam à mão,
 como sempre. Sem internet, ele guarda as leituras e manda quando voltar.
-Carro parado na frente da câmera (estacionado na oficina) não conta: o leitor
-só manda placa de carro andando, entrando ou saindo. No leitor.log aparece
-"Placa ... parada (carro estacionado): não conta".
 
 
 Instalar (uma vez)
@@ -40,10 +52,11 @@ Instalar (uma vez)
    (Controle Inteligente de Aplicativos): botão direito no
    leitor-placas.zip > Propriedades > marque "Desbloquear" > OK, e extraia
    de novo.
-5) Abra o marcar-area.bat: aparece a imagem da câmera. Arraste o mouse
-   fazendo um retângulo em volta do lugar por onde os carros passam (com
-   folga) e clique em Salvar. Assim o leitor olha só essa parte e consegue
-   ler placas pequenas.
+5) Abra o marcar-ponto.bat: aparece a imagem da câmera. Arraste o mouse
+   fazendo um retângulo em volta do lugar onde vocês vão segurar a placa
+   (perto da câmera, onde NÃO para carro; com folga) e clique em Salvar.
+   No modo "carros entrando e saindo", use o marcar-area.bat e marque por
+   onde os carros passam.
 6) Abra o iniciar.bat para ligar agora (ou reinicie o computador). A janela
    mostra cada placa lida. Pode minimizar; fechar a janela desliga o leitor.
 
@@ -76,9 +89,11 @@ instalar.bat         instala tudo (uma vez)
 iniciar.bat          liga o leitor com uma janela mostrando as placas
 procurar-camera.bat  acha a câmera de novo (se ela mudou de lugar na rede).
                      Se a câmera pedir senha, ele pergunta (a mesma do CMS).
-marcar-area.bat      mostra a imagem da câmera para marcar com o mouse onde
-                     os carros passam. Pode usar com o leitor ligado: ele
-                     pega a área nova sozinho.
+marcar-ponto.bat     marca com o mouse o lugar onde vocês mostram a placa na
+                     mão. Pode usar com o leitor ligado: ele pega sozinho.
+escolher-modo.bat    escolhe o que conta: placa mostrada na mão (padrão) ou
+                     carros entrando e saindo pelo portão
+marcar-area.bat      modo "carros": marca com o mouse onde os carros passam
 usar-cms.bat         plano B: lê as placas na janela do CMS of EseeCloud
 verificar.bat        confere a configuração, a câmera e a planilha
 testar-foto.bat      arraste uma foto ou vídeo de um carro em cima dele: mostra
@@ -105,6 +120,18 @@ Onde pôr a câmera
 - À noite, deixe uma luz acesa no caminho do carro.
 - Se a câmera pega mais coisa do que o caminho (rua, pátio), use o
   marcar-area.bat para mostrar só a parte por onde os carros passam.
+
+
+Mostrar a placa na mão
+----------------------
+- Segure a placa de frente para a câmera, parada, no lugar marcado, até o
+  computador fazer dois bipes. Pode abaixar.
+- Não apitou? Chegue mais perto da câmera. No leitor.log (ou na janela do
+  iniciar.bat) aparece "Placa ... vista, mas pequena": é longe demais.
+- "Placa ... mostrada de novo: ... não conta outra vez": a mesma placa foi
+  vista ali nos últimos 10 minutos. Espere um pouco ou use o painel.
+- Não deixe placa largada no lugar de mostrar: ela conta uma vez e depois fica
+  ignorada até sumir dali por 10 minutos.
 
 
 Problemas
