@@ -9,7 +9,9 @@ carro da agenda passa:
 - saiu: manda um e-mail e, no painel (aba Recebidos), pergunta se foi
   entregue e se pagou o restante. Se a entrada já tinha pagado tudo, marca
   "Veículo entregue" sozinho;
-- placa que não está na agenda: só fica anotada.
+- placa que não está na agenda: manda um e-mail perguntando se querem agendar
+  e, na aba Recebidos, aparece com "Agendar esse carro" (ele já entra como
+  recebido), "Ignorar" e "Não avisar mais esta placa".
 Se o computador estiver desligado, nada se perde no painel: vocês marcam à mão,
 como sempre. Sem internet, ele guarda as leituras e manda quando voltar.
 

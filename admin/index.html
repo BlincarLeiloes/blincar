@@ -395,6 +395,16 @@ button.cel:hover{border-color:var(--muted)}
 .rc-lista{display:grid;gap:12px;align-items:start}
 @media (min-width:900px){.rc-lista{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .rc-item{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--surface);min-width:0}
+.rc-fora{border:1px solid var(--gold);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--surface);min-width:0}
+.rc-fora h2{margin:0;font-size:1.0625rem}
+.rc-fora .nota{margin:0}
+.rc-fora-lista{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.rc-fora-item{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);min-width:0}
+.rc-fora-item .placa{font-weight:700;letter-spacing:.06em;font-variant-numeric:tabular-nums;font-size:1.0625rem}
+.rc-fora-item .sub{color:var(--muted);font-size:.875rem}
+.ag-camera{margin:0;padding:10px 12px;border:1px solid var(--gold);border-radius:10px;font-size:.9375rem}
+.cam-sem-aviso{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.cam-sem-aviso li{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:4px 4px 4px 10px;font-weight:700;letter-spacing:.06em}
 .rc-item.indo{border-color:var(--ok-fg)}
 .rc-dados{margin:0;display:grid;gap:8px 14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 .rc-dados div{display:grid;gap:1px;min-width:0}
@@ -826,6 +836,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp.</p>
     <p class="nota" id="rcCamera" hidden></p>
     <p class="aviso" id="rcSemWa" hidden><b>O WhatsApp ainda não está ligado.</b> Para mandar o aviso de carro pronto, toque em "WhatsApp" e siga os passos.</p>
+    <section class="rc-fora" id="rcFora" aria-labelledby="rcForaTit" hidden></section>
     <p class="err" id="rcErro" role="alert" hidden></p>
     <div class="kpis kpis-4" id="rcResumo"></div>
     <div class="rc-lista" id="rcLista"></div>
@@ -1628,7 +1639,7 @@ function vagaDe(dia, servico) {
 
 /* Fim das funções iguais às da planilha. */
 
-const AG = { mes: hojeAqui().slice(0, 7), vista: "mes", dados: null, demo: null, dia: null, modo: "lista", editando: null, confirmando: null, entrada: null, ocupado: false };
+const AG = { mes: hojeAqui().slice(0, 7), vista: "mes", dados: null, demo: null, dia: null, modo: "lista", editando: null, confirmando: null, entrada: null, ocupado: false, daCamera: null };
 try { if (localStorage.getItem("blincar:vista") === "dias") AG.vista = "dias"; } catch {}
 
 async function agendaPedir(acao, extra = {}) {
@@ -3141,8 +3152,9 @@ $("#agCal").addEventListener("click", e => {
 
 /* Janela do dia: lista, agendar, editar agendamento e editar as vagas do dia */
 
-async function abrirDia(data, modo = "lista", ag = null) {
+async function abrirDia(data, modo = "lista", ag = null, daCamera = null) {
   if (!AG.dados) return;
+  AG.daCamera = modo === "form" && !ag ? daCamera : null;
   if (data.slice(0, 7) !== AG.dados.mes) {
     AG.mes = data.slice(0, 7);
     await agendaCarregar();
@@ -3268,7 +3280,9 @@ function salvarDia() {
 function formulario(dia, ag) {
   const d = AG.dados;
   const novo = !ag;
-  const v = ag || { data: dia.data, servico: (dia.ofertas[0] || {}).servico || "", cliente: "", telefone: "", email: "", carro: "", placa: "", sinal: d.regras.sinal, pago: false, obs: "" };
+  const cam = novo ? AG.daCamera : null;
+  const v = ag || { data: dia.data, servico: (dia.ofertas[0] || {}).servico || "", cliente: "", telefone: "", email: "", carro: "", placa: "", sinal: d.regras.sinal, pago: false, obs: "",
+    ...(cam ? { placa: cam.placa, sinal: 0, pago: true } : {}) };
   const entrada = (id, attrs) => el("input", { id, name: id, ...attrs });
   const inDia = entrada("fDia", { type: "date", value: v.data, ...(novo ? { min: d.hoje } : {}) });
   const inServico = entrada("fServico", { type: "text", value: v.servico, list: "fSugestoes", autocomplete: "off", placeholder: "Ex.: Retoque" });
@@ -3299,7 +3313,9 @@ function formulario(dia, ag) {
   const pago = entrada("fPago", { type: "checkbox" });
   pago.checked = !!v.pago;
   const f = el("form", { class: "ag-form", id: "agForm", novalidate: "" },
-    el("h3", {}, novo ? "Novo agendamento" : (ag.sit === "pago_sem_vaga" ? "Remarcar" : "Editar agendamento")),
+    el("h3", {}, novo ? (cam ? "Agendar o carro que a câmera viu" : "Novo agendamento") : (ag.sit === "pago_sem_vaga" ? "Remarcar" : "Editar agendamento")),
+    cam ? el("p", { class: "ag-camera" }, `A câmera viu a placa ${cam.placa} ${fraseRetirada(cam.quando, d.hoje)}. Já deixamos a placa, o dia de hoje, ` +
+      "sinal zerado e \"sinal pago\": ao salvar, o carro já entra como recebido. O cliente não recebe e-mail de agendamento. Mude o que precisar.") : "",
     el("datalist", { id: "fSugestoes" }, ...servicosConhecidos(dia).map(s => el("option", { value: s }))),
     el("div", { class: "campos" },
       campo("fCliente", "Nome do cliente", entrada("fCliente", { type: "text", value: v.cliente, autocomplete: "off" })),
@@ -3361,7 +3377,8 @@ async function salvarFormulario(ag) {
     orcamento: val("fOrcamento"),
     pago: $("#fPago").checked,
     horario: $("#fHorario").value,
-    obs: val("fObs")
+    obs: val("fObs"),
+    ...(!ag && AG.daCamera ? { camera: AG.daCamera } : {})
   };
   const falta = [];
   if (!novo.cliente) falta.push("o nome do cliente");
@@ -3376,6 +3393,8 @@ async function salvarFormulario(ag) {
   const botao = $("#fSalvar");
   botao.textContent = "Salvando…";
   const msg = d => {
+    if (d.recebidoCamera) return `Agendado e marcado como recebido às ${horaBR(d.recebidoCamera.slice(11, 16))}. Ele já está na aba Recebidos.`;
+    if (novo.camera) return novo.pago ? "Agendado. Ele não entrou como recebido porque é para outro dia." : "Agendado. Quando o cliente pagar o sinal, toque em Marcar sinal pago e em Carro recebido.";
     if (novo.pago) return ag ? "Alterações salvas." : "Agendado e confirmado.";
     const salvo = d.agendamentos.find(a => a.id === d.salvo);
     return salvo && salvo.link ? "Agendado. Agora mande o link de pagamento para o cliente." : ag ? "Alterações salvas." : "Agendado. Quando o cliente pagar o sinal, toque em Marcar sinal pago.";
@@ -3383,6 +3402,7 @@ async function salvarFormulario(ag) {
   const deu = await executar("agenda_salvar", { agendamento: novo }, msg, $("#fErro"), () => {
     AG.modo = "lista";
     AG.editando = null;
+    AG.daCamera = null;
     AG.dia = novo.data;
   });
   if (!deu && document.body.contains(botao)) botao.textContent = ag ? "Salvar alterações" : "Agendar";
@@ -3431,6 +3451,7 @@ document.addEventListener("click", e => {
   if (acao === "voltar") {
     AG.modo = "lista";
     AG.editando = null;
+    AG.daCamera = null;
     return desenharDialogo();
   }
   if (acao === "editar-dia") {
@@ -3537,6 +3558,7 @@ $("#dlgDia").addEventListener("close", () => {
   AG.dia = null;
   AG.modo = "lista";
   AG.editando = null;
+  AG.daCamera = null;
   if (AG.confirmando || AG.entrada) {
     AG.confirmando = null;
     AG.entrada = null;
@@ -4186,6 +4208,7 @@ function rcDesenhar() {
       : cam.online ? "O leitor de placas está ligado, mas não consegue ver a câmera. Toque em \"Câmera\" para ver o que houve."
       : "O leitor de placas está desligado: a chegada e a saída não estão sendo marcadas sozinhas. Marquem aqui no painel.";
   }
+  desenharFora(d);
   if (!d) {
     $("#rcResumo").replaceChildren();
     return lista.replaceChildren(RC.erro ? "" : el("p", { class: "nota" }, "Carregando os carros…"));
@@ -4202,6 +4225,50 @@ function rcDesenhar() {
     kpi("Falta receber", reais(falta), "dos carros na oficina"));
   if (!r.length) return lista.replaceChildren(el("p", { class: "vazio" }, "Nenhum carro na oficina agora. Quando vocês tocarem em \"Carro recebido\" na agenda, ele aparece aqui."));
   lista.replaceChildren(...r.map(itemRecebido));
+}
+
+// Placas que a câmera leu e não estão na agenda: "Agendar esse carro", "Ignorar" ou "Não avisar mais esta placa".
+function desenharFora(d) {
+  const caixa = $("#rcFora");
+  const lista = (d && d.fora) || [];
+  caixa.hidden = !lista.length;
+  if (!lista.length) return caixa.replaceChildren();
+  const vistas = f => `A câmera viu ${fraseRetirada(f.primeira, d.hoje)}` + (f.vezes > 1 ? ` (${f.vezes} vezes, a última ${fraseRetirada(f.ultima, d.hoje)})` : "") + ".";
+  const botao = (f, opcao, texto, classe = "mini") => el("button", { type: "button", class: classe, "data-fora": opcao, "data-placa": f.placa }, texto);
+  caixa.replaceChildren(
+    el("h2", { id: "rcForaTit" }, lista.length === 1 ? "Carro fora da agenda" : `Carros fora da agenda (${lista.length})`),
+    el("p", { class: "nota" }, "A câmera leu estas placas e elas não estão na agenda. É cliente? Toque em \"Agendar esse carro\": ele já entra como recebido. " +
+      "Não é (funcionário, vizinho, entrega)? \"Não avisar mais esta placa\"."),
+    el("ul", { class: "rc-fora-lista" }, ...lista.map(f => el("li", { class: "rc-fora-item", "data-fora-item": f.placa },
+      el("div", {}, el("span", { class: "placa" }, f.placa), el("div", { class: "sub" }, vistas(f))),
+      el("div", { class: "ag-acoes" },
+        botao(f, "agendar", "Agendar esse carro", "mini mini-ok"),
+        botao(f, "ignorada", "Ignorar"),
+        botao(f, "nao_avisar", "Não avisar mais esta placa"))))));
+}
+
+$("#rcFora").addEventListener("click", e => {
+  const b = e.target.closest("[data-fora]");
+  if (!b || !RC.dados || RC.ocupado) return;
+  const f = (RC.dados.fora || []).find(x => x.placa === b.dataset.placa);
+  if (!f) return;
+  if (b.dataset.fora === "agendar") return agendarDaCamera(f);
+  const sempre = b.dataset.fora === "nao_avisar";
+  return rcAcao("agenda_camera_fora", { placa: f.placa, opcao: b.dataset.fora },
+    sempre ? `Pronto: a placa ${f.placa} não avisa mais. Para voltar a avisar, toque em "Câmera".` : `Placa ${f.placa} ignorada.`);
+});
+
+// Abre o agendamento de hoje com a placa, sinal R$ 0 e "sinal pago": ao salvar, o carro já entra como recebido.
+async function agendarDaCamera(f) {
+  const hoje = RC.dados.hoje;
+  // Carrega a agenda antes de trocar de aba (assim a aba não busca de novo).
+  if (!AG.dados) {
+    AG.mes = hoje.slice(0, 7);
+    await agendaCarregar();
+  }
+  if (!AG.dados) return mostrarErro($("#rcErro"), "Não consegui abrir a agenda. Tente de novo.");
+  abrirAba("agenda");
+  await abrirDia(hoje, "form", null, { placa: f.placa, quando: f.primeira });
 }
 
 // Resposta do cliente ao último aviso de carro pronto.
@@ -4635,6 +4702,12 @@ function desenharCamera() {
       el("span", { class: "placa" }, e.placa || e.placaAgenda || "—"),
       el("span", { class: e.tipo === "fora" || e.tipo === "repetido" ? "fora" : e.tipo === "saida" || e.tipo === "chegada" ? "forte" : "" }, e.texto, e.cliente ? ` · ${e.cliente}` : ""))))
     : el("p", { class: "nota" }, "Nenhuma placa lida ainda."));
+  if (d.semAviso && d.semAviso.length) {
+    corpo.push(el("h3", {}, "Placas que não avisam"),
+      el("p", { class: "nota" }, "Fora da agenda e marcadas com \"Não avisar mais\" (funcionários, vizinhos). Elas passam sem e-mail e não aparecem em Recebidos."),
+      el("ul", { class: "cam-sem-aviso" }, ...d.semAviso.map(p => el("li", {}, p,
+        el("button", { type: "button", class: "mini", "data-cam": "avisar", "data-placa": p, ...ocupado }, "Voltar a avisar")))));
+  }
   const acoes = [el("button", { type: "button", class: "mini", "data-cam": "atualizar", ...ocupado }, CAM.ocupado ? "Conferindo…" : "Atualizar")];
   if (d.ligada) acoes.push(CAM.trocar
     ? el("span", { class: "confirma", role: "alert" }, "Trocar a chave? O leitor para de funcionar até receber o arquivo novo.",
@@ -4663,6 +4736,10 @@ $("#dlgCam").addEventListener("click", e => {
     return focar(acao === "trocar" ? '[data-cam="trocar-nao"]' : '[data-cam="trocar"]');
   }
   if (acao === "trocar-sim") return camPedir("agenda_camera_ligar", { nova: true });
+  if (acao === "avisar") {
+    CAM.aviso = `A placa ${b.dataset.placa} volta a avisar quando chegar.`;
+    return camPedir("agenda_camera_fora", { placa: b.dataset.placa, opcao: "avisar" });
+  }
 });
 $("#dlgCam").addEventListener("close", () => { if (RC.dados) rcCarregar(); });
 
@@ -4897,15 +4974,17 @@ function criarDemo() {
     const renato = comSit().find(a => a.cliente === "Renato (exemplo)");
     const tiago = comSit().find(a => a.cliente === "Tiago (exemplo)");
     const ev = (em, tipo, texto, a, placa) => ({ em, tipo, texto, placa: placa || (a ? a.placa : ""), placaAgenda: a ? a.placa : "", cliente: a ? a.cliente : "", id: a ? a.id : "" });
-    return Object.assign({ ok: true, agora: agora(), ligada: true, online: true, leitor: leitorDemo(), eventos: [
+    return Object.assign({ ok: true, agora: agora(), ligada: true, online: true, leitor: leitorDemo(), semAviso: semAvisoDemo.slice(), eventos: [
       ev(`${hoje} 11:20`, "saida", "Saiu: confirmar a entrega no painel", renato),
       ev(`${hoje} 08:02`, "fora", "Placa fora da agenda", null, "KTR2C19"),
       ev(tiago.recebidoEm, "chegada", "Chegou: marcado como recebido", tiago),
       ev(renato.recebidoEm, "chegada", "Chegou: marcado como recebido", renato)
     ] }, extra || {});
   };
+  const foraDemo = [{ placa: "KTR2C19", primeira: `${hoje} 08:02`, ultima: `${hoje} 08:02`, vezes: 1 }];
+  const semAvisoDemo = ["FUN1C10"];
   const recebidos = extra => Object.assign({ ok: true, hoje, agora: agora(), whatsapp: true,
-    camera: { ligada: true, online: true, leitor: leitorDemo() },
+    camera: { ligada: true, online: true, leitor: leitorDemo() }, fora: foraDemo.slice(),
     modelosPronto: { agora: { texto: textoProntoAgora, botoes: ["Estou indo", "Vou outro dia"] }, hora: { texto: textoProntoHora, botoes: ["Vou buscar", "Vou outro dia"] } },
     recebidos: comSit().filter(a => a.sit === "confirmado" && a.recebidoEm).map(publico)
       .sort((x, y) => (x.recebidoEm < y.recebidoEm ? -1 : 1)) }, extra || {});
@@ -4986,6 +5065,9 @@ function criarDemo() {
     }, extra || {});
   }
   function salvar(dados, m) {
+    const cam = !dados.id && dados.camera ? dados.camera : null;
+    dados = { ...dados };
+    delete dados.camera;
     const ag = { ...dados, servico: String(dados.servico || "").trim(), cliente: String(dados.cliente || "").trim(), carro: String(dados.carro || "").trim(),
       telefone: telefone(dados.telefone), email: String(dados.email || "").trim().toLowerCase(), placa: String(dados.placa || "").toUpperCase(), sinal: Math.max(Number(dados.sinal) || 0, 0), pago: !!dados.pago,
       orcamento: valorReais(dados.orcamento) };
@@ -5009,8 +5091,15 @@ function criarDemo() {
         forma: ag.pago ? antigo.forma || "Manual" : "" });
     } else {
       id = "ex" + (++seq);
+      const recebidoEm = cam && ag.pago && ag.data === hoje ? (String(cam.quando || "").slice(0, 10) === hoje ? cam.quando : agora()) : "";
       lista.push({ ...ag, id, situacao, criado: agora(), prazo: ag.pago ? "" : daquiPrazo(), link: ag.pago ? "" : linkFalso(id), linkCartao: ag.pago ? "" : linkFalso(id + "-cartao"), presenca: false,
-        origem: "Painel", remarcacao: 0, forma: ag.pago ? "Manual" : "" });
+        origem: "Painel", remarcacao: 0, forma: ag.pago ? "Manual" : "", recebidoEm });
+      if (cam) {
+        const i = foraDemo.findIndex(f => f.placa === cam.placa);
+        if (i !== -1) foraDemo.splice(i, 1);
+        if (ag.pago) fecharPendentes();
+        return mes(m, { salvo: id, aviso, recebidoCamera: recebidoEm });
+      }
     }
     if (ag.pago) fecharPendentes();
     return mes(m, { salvo: id, aviso });
@@ -5062,6 +5151,17 @@ function criarDemo() {
     if (acao === "agenda_recebidos") return recebidos();
     if (acao === "agenda_camera") return camDemo();
     if (acao === "agenda_camera_ligar") return camDemo({ exemplo: true });
+    if (acao === "agenda_camera_fora") {
+      const i = foraDemo.findIndex(f => f.placa === extra.placa);
+      if (extra.opcao === "avisar") {
+        const j = semAvisoDemo.indexOf(extra.placa);
+        if (j !== -1) semAvisoDemo.splice(j, 1);
+        return camDemo();
+      }
+      if (i !== -1) foraDemo.splice(i, 1);
+      if (extra.opcao === "nao_avisar" && semAvisoDemo.indexOf(extra.placa) === -1) semAvisoDemo.push(extra.placa);
+      return recebidos();
+    }
     if (acao === "agenda_camera_ficou") {
       const a = comSit().find(x => x.id === extra.id);
       if (!a) return naoAchou();
