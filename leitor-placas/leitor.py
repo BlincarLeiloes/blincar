@@ -506,8 +506,11 @@ def testar(cfg, arquivo):
 
 # ---------- Procurar a câmera na rede ----------
 
-CAMINHOS = ["/live/ch00_0", "/live/ch00_1", "/onvif1", "/onvif2", "/11", "/12", "/stream1", "/h264/ch1/main/av_stream",
-            "/cam/realmonitor?channel=1&subtype=0", "/live", "/ch0_0.h264", "/av0_0", "/"]
+# "/ch0_0.264": câmeras da Juan (app IP Pro / dvr163), que costumam mandar o vídeo pela própria porta 80.
+CAMINHOS = ["/ch0_0.264", "/ch0_1.264", "/live/ch00_0", "/live/ch00_1", "/onvif1", "/onvif2", "/11", "/12", "/stream1",
+            "/h264/ch1/main/av_stream", "/cam/realmonitor?channel=1&subtype=0", "/live", "/ch0_0.h264", "/av0_0", "/"]
+# Caminhos usados só para ver se uma porta responde como vídeo.
+CAMINHOS_TESTE = ["/", "/ch0_0.264", "/live/ch00_0"]
 # Sem senha e o usuário "admin" sem senha. Se a câmera pedir senha, o procurar-camera.bat pergunta a dela.
 USUARIOS = [("", ""), ("admin", "")]
 # Portas onde as câmeras costumam mandar o vídeo (RTSP) e outras que ajudam a reconhecer o aparelho.
@@ -607,7 +610,7 @@ def aparelhos(base, meu):
 def portas_de_video(ip):
     """Portas desse aparelho que respondem como vídeo de câmera (RTSP)."""
     portas = [p for p in sorted(set(PORTAS_RTSP + PORTAS_OUTRAS)) if porta_aberta(ip, p, 1.5)]
-    return [p for p in portas if resposta_rtsp(ip, "/", p) > 0], portas
+    return [p for p in portas if any(resposta_rtsp(ip, c, p) > 0 for c in CAMINHOS_TESTE)], portas
 
 
 def tentar_camera(cfg, ip, porta, usuarios):
