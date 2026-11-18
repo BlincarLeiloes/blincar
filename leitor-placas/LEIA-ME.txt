@@ -14,6 +14,9 @@ carro da agenda passa:
   recebido), "Ignorar" e "Não avisar mais esta placa".
 Se o computador estiver desligado, nada se perde no painel: vocês marcam à mão,
 como sempre. Sem internet, ele guarda as leituras e manda quando voltar.
+Carro parado na frente da câmera (estacionado na oficina) não conta: o leitor
+só manda placa de carro andando, entrando ou saindo. No leitor.log aparece
+"Placa ... parada (carro estacionado): não conta".
 
 
 Instalar (uma vez)

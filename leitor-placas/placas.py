@@ -78,18 +78,52 @@ def direcao(larguras):
     return ""
 
 
+def andou(caixas):
+    """O carro se mexeu enquanto a placa era lida? Carro estacionado na frente da câmera não conta.
+
+    caixas: [(x1, y1, x2, y2)] da placa em cada leitura. Andou se a placa mudou de lugar um terço de placa ou mais
+    (ignorando a leitura mais fora do lugar) ou ficou 12% maior ou menor (chegando perto ou se afastando).
+    Placa parada só treme uns poucos pixels."""
+    cs = [c for c in caixas if c]
+    if len(cs) < 2:
+        return False
+    larguras = sorted(max(1.0, float(c[2] - c[0])) for c in cs)
+    meio = larguras[len(larguras) // 2]
+
+    def espalhado(valores):
+        v = sorted(valores)
+        if len(v) >= 5:  # tira a mais fora de cada ponta (uma leitura torta não faz o carro "andar")
+            v = v[1:-1]
+        return v[-1] - v[0]
+    xs = [(c[0] + c[2]) / 2 for c in cs]
+    ys = [(c[1] + c[3]) / 2 for c in cs]
+    if max(espalhado(xs), espalhado(ys)) >= 0.35 * meio:
+        return True
+    ordem = [max(1.0, float(c[2] - c[0])) for c in cs]
+    terco = max(1, len(ordem) // 3)
+    razao = (sum(ordem[-terco:]) / terco) / (sum(ordem[:terco]) / terco)
+    return razao >= 1.12 or razao <= 1 / 1.12
+
+
 class Passagens:
     """Agrupa as leituras de cada carro que passa. Um carro "termina de passar" quando fica `pausa` segundos sem ser lido.
 
-    adicionar(placa, conf, largura, agora, extra) e terminadas(agora) -> lista de dicts prontos para mandar."""
+    adicionar(placa, conf, largura, agora, extra, caixa) e terminadas(agora) -> lista de dicts prontos para mandar.
+    so_andando: só conta o carro que se mexeu (com as caixas da placa); a placa parada vai para `paradas`."""
 
-    def __init__(self, pausa=4.0, min_leituras=2, conf_sozinha=0.9):
+    def __init__(self, pausa=4.0, min_leituras=2, conf_sozinha=0.9, so_andando=False, duracao_max=30.0):
         self.pausa = pausa
+        # Um carro passa pelo portão em menos que isso. Mais que isso é carro parado com gente mexendo em volta:
+        # fecha a passagem (e começa outra), para a hora não ficar velha nem a lista crescer sem parar.
+        self.duracao_max = duracao_max
         self.min_leituras = min_leituras
         self.conf_sozinha = conf_sozinha
+        self.so_andando = so_andando
         self.ativas = []
+        self.paradas = 0
+        self.placas_paradas = []  # as placas paradas que ficaram de fora (o leitor anota no log)
 
-    def adicionar(self, placa, conf, largura, agora, extra=None):
+    def adicionar(self, placa, conf, largura, agora, extra=None, caixa=None):
         placa = normalizar(placa)
         if not placa:
             return None
@@ -99,10 +133,11 @@ class Passagens:
                 alvo = p
                 break
         if alvo is None:
-            alvo = {"inicio": agora, "fim": agora, "leituras": [], "larguras": [], "melhor": None, "melhor_conf": -1}
+            alvo = {"inicio": agora, "fim": agora, "leituras": [], "larguras": [], "caixas": [], "melhor": None, "melhor_conf": -1}
             self.ativas.append(alvo)
         alvo["leituras"].append((placa, float(conf)))
         alvo["larguras"].append(float(largura))
+        alvo["caixas"].append(tuple(caixa) if caixa else None)
         alvo["fim"] = agora
         if float(conf) > alvo["melhor_conf"]:
             alvo["melhor_conf"] = float(conf)
@@ -112,7 +147,7 @@ class Passagens:
     def terminadas(self, agora, forcar=False):
         prontas, ficam = [], []
         for p in self.ativas:
-            (prontas if forcar or agora - p["fim"] >= self.pausa else ficam).append(p)
+            (prontas if forcar or agora - p["fim"] >= self.pausa or agora - p["inicio"] >= self.duracao_max else ficam).append(p)
         self.ativas = ficam
         saida = []
         for p in prontas:
@@ -120,6 +155,11 @@ class Passagens:
             n = len(p["leituras"])
             if not placa or (n < self.min_leituras and conf < self.conf_sozinha):
                 continue
+            mexeu = andou(p["caixas"])
+            if self.so_andando and not mexeu:
+                self.paradas += 1
+                self.placas_paradas.append(placa)
+                continue
             saida.append({"placa": placa, "confianca": round(conf, 3), "leituras": n, "direcao": direcao(p["larguras"]),
-                          "inicio": p["inicio"], "fim": p["fim"], "melhor": p["melhor"]})
+                          "inicio": p["inicio"], "fim": p["fim"], "melhor": p["melhor"], "andou": mexeu})
         return saida

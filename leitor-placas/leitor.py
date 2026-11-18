@@ -55,6 +55,8 @@ PADRAO = {
     "min_leituras": 2,
     "confianca_minima": 0.55,
     "minutos_mesma_placa": 2,
+    # Só conta carro andando (entrando ou saindo). Carro estacionado na frente da câmera não é lido de novo.
+    "so_carro_andando": True,
     "dias_guardar_fotos": 30,
     "minutos_ping": 5,
     "segundos_fila": 60,
@@ -862,8 +864,9 @@ def rodar(cfg):
     cam = Camera(cfg["camera"], estado)
     cam.start()
     mov = Movimento()
-    passagens = placas.Passagens(pausa=cfg["segundos_fim_passagem"], min_leituras=cfg["min_leituras"])
-    ja_mandadas = {}
+    passagens = placas.Passagens(pausa=cfg["segundos_fim_passagem"], min_leituras=cfg["min_leituras"],
+                                 so_andando=bool(cfg.get("so_carro_andando", True)))
+    ja_mandadas, avisadas_paradas = {}, {}
     intervalo = 1.0 / max(0.5, float(cfg["analises_por_segundo"]))
     ultimo_mov = 0.0
     ultima_limpeza = 0.0
@@ -898,8 +901,15 @@ def rodar(cfg):
                 if inicio - ultimo_mov <= 3:
                     for placa, conf, (x1, y1, x2, y2) in ler_placas(alpr, parte, cfg["confianca_minima"]):
                         caixa = (x1 + x0, y1 + y0, x2 + x0, y2 + y0)
-                        passagens.adicionar(placa, conf, x2 - x1, inicio, (quadro, caixa, datetime.now()))
-            for p in passagens.terminadas(time.time()):
+                        passagens.adicionar(placa, conf, x2 - x1, inicio, (quadro, caixa, datetime.now()), caixa)
+            terminadas = passagens.terminadas(time.time())
+            for placa in passagens.placas_paradas:
+                # Carro estacionado na frente da câmera: anota uma vez a cada 6 horas e não manda.
+                if time.time() - avisadas_paradas.get(placa, 0) > 6 * 3600:
+                    avisadas_paradas[placa] = time.time()
+                    log.info(f"Placa {placa} parada (carro estacionado): não conta. Só conta carro entrando ou saindo.")
+            passagens.placas_paradas.clear()
+            for p in terminadas:
                 chave = placas.mercosul(p["placa"])
                 if time.time() - ja_mandadas.get(chave, 0) < cfg["minutos_mesma_placa"] * 60:
                     continue
@@ -946,7 +956,8 @@ def testar(cfg, arquivo):
         print(f"Imagem marcada: {saida}")
         return achadas
     cap = cv2.VideoCapture(str(arq))
-    passagens = placas.Passagens(pausa=cfg["segundos_fim_passagem"], min_leituras=cfg["min_leituras"])
+    passagens = placas.Passagens(pausa=cfg["segundos_fim_passagem"], min_leituras=cfg["min_leituras"],
+                                 so_andando=bool(cfg.get("so_carro_andando", True)))
     fps = cap.get(cv2.CAP_PROP_FPS) or 25
     pular = max(1, int(round(fps / max(0.5, float(cfg["analises_por_segundo"])))))
     n, resultado, melhor = 0, [], None
@@ -960,7 +971,7 @@ def testar(cfg, arquivo):
         t = n / fps
         parte, x0, y0 = recortar(quadro, cfg["area"])
         for placa, conf, (x1, y1, x2, y2) in ler_placas(alpr, parte, cfg["confianca_minima"]):
-            passagens.adicionar(placa, conf, x2 - x1, t, None)
+            passagens.adicionar(placa, conf, x2 - x1, t, None, (x1, y1, x2, y2))
             if melhor is None or conf > melhor[1]:
                 melhor = (quadro.copy(), conf, placa, (x1 + x0, y1 + y0, x2 + x0, y2 + y0))
         resultado += passagens.terminadas(t)
@@ -969,6 +980,8 @@ def testar(cfg, arquivo):
         print(f"  {p['placa']}  ({p['leituras']} leituras, {round(p['confianca'] * 100)}%, {p['direcao'] or 'sem direção'}) aos {int(p['inicio'])}s")
     if not resultado:
         print("  Nenhuma placa lida nesse vídeo.")
+    if passagens.paradas:
+        print(f"  ({passagens.paradas} vez(es) uma placa parada: carro estacionado não conta)")
     if melhor:
         img, _, placa, caixa = melhor
         cv2.rectangle(img, caixa[:2], caixa[2:], (0, 200, 0), 3)
