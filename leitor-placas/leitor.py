@@ -659,12 +659,11 @@ def descobrir_camera(base, meu):
                "  - a câmera pode ter guardado o endereço da oficina antiga: segure o botão de reset dela por 10 segundos,\n"
                "    espere 1 minuto e rode o procurar-camera.bat de novo.")
         return None
-    if len(sumiram) > 1:
-        anotar(f"Sumiram {len(sumiram)} aparelhos: {', '.join(sumiram)}. Rode de novo (pode ter sido outro aparelho saindo da rede).")
-        return None
-    ip = sumiram[0]
-    anotar(f"A câmera é o aparelho {ip}. Portas abertas: {', '.join(map(str, sorted(antes[ip]))) or 'nenhuma das conhecidas'}.")
-    return ip
+    # Pode sumir mais de um: a câmera ligada no cabo e no Wi-Fi ao mesmo tempo (dois endereços), ou um celular que
+    # saiu da rede na mesma hora. Volta todos; quem procura testa cada um.
+    for ip in sumiram:
+        anotar(f"Sumiu quando a câmera foi desligada: {ip} (portas: {', '.join(map(str, sorted(antes[ip]))) or 'nenhuma das conhecidas'}).")
+    return sumiram
 
 
 def procurar(cfg, ip_camera="", senha_extra=""):
@@ -708,23 +707,30 @@ def procurar(cfg, ip_camera="", senha_extra=""):
     if ip_camera or not sys.stdin or not sys.stdin.isatty():
         raise SystemExit("Confira se a câmera está ligada (fonte 12V) e com o cabo no roteador, e se este computador está na "
                          "internet do mesmo roteador. Depois rode o procurar-camera.bat de novo.")
-    ip = descobrir_camera(base, meu)
-    if not ip:
+    sumiram = descobrir_camera(base, meu)
+    if not sumiram:
         raise SystemExit(1)
-    cfg["camera_ip"] = ip
+    # Testa cada aparelho que sumiu: fica com o que manda vídeo.
+    pede_senha, sem_video = [], []
+    for ip in sumiram:
+        portas_video, portas = portas_de_video(ip)
+        for porta in portas_video:
+            print(f"A porta {porta} de {ip} responde como vídeo. Testando...")
+            url, pede = tentar_camera(cfg, ip, porta, usuarios)
+            if url:
+                cfg["camera_ip"] = ip
+                salvar_config(cfg)
+                return url
+            if pede:
+                pede_senha.append(ip)
+        sem_video.append(f"{ip} (portas: {', '.join(map(str, portas)) or 'nenhuma'})")
+    cfg["camera_ip"] = (pede_senha or sumiram)[0]
     salvar_config(cfg)
-    # Achou o aparelho: vê se alguma porta dele responde como vídeo de câmera.
-    portas_video, portas = portas_de_video(ip)
-    for porta in portas_video:
-        print(f"A porta {porta} de {ip} responde como vídeo. Testando...")
-        url, pede = tentar_camera(cfg, ip, porta, usuarios)
-        if url:
-            return url
-        if pede:
-            print(f"A câmera em {ip} pede senha. É a senha que vocês criaram no aplicativo da câmera.")
-            raise SystemExit(3)
-    anotar(f"A câmera ({ip}) está na rede, mas não manda o vídeo para o computador: só para o aplicativo dela.\n"
-           f"Portas abertas: {', '.join(map(str, portas)) or 'nenhuma'}. Tire um print desta janela e mande para o Arthur.")
+    if pede_senha:
+        print(f"A câmera em {pede_senha[0]} pede senha. É a senha que vocês criaram no aplicativo da câmera.")
+        raise SystemExit(3)
+    anotar("A câmera está na rede, mas não manda o vídeo para o computador: só para o aplicativo dela.\n"
+           f"Aparelhos testados: {'; '.join(sem_video)}. Tire um print desta janela e mande para o Arthur.")
     raise SystemExit(1)
 
 
