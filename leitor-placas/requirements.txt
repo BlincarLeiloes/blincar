@@ -1,1 +1,2 @@
 fast-alpr[onnx]==0.4.0
+av==13.1.0

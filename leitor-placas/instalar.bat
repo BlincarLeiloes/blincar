@@ -51,7 +51,8 @@ if not exist "config-blincar.json" if not exist "%USERPROFILE%\Downloads\config-
   echo e o leitor pega de la sozinho.
   echo.
 )
-echo Tudo instalado. Para ligar o leitor agora, abra o iniciar.bat.
+echo Tudo instalado. Agora abra o marcar-area.bat e marque onde os carros passam.
+echo Depois, para ligar o leitor, abra o iniciar.bat.
 echo Nas proximas vezes ele liga sozinho quando o Windows ligar.
 pause
 exit /b 0

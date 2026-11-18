@@ -28,11 +28,41 @@ Instalar (uma vez)
    - instala a leitura de placas (alguns minutos, precisa de internet);
    - faz o leitor ligar junto com o Windows;
    - pergunta se pode deixar o computador sem dormir na tomada (diga S);
-   - procura a câmera na rede e abre uma foto dela, para conferir.
+   - procura a câmera na rede e abre uma foto dela, para conferir. Se pedir
+     a senha da câmera, é a mesma que vocês usam no CMS of EseeCloud.
    Se o Windows avisar "O Windows protegeu o computador", toque em
-   "Mais informações" > "Executar assim mesmo".
-5) Abra o iniciar.bat para ligar agora (ou reinicie o computador). A janela
+   "Mais informações" > "Executar assim mesmo". Se ele bloquear os .bat
+   (Controle Inteligente de Aplicativos): botão direito no
+   leitor-placas.zip > Propriedades > marque "Desbloquear" > OK, e extraia
+   de novo.
+5) Abra o marcar-area.bat: aparece a imagem da câmera. Arraste o mouse
+   fazendo um retângulo em volta do lugar por onde os carros passam (com
+   folga) e clique em Salvar. Assim o leitor olha só essa parte e consegue
+   ler placas pequenas.
+6) Abra o iniciar.bat para ligar agora (ou reinicie o computador). A janela
    mostra cada placa lida. Pode minimizar; fechar a janela desliga o leitor.
+
+
+Câmera que só aparece no CMS of EseeCloud (plano B)
+---------------------------------------------------
+Primeiro o procurar-camera.bat tenta pegar o vídeo direto da câmera (do mesmo
+jeito que o CMS of EseeCloud pega). Se não der, o leitor pode ler as placas
+na própria janela do CMS:
+1) Abra o CMS of EseeCloud e dê dois cliques na câmera para o vídeo aparecer.
+   Maximize a janela do CMS.
+2) Abra o usar-cms.bat. Ele confere se acha a janela e mostra uma foto do que
+   está vendo.
+3) Abra o marcar-area.bat e marque onde os carros passam (só o vídeo, sem a
+   lista de aparelhos).
+4) Abra o iniciar.bat.
+Enquanto isso estiver valendo:
+- deixe o CMS aberto com o vídeo da câmera. Pode ter outra janela na frente,
+  mas NÃO minimize o CMS;
+- a tela do computador não pode ficar bloqueada (o leitor deixa ela ligada);
+  com o notebook, deixe a tampa aberta;
+- se o CMS for fechado (ou o computador reiniciar), o leitor abre ele de novo
+  sozinho. Se o vídeo não aparecer, dê dois cliques na câmera no CMS.
+Para voltar a pegar o vídeo direto da câmera, rode o procurar-camera.bat.
 
 
 Arquivos da pasta
@@ -40,7 +70,11 @@ Arquivos da pasta
 instalar.bat         instala tudo (uma vez)
 iniciar.bat          liga o leitor com uma janela mostrando as placas
 procurar-camera.bat  acha a câmera de novo (se ela mudou de lugar na rede).
-                     Se a câmera pedir senha, ele pergunta.
+                     Se a câmera pedir senha, ele pergunta (a mesma do CMS).
+marcar-area.bat      mostra a imagem da câmera para marcar com o mouse onde
+                     os carros passam. Pode usar com o leitor ligado: ele
+                     pega a área nova sozinho.
+usar-cms.bat         plano B: lê as placas na janela do CMS of EseeCloud
 verificar.bat        confere a configuração, a câmera e a planilha
 testar-foto.bat      arraste uma foto ou vídeo de um carro em cima dele: mostra
                      as placas que ele consegue ler (bom para escolher o lugar
@@ -64,9 +98,8 @@ Onde pôr a câmera
   Use o testar-foto.bat com uma foto tirada do lugar para conferir: a placa
   lida precisa ter uns 100 pixels de largura ou mais.
 - À noite, deixe uma luz acesa no caminho do carro.
-- Se a câmera pega mais coisa do que o caminho (rua, pátio), dá para limitar
-  a parte da imagem no config-blincar.json com "area": [esquerda, topo,
-  direita, baixo], em frações de 0 a 1. Ex.: "area": [0.3, 0.4, 1, 1].
+- Se a câmera pega mais coisa do que o caminho (rua, pátio), use o
+  marcar-area.bat para mostrar só a parte por onde os carros passam.
 
 
 Problemas
@@ -79,9 +112,23 @@ Problemas
   Confira o cabo da câmera no roteador e se o computador está na internet
   desse mesmo roteador. Se a câmera veio de outro lugar, segure o reset dela
   por 10 segundos e procure de novo.
-- "A câmera pede senha": é a senha que vocês criaram no aplicativo da câmera.
-  O procurar-camera.bat pergunta; digite e aperte Enter.
+- "A câmera pede senha" / "A câmera não aceitou a senha": é a mesma senha
+  que vocês usam no CMS of EseeCloud. O procurar-camera.bat pergunta;
+  digite e aperte Enter.
+- "A câmera não aceita mais ninguém vendo agora": feche o vídeo dela no
+  celular (IP Pro) e espere 1 minuto.
+- "A janela do CMS está minimizada" / "Não achei a janela": só no plano B.
+  Abra o CMS com o vídeo da câmera e não minimize.
 - "A planilha não aceitou a chave": no painel, Recebidos > Câmera >
   "Baixar a configuração de novo" e troque o config-blincar.json desta pasta.
 - No painel (Recebidos > Câmera) aparece se o leitor está ligado e vendo a
   câmera, e as últimas placas lidas.
+
+Atualizar o leitor
+------------------
+1) Baixe o leitor-placas.zip de novo no painel (Recebidos > Câmera).
+2) Botão direito no zip > Propriedades > marque "Desbloquear" > OK.
+3) Extraia por cima da pasta do leitor (substituir os arquivos). O
+   config-blincar.json e as fotos continuam.
+4) Abra o instalar.bat de novo (ele instala o que for novo e procura a
+   câmera).

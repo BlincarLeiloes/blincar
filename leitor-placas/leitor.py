@@ -9,6 +9,8 @@ Uso (os arquivos .bat da pasta fazem isso):
   python leitor.py --testar X    lê as placas de uma foto ou vídeo (não manda nada)
   python leitor.py --preparar    baixa os arquivos da leitura de placas (uma vez, na instalação)
   python leitor.py --verificar   confere a configuração, a câmera e a planilha
+  python leitor.py --tela        lê as placas na janela do "CMS of EseeCloud" (quando a câmera não manda o vídeo direto)
+  python leitor.py --area        abre a imagem da câmera para marcar com o mouse onde os carros passam
 """
 import argparse
 import concurrent.futures
@@ -20,6 +22,8 @@ import queue
 import re
 import shutil
 import socket
+import struct
+import subprocess
 import sys
 import threading
 import time
@@ -31,7 +35,7 @@ from pathlib import Path
 
 import placas
 
-VERSAO = "1.0"
+VERSAO = "1.1"
 PASTA = Path(__file__).resolve().parent
 ARQ_CONFIG = PASTA / "config-blincar.json"
 ARQ_FILA = PASTA / "fila.jsonl"
@@ -228,6 +232,12 @@ class Envio(threading.Thread):
 # ---------- Câmera ----------
 
 def abrir_video(url, tempo_ms=6000):
+    """A câmera como um VideoCapture do OpenCV (isOpened, read, release). O endereço pode ser:
+    rtsp://... ou um arquivo de vídeo (OpenCV); bubble://... (câmeras da EseeCloud); tela:TÍTULO (janela do CMS)."""
+    if str(url).startswith("bubble://"):
+        return Bubble(url, tempo_ms / 1000)
+    if str(url).startswith("tela:"):
+        return Tela(url[5:])
     import cv2
     os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
     try:
@@ -235,6 +245,400 @@ def abrir_video(url, tempo_ms=6000):
     except TypeError:
         cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
     return cap
+
+
+# ---------- Vídeo direto das câmeras da EseeCloud (o mesmo jeito que o "CMS of EseeCloud" e o app IP Pro usam) ----------
+# Essas câmeras (Juan / dvr163 / EseeCloud) nem sempre têm RTSP. Elas mandam o vídeo num formato próprio, o "bubble":
+# pede GET /bubble/live, manda usuário e senha, pede o vídeo e recebe os quadros em H.264 (ou H.265).
+# Endereço: bubble://admin:SENHA@IP:PORTA/bubble/live?ch=0&stream=0   (stream 0 = imagem grande, 1 = pequena)
+
+class ErroCamera(Exception):
+    pass
+
+
+class Bubble:
+    """Lê o vídeo "bubble" e devolve as imagens como o OpenCV (umas 8 por segundo, sempre a mais nova)."""
+
+    LOGIN, VIDEO, ABRIR, CHEIA = 0x00, 0x01, 0x0A, 0x08
+
+    def __init__(self, url, tempo=6.0, conectar=True):
+        u = urllib.parse.urlsplit(url)
+        q = urllib.parse.parse_qs(u.query)
+        self.ip, self.porta = u.hostname or "", u.port or 80
+        self.usuario = urllib.parse.unquote(u.username or "") or "admin"
+        self.senha = urllib.parse.unquote(u.password or "")
+        self.canal = int((q.get("ch") or ["0"])[0] or 0)
+        self.fluxo = int((q.get("stream") or ["0"])[0] or 0)
+        self.caminho = u.path or "/bubble/live"
+        self.tempo = tempo
+        self.sock = self.arq = self.dec = None
+        self.erro, self.senha_errada, self.morto = "", False, False
+        self.entregue = 0.0
+        if conectar:
+            try:
+                self._conectar()
+            except ErroCamera as e:
+                self.erro = str(e)
+                self.release()
+            except OSError as e:
+                self.erro = f"A câmera não respondeu em {self.ip}:{self.porta} ({e})."
+                self.release()
+
+    def _mandar(self, comando, carimbo, dados):
+        # 0xAA + tamanho (4) + comando (1) + carimbo (4) + dados (+ 4 bytes zerados, como o programa deles manda)
+        self.sock.sendall(b"\xaa" + struct.pack(">I", 5 + len(dados)) + bytes([comando]) + struct.pack(">I", carimbo) + dados + bytes(4))
+
+    def _ler(self, n):
+        dados = self.arq.read(n)
+        if len(dados) < n:
+            raise ErroCamera("A câmera fechou a conexão.")
+        return dados
+
+    def _pacote(self, antes=None):
+        """(comando, dados) do próximo pacote. "antes": guarda o que vier antes do pacote (a descrição em XML)."""
+        b = self._ler(1)
+        while b != b"\xaa":
+            if antes is None or len(antes) > 16384:
+                raise ErroCamera("Essa porta não é o vídeo da câmera.")
+            antes += b
+            b = self._ler(1)
+        cab = self._ler(9)
+        tamanho = struct.unpack(">I", cab[:4])[0]
+        if not 5 <= tamanho <= 16_000_000:
+            raise ErroCamera("A câmera mandou algo que não entendi.")
+        return cab[4], self._ler(tamanho - 5)
+
+    def _conectar(self):
+        self.sock = socket.create_connection((self.ip, self.porta), timeout=self.tempo)
+        self.sock.settimeout(self.tempo)
+        self.arq = self.sock.makefile("rb", buffering=262144)
+        self.sock.sendall(f"GET {self.caminho}?ch={self.canal}&stream={self.fluxo} HTTP/1.1\r\n\r\n".encode())
+        primeira = self.arq.readline(512)
+        if not re.match(rb"HTTP/1\.\d 200", primeira):
+            raise ErroCamera("Essa porta não é o vídeo da câmera.")
+        for _ in range(50):
+            linha = self.arq.readline(2048)
+            if not linha:
+                raise ErroCamera("A câmera fechou a conexão.")
+            if linha in (b"\r\n", b"\n"):
+                break
+            nome, _, valor = linha.decode("latin-1").partition(":")
+            if nome.strip().lower() == "content-type" and "bubble" not in valor.lower():
+                raise ErroCamera("Essa porta não é o vídeo da câmera.")
+        # Depois do cabeçalho vem uma descrição em XML (completada com "#") e a câmera espera o login.
+        b = struct.pack(">I", 44) + bytes(4) + self.usuario.encode()[:20].ljust(20, b"\0") + self.senha.encode()[:20].ljust(20, b"\0")
+        self._mandar(self.LOGIN, 0x0E16C271, b)
+        xml = bytearray()
+        comando, r = self._pacote(xml)
+        if comando == self.CHEIA:
+            raise ErroCamera("A câmera não aceita mais ninguém vendo agora. Feche o vídeo dela no celular e espere 1 minuto.")
+        if comando != self.LOGIN or len(r) < 9 or r[4] != 3:
+            raise ErroCamera("A câmera respondeu o login de um jeito que não entendi.")
+        if r[8] != 1:
+            self.senha_errada = True
+            raise ErroCamera("A câmera não aceitou a senha. É a mesma senha que vocês usam no CMS of EseeCloud.")
+        m = re.search(rf"<stream{self.fluxo} [^>]+".encode(), bytes(xml))
+        h265 = bool(m and b".265" in m.group(0))
+        try:
+            import av
+        except ImportError:
+            raise ErroCamera("Falta uma parte do leitor (av). Rode o instalar.bat de novo.")
+        self.dec = av.CodecContext.create("hevc" if h265 else "h264", "r")
+        # Pede o vídeo (esse pedaço é em little-endian mesmo): canal, imagem, ligado, reservado.
+        self._mandar(self.ABRIR, 0x0E16C2DF, struct.pack("<4I", self.canal, self.fluxo, 1, 0))
+
+    def isOpened(self):
+        return self.sock is not None and not self.morto
+
+    def get(self, _prop):
+        return 0
+
+    def read(self):
+        if not self.isOpened():
+            return False, None
+        import av
+        try:
+            while True:
+                comando, p = self._pacote()
+                if comando == self.CHEIA:
+                    raise ErroCamera("A câmera não aceita mais ninguém vendo agora. Feche o vídeo dela no celular e espere 1 minuto.")
+                # Vídeo: tamanho (4) + tipo (1: quadro inteiro, 2: só o que mudou, 0: som) + canal (1) + o quadro.
+                if comando != self.VIDEO or len(p) < 7 or p[4] == 0:
+                    continue
+                try:
+                    quadros = self.dec.decode(av.Packet(p[6:]))
+                except av.error.FFmpegError:
+                    continue
+                if quadros and time.time() - self.entregue >= 0.12:
+                    self.entregue = time.time()
+                    return True, quadros[-1].to_ndarray(format="bgr24")
+        except (OSError, ErroCamera) as e:
+            self.erro = str(e) if isinstance(e, ErroCamera) else "A câmera parou de mandar imagem."
+            self.morto = True
+            return False, None
+
+    def release(self):
+        for x in (self.arq, self.sock):
+            try:
+                if x is not None:
+                    x.close()
+            except OSError:
+                pass
+        self.sock = self.arq = None
+
+
+def resposta_bubble(ip, porta, tempo=2.5):
+    """Essa porta manda o vídeo "bubble" das câmeras da EseeCloud? (pede o vídeo e vê se responde "video/bubble")."""
+    dados = b""
+    try:
+        with socket.create_connection((ip, porta), timeout=tempo) as s:
+            s.settimeout(tempo)
+            s.sendall(b"GET /bubble/live?ch=0&stream=0 HTTP/1.1\r\n\r\n")
+            while len(dados) < 2048 and b"<bubble" not in dados:
+                parte = s.recv(2048)
+                if not parte:
+                    break
+                dados += parte
+    except OSError:
+        pass
+    return bool(re.match(rb"HTTP/1\.\d 200", dados)) and (b"video/bubble" in dados.lower() or b"<bubble" in dados)
+
+
+# ---------- Ler a tela do "CMS of EseeCloud" (quando a câmera não manda o vídeo direto) ----------
+
+TITULO_CMS = "CMS of EseeCloud"
+# Para abrir o CMS sozinho se ele for fechado (ou depois de reiniciar): espera 30 s sem a janela e
+# não tenta de novo antes de 10 minutos.
+_CMS = {"sumiu": 0.0, "abriu": 0.0, "programa": "", "esperar": 30, "de_novo": 600}
+
+
+def windows():
+    return os.name == "nt"
+
+
+_WIN = []
+
+
+def _win():
+    """user32 e gdi32 com os tipos certos (sem isso os endereços de 64 bits são cortados)."""
+    if _WIN:
+        return _WIN[0]
+    import ctypes
+    from ctypes import wintypes as W
+    u, g = ctypes.WinDLL("user32", use_last_error=True), ctypes.WinDLL("gdi32", use_last_error=True)
+    tipos = {
+        (u, "GetDC"): ([W.HWND], W.HDC), (u, "ReleaseDC"): ([W.HWND, W.HDC], ctypes.c_int),
+        (u, "PrintWindow"): ([W.HWND, W.HDC, W.UINT], W.BOOL), (u, "IsIconic"): ([W.HWND], W.BOOL),
+        (u, "IsWindowVisible"): ([W.HWND], W.BOOL), (u, "GetWindowTextLengthW"): ([W.HWND], ctypes.c_int),
+        (u, "GetWindowTextW"): ([W.HWND, W.LPWSTR, ctypes.c_int], ctypes.c_int),
+        (u, "GetClientRect"): ([W.HWND, ctypes.POINTER(W.RECT)], W.BOOL),
+        (u, "ClientToScreen"): ([W.HWND, ctypes.POINTER(W.POINT)], W.BOOL),
+        (u, "GetWindowThreadProcessId"): ([W.HWND, ctypes.POINTER(W.DWORD)], W.DWORD),
+        (g, "CreateCompatibleDC"): ([W.HDC], W.HDC), (g, "CreateCompatibleBitmap"): ([W.HDC, ctypes.c_int, ctypes.c_int], W.HBITMAP),
+        (g, "SelectObject"): ([W.HDC, W.HGDIOBJ], W.HGDIOBJ), (g, "DeleteObject"): ([W.HGDIOBJ], W.BOOL),
+        (g, "DeleteDC"): ([W.HDC], W.BOOL),
+        (g, "BitBlt"): ([W.HDC, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, W.HDC, ctypes.c_int, ctypes.c_int, W.DWORD], W.BOOL),
+        (g, "GetDIBits"): ([W.HDC, W.HBITMAP, W.UINT, W.UINT, ctypes.c_void_p, ctypes.c_void_p, W.UINT], ctypes.c_int),
+    }
+    for (dll, nome), (args, volta) in tipos.items():
+        f = getattr(dll, nome)
+        f.argtypes, f.restype = args, volta
+    _WIN.append((u, g))
+    return u, g
+
+
+def preparar_tela(acordado=True):
+    """Windows: imagem no tamanho real (sem a escala de 125%/150%) e a tela sem apagar enquanto o leitor roda."""
+    if not windows():
+        return
+    import ctypes
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+    if acordado:
+        try:  # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED (vale enquanto esta parte do leitor roda)
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001 | 0x00000002)
+        except Exception:
+            pass
+
+
+def achar_janelas(titulo):
+    """[(janela, título)] das janelas visíveis com esse pedaço no título."""
+    import ctypes
+    from ctypes import wintypes as W
+    u, _ = _win()
+    achadas = []
+    tipo = ctypes.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
+
+    @tipo
+    def cada(hwnd, _):
+        if u.IsWindowVisible(hwnd):
+            n = u.GetWindowTextLengthW(hwnd)
+            if n:
+                buf = ctypes.create_unicode_buffer(n + 1)
+                u.GetWindowTextW(hwnd, buf, n + 1)
+                if titulo.lower() in buf.value.lower():
+                    achadas.append((hwnd, buf.value))
+        return True
+
+    u.EnumWindows.argtypes = [tipo, W.LPARAM]
+    u.EnumWindows(cada, 0)
+    return achadas
+
+
+def _bitmap(g, hdc, bmp, w, h):
+    import ctypes
+    import numpy as np
+    from ctypes import wintypes as W
+
+    class Cab(ctypes.Structure):  # BITMAPINFO: o cabeçalho (40 bytes) e uma sobra para as cores
+        _fields_ = [("biSize", W.DWORD), ("biWidth", W.LONG), ("biHeight", W.LONG), ("biPlanes", W.WORD), ("biBitCount", W.WORD),
+                    ("biCompression", W.DWORD), ("biSizeImage", W.DWORD), ("biXPelsPerMeter", W.LONG), ("biYPelsPerMeter", W.LONG),
+                    ("biClrUsed", W.DWORD), ("biClrImportant", W.DWORD), ("cores", W.DWORD * 4)]
+    cab = Cab(40, w, -h, 1, 32, 0)  # 32 bits por ponto, sem compressão; -h: de cima para baixo
+    buf = ctypes.create_string_buffer(w * h * 4)
+    if g.GetDIBits(hdc, bmp, 0, h, buf, ctypes.byref(cab), 0) != h:
+        return None
+    return np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 4)[:, :, :3].copy()
+
+
+def _copiar_janela(hwnd, w, h, da_tela):
+    """A parte de dentro da janela: pedindo para ela se desenhar (funciona até com outra janela na frente)
+    ou copiando o que está na tela (precisa estar aparecendo)."""
+    import ctypes
+    from ctypes import wintypes as W
+    u, g = _win()
+    origem = u.GetDC(None if da_tela else hwnd)
+    hdc = g.CreateCompatibleDC(origem)
+    bmp = g.CreateCompatibleBitmap(origem, w, h)
+    velho = g.SelectObject(hdc, bmp)
+    try:
+        if da_tela:
+            p = W.POINT(0, 0)
+            u.ClientToScreen(hwnd, ctypes.byref(p))
+            ok = g.BitBlt(hdc, 0, 0, w, h, origem, p.x, p.y, 0x00CC0020 | 0x40000000)  # SRCCOPY | CAPTUREBLT
+        else:
+            ok = u.PrintWindow(hwnd, hdc, 1 | 2) or u.PrintWindow(hwnd, hdc, 1)  # só a parte de dentro + vídeo (DirectX)
+        g.SelectObject(hdc, velho)
+        return _bitmap(g, hdc, bmp, w, h) if ok else None
+    finally:
+        g.SelectObject(hdc, velho)
+        g.DeleteObject(bmp)
+        g.DeleteDC(hdc)
+        u.ReleaseDC(None if da_tela else hwnd, origem)
+
+
+def _preta(img):
+    return img is None or (float(img.mean()) < 2 and int(img.max()) < 16)
+
+
+def capturar_tela(titulo):
+    """(imagem, erro) da janela com esse título (a do CMS of EseeCloud)."""
+    import ctypes
+    from ctypes import wintypes as W
+    if not windows():
+        return None, "Ler a tela só funciona no Windows."
+    u, _ = _win()
+    janelas = achar_janelas(titulo)
+    if not janelas:
+        return None, f'Não achei a janela "{titulo}". Abra o CMS of EseeCloud com o vídeo da câmera aparecendo.'
+
+    def tamanho(j):
+        r = W.RECT()
+        u.GetClientRect(j[0], ctypes.byref(r))
+        return (r.right - r.left) * (r.bottom - r.top)
+    hwnd = max(janelas, key=tamanho)[0]
+    if u.IsIconic(hwnd):
+        return None, "A janela do CMS está minimizada. Clique nela na barra de tarefas (pode ter outra janela na frente, só não minimize)."
+    r = W.RECT()
+    u.GetClientRect(hwnd, ctypes.byref(r))
+    w, h = r.right - r.left, r.bottom - r.top
+    if w < 100 or h < 100:
+        return None, "A janela do CMS está pequena demais. Maximize ela."
+    img = _copiar_janela(hwnd, w, h, False)
+    if _preta(img):
+        img = _copiar_janela(hwnd, w, h, True)
+    if img is None:
+        return None, "Não consegui copiar a imagem da janela do CMS."
+    if _preta(img):
+        return None, ("A imagem do CMS está preta. Confira se o vídeo da câmera está tocando no CMS "
+                      "e se a tela do computador está ligada e desbloqueada.")
+    return img, ""
+
+
+def programa_da_janela(hwnd):
+    """O arquivo .exe do programa dono da janela (para abrir o CMS sozinho depois)."""
+    import ctypes
+    from ctypes import wintypes as W
+    u, _ = _win()
+    pid = W.DWORD()
+    u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.OpenProcess.argtypes, k.OpenProcess.restype = [W.DWORD, W.BOOL, W.DWORD], W.HANDLE
+    k.QueryFullProcessImageNameW.argtypes = [W.HANDLE, W.DWORD, W.LPWSTR, ctypes.POINTER(W.DWORD)]
+    k.CloseHandle.argtypes = [W.HANDLE]
+    proc = k.OpenProcess(0x1000, False, pid.value)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not proc:
+        return ""
+    try:
+        buf, n = ctypes.create_unicode_buffer(1024), W.DWORD(1024)
+        return buf.value if k.QueryFullProcessImageNameW(proc, 0, buf, ctypes.byref(n)) else ""
+    finally:
+        k.CloseHandle(proc)
+
+
+class Tela:
+    """A janela do CMS como se fosse a câmera: umas 5 imagens por segundo.
+    Se o CMS sumir (fechado ou o computador reiniciou), abre ele de novo sozinho."""
+
+    def __init__(self, titulo, por_segundo=5, programa=""):
+        self.titulo = titulo.strip() or TITULO_CMS
+        self.intervalo = 1.0 / por_segundo
+        self.programa = programa or _CMS.get("programa", "")
+        self.ultimo = 0.0
+        self.erro = "" if windows() else "Ler a tela só funciona no Windows."
+        self.morto = False
+        self.falhas_max = 5  # uns 2 segundos sem a janela: avisa (minimizada, fechada...)
+        if windows():
+            preparar_tela()
+
+    def isOpened(self):
+        return windows()
+
+    def get(self, _prop):
+        return 0
+
+    def read(self):
+        espera = self.intervalo - (time.time() - self.ultimo)
+        if espera > 0:
+            time.sleep(espera)
+        self.ultimo = time.time()
+        img, self.erro = capturar_tela(self.titulo)
+        if img is not None:
+            _CMS["sumiu"] = 0.0
+        elif self.erro.startswith("Não achei a janela"):
+            self._abrir_cms()
+        return img is not None, img
+
+    def _abrir_cms(self):
+        agora = time.time()
+        _CMS["sumiu"] = _CMS["sumiu"] or agora
+        if (not self.programa or not os.path.exists(self.programa) or agora - _CMS["sumiu"] < _CMS["esperar"]
+                or agora - _CMS["abriu"] < _CMS["de_novo"]):
+            return
+        _CMS["abriu"] = agora
+        log.info("O CMS of EseeCloud não está aberto. Abrindo ele...")
+        try:
+            subprocess.Popen([self.programa], cwd=os.path.dirname(self.programa))
+        except OSError as e:
+            log.info(f"Não consegui abrir o CMS: {e}")
+
+    def release(self):
+        pass
 
 
 class Camera(threading.Thread):
@@ -260,19 +664,18 @@ class Camera(threading.Thread):
             cap = abrir_video(self.url)
             ritmo = 1.0 / (cap.get(5) or 25) if arquivo else 0
             if not cap.isOpened():
-                self._erro("Não consegui abrir a câmera. Confira se ela está ligada e no cabo do roteador.")
+                self._erro(getattr(cap, "erro", "") or "Não consegui abrir a câmera. Confira se ela está ligada e no cabo do roteador.")
                 time.sleep(espera)
                 espera = min(espera * 2, 60)
                 continue
-            log.info("Câmera conectada.")
             espera = 2
             falhas = 0
             while not self.parar.is_set():
                 ok, quadro = cap.read()
                 if not ok or quadro is None:
                     falhas += 1
-                    if falhas >= 25:
-                        self._erro("A câmera parou de mandar imagem.")
+                    if falhas >= getattr(cap, "falhas_max", 25) or getattr(cap, "morto", False):
+                        self._erro(getattr(cap, "erro", "") or "A câmera parou de mandar imagem.")
                         break
                     time.sleep(0.2)
                     continue
@@ -282,6 +685,7 @@ class Camera(threading.Thread):
                 with self.trava:
                     self.quadro, self.quando = quadro, time.time()
                 if not self.estado["camera_ok"]:
+                    log.info("Câmera conectada.")
                     self.estado.update(camera_ok=True, camera_erro="")
             cap.release()
             time.sleep(2)
@@ -299,14 +703,28 @@ def carregar_alpr(cfg):
     return ALPR(detector_model=cfg["detector"], ocr_model=cfg["ocr"])
 
 
+MIN_RECORTE = 640  # o detector olha a imagem em 640x640: recorte menor que isso seria ampliado (placa grande demais)
+
+
 def recortar(quadro, area):
-    """Só a parte da imagem onde o carro passa (area em frações). Devolve (recorte, x0, y0)."""
+    """Só a parte da imagem onde o carro passa (area em frações). Devolve (recorte, x0, y0).
+    Se a área marcada for pequena, cresce em volta dela até 640x640 (nunca amplia a imagem)."""
     if not area or len(area) != 4:
         return quadro, 0, 0
     h, w = quadro.shape[:2]
     x1, y1, x2, y2 = (int(round(v * t)) for v, t in zip(area, (w, h, w, h)))
     x1, y1 = max(0, min(x1, w - 1)), max(0, min(y1, h - 1))
     x2, y2 = max(x1 + 1, min(x2, w)), max(y1 + 1, min(y2, h))
+
+    def crescer(a, b, total):
+        falta = min(MIN_RECORTE, total) - (b - a)
+        if falta <= 0:
+            return a, b
+        a = max(0, a - falta // 2)
+        b = min(total, a + min(MIN_RECORTE, total))
+        return b - min(MIN_RECORTE, total), b
+    x1, x2 = crescer(x1, x2, w)
+    y1, y2 = crescer(y1, y2, h)
     return quadro[y1:y2, x1:x2], x1, y1
 
 
@@ -380,13 +798,36 @@ def apagar_fotos_antigas(dias):
             shutil.rmtree(p, ignore_errors=True)
 
 
+def recarregar(cfg, visto):
+    """O config-blincar.json mudou (marcar-area.bat, usar-cms.bat ou procurar-camera.bat com o leitor ligado)?
+    Pega a área e a câmera novas. Devolve o que mudou."""
+    try:
+        m = ARQ_CONFIG.stat().st_mtime
+    except OSError:
+        return set()
+    if m == visto.get("mtime"):
+        return set()
+    primeira = "mtime" not in visto
+    visto["mtime"] = m
+    try:
+        novo = json.loads(ARQ_CONFIG.read_text(encoding="utf-8-sig"))
+    except Exception:
+        return set()
+    mudou = {k for k in ("area", "camera", "cms_programa") if k in novo and novo[k] != cfg.get(k)}
+    for k in mudou:
+        cfg[k] = novo[k]
+    return set() if primeira else mudou
+
+
 def rodar(cfg):
     falta = faltando(cfg)
     if falta:
         raise SystemExit("Falta " + " e ".join(falta) + ". No painel: Recebidos > Câmera > \"Ligar a câmera\" baixa o config-blincar.json. "
                          "Coloque ele nesta pasta (ou deixe na pasta Downloads).")
     if not cfg.get("camera"):
-        raise SystemExit("Ainda não sei o endereço da câmera. Rode o procurar-camera.bat primeiro.")
+        raise SystemExit("Ainda não sei o endereço da câmera. Rode o procurar-camera.bat primeiro "
+                         "(ou o usar-cms.bat, para ler as placas na janela do CMS of EseeCloud).")
+    _CMS["programa"] = cfg.get("cms_programa", "")
     try:
         trava = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         trava.bind(("127.0.0.1", PORTA_TRAVA))
@@ -408,12 +849,25 @@ def rodar(cfg):
     ultima_limpeza = 0.0
     ultimo_quadro = 0.0
     log.info("Pronto. Olhando o portão (feche esta janela para desligar).")
+    visto, ultima_olhada = {}, 0.0
+    recarregar(cfg, visto)
     try:
         while True:
             inicio = time.time()
             if inicio - ultima_limpeza > 3600:
                 ultima_limpeza = inicio
                 apagar_fotos_antigas(cfg["dias_guardar_fotos"])
+            if inicio - ultima_olhada > 5:
+                ultima_olhada = inicio
+                mudou = recarregar(cfg, visto)
+                if "area" in mudou:
+                    log.info("Peguei a área nova marcada." if cfg["area"] else "Agora olhando a imagem toda.")
+                _CMS["programa"] = cfg.get("cms_programa", "")
+                if "camera" in mudou and cfg.get("camera"):
+                    log.info("A câmera mudou na configuração. Conectando na nova...")
+                    cam.parar.set()
+                    cam = Camera(cfg["camera"], estado)
+                    cam.start()
             quadro, quando = cam.ultimo()
             if quadro is not None and quando != ultimo_quadro:
                 ultimo_quadro = quando
@@ -515,7 +969,7 @@ CAMINHOS_TESTE = ["/", "/ch0_0.264", "/live/ch00_0"]
 USUARIOS = [("", ""), ("admin", "")]
 # Portas onde as câmeras costumam mandar o vídeo (RTSP) e outras que ajudam a reconhecer o aparelho.
 PORTAS_RTSP = [554, 8554, 10554, 5554]
-PORTAS_OUTRAS = [80, 81, 443, 8000, 8080, 8800, 8899, 34567, 5000, 9527, 23]
+PORTAS_OUTRAS = [80, 81, 443, 8000, 8080, 8800, 8899, 34567, 5000, 9527, 23, 10000]
 
 
 def meu_ip():
@@ -571,18 +1025,25 @@ def com_senha(ip, caminho, usuario, senha, porta=554):
     return f"rtsp://{urllib.parse.quote(usuario, safe='')}:{urllib.parse.quote(senha, safe='')}@{ip}:{porta}{caminho}"
 
 
-def pega_imagem(url):
+def imagem_e_erro(url, tentativas=10):
+    """(imagem, motivo) de uma imagem da câmera."""
     cap = abrir_video(url, 5000)
     try:
         if not cap.isOpened():
-            return None
-        for _ in range(10):
+            return None, getattr(cap, "erro", "") or "A câmera não abriu."
+        for _ in range(tentativas):
             ok, q = cap.read()
             if ok and q is not None:
-                return q
-        return None
+                return q, ""
+            if getattr(cap, "morto", False):
+                break
+        return None, getattr(cap, "erro", "") or "A câmera não mandou imagem."
     finally:
         cap.release()
+
+
+def pega_imagem(url):
+    return imagem_e_erro(url)[0]
 
 
 def varrer(base, meu, portas):
@@ -624,9 +1085,44 @@ def portas_de_video(ip, completo=False):
     return [p for p in portas if any(resposta_rtsp(ip, c, p, 1.5) > 0 for c in CAMINHOS_TESTE)], portas
 
 
+def achou_camera(cfg, url, ip, img):
+    import cv2
+    if cfg.get("camera") != url:
+        cfg["area"] = []  # imagem nova: a área marcada antes não vale mais
+    cfg["camera"] = url
+    salvar_config(cfg)
+    foto = PASTA / "foto-camera.jpg"
+    cv2.imwrite(str(foto), img)
+    print(f"\nACHEI A CÂMERA: {ip} (imagem de {img.shape[1]}x{img.shape[0]}).")
+    print(f"Guardei o endereço no {ARQ_CONFIG.name} e tirei uma foto: {foto}")
+    if not cfg.get("area"):
+        print("Agora abra o marcar-area.bat e mostre com o mouse onde os carros passam.")
+
+
+def tentar_bubble(cfg, ip, porta, usuarios, relatorio):
+    """Vídeo direto das câmeras da EseeCloud. Devolve (url, pediu_senha)."""
+    pares = []
+    for u, s in usuarios:
+        if (u or "admin", s) not in pares:
+            pares.append((u or "admin", s))
+    pediu = False
+    for usuario, senha in pares:
+        url = (f"bubble://{urllib.parse.quote(usuario, safe='')}:{urllib.parse.quote(senha, safe='')}@{ip}:{porta}"
+               "/bubble/live?ch=0&stream=0")
+        img, erro = imagem_e_erro(url, 60)
+        if img is not None:
+            achou_camera(cfg, url, ip, img)
+            return url, False
+        if "não aceitou a senha" in erro:
+            pediu = True
+            continue
+        relatorio.append(f"  {ip}:{porta} (vídeo da EseeCloud): {erro}")
+        break
+    return None, pediu
+
+
 def tentar_camera(cfg, ip, porta, usuarios):
     """Tenta abrir o vídeo nessa porta. Devolve (url, pediu_senha)."""
-    import cv2
     codigos = {c: resposta_rtsp(ip, c, porta) for c in CAMINHOS}
     abertos = [c for c in CAMINHOS if codigos[c] == 200]
     pede = [c for c in CAMINHOS if codigos[c] == 401]
@@ -636,12 +1132,7 @@ def tentar_camera(cfg, ip, porta, usuarios):
         img = pega_imagem(url)
         if img is None:
             continue
-        cfg["camera"] = url
-        salvar_config(cfg)
-        foto = PASTA / "foto-camera.jpg"
-        cv2.imwrite(str(foto), img)
-        print(f"\nACHEI A CÂMERA: {ip} (imagem de {img.shape[1]}x{img.shape[0]}).")
-        print(f"Guardei o endereço no {ARQ_CONFIG.name} e tirei uma foto: {foto}")
+        achou_camera(cfg, url, ip, img)
         return url, False
     return None, bool(pede)
 
@@ -682,19 +1173,28 @@ def testar_aparelhos(cfg, ips, usuarios, completo, relatorio):
         if completo:
             print(f"Olhando todas as portas de {ip} (uns 30 segundos)...")
         video, portas = portas_de_video(ip, completo)
-        for porta in video:
-            print(f"A porta {porta} de {ip} responde como vídeo. Testando...")
-            url, pediu = tentar_camera(cfg, ip, porta, usuarios)
+        # Câmeras da EseeCloud (CMS of EseeCloud / IP Pro): o vídeo no formato delas, em qualquer porta aberta.
+        bubble = [p for p in portas if p not in video and resposta_bubble(ip, p)]
+        for porta in video + bubble:
+            print(f"A porta {porta} de {ip} responde como vídeo{' (EseeCloud)' if porta in bubble else ''}. Testando...")
+            if porta in bubble:
+                url, pediu = tentar_bubble(cfg, ip, porta, usuarios, relatorio)
+            else:
+                url, pediu = tentar_camera(cfg, ip, porta, usuarios)
             if url:
                 cfg["camera_ip"] = ip
                 salvar_config(cfg)
                 return url, pede
-            if pediu:
+            if pediu and ip not in pede:
                 pede.append(ip)
         if completo:
             relatorio.append(f"  {ip}: portas abertas {', '.join(map(str, portas)) or 'nenhuma'}; "
-                             f"respondem como vídeo: {', '.join(map(str, video)) or 'nenhuma'}")
+                             f"respondem como vídeo: {', '.join(map(str, video + bubble)) or 'nenhuma'}")
     return None, pede
+
+
+PLANO_B = ("Se o vídeo da câmera aparece no CMS of EseeCloud, use o usar-cms.bat: "
+           "o leitor lê as placas na janela do CMS (deixe o CMS aberto com a câmera).")
 
 
 def procurar(cfg, ip_camera="", senha_extra=""):
@@ -714,7 +1214,7 @@ def procurar(cfg, ip_camera="", senha_extra=""):
         salvar_config(cfg)
         # Código 3: o procurar-camera.bat pergunta a senha e tenta de novo.
         print(f"A câmera em {', '.join(ordenar_ips(ips))} pede senha." + (" Essa senha não abriu." if senha_extra else "") +
-              " É a senha que vocês criaram no aplicativo da câmera.")
+              " É a mesma senha que vocês usam no CMS of EseeCloud (ou no aplicativo da câmera).")
         raise SystemExit(3)
 
     if ip_camera:
@@ -757,7 +1257,7 @@ def procurar(cfg, ip_camera="", senha_extra=""):
         pediu_senha(pede)
     if vivos:
         anotar("A câmera está na rede, mas nenhuma porta dela mandou o vídeo para o computador:\n" + "\n".join(relatorio) +
-               "\nTire um print desta janela (ou mande o arquivo procurar.log) para o Arthur.")
+               "\n" + PLANO_B + "\nSe não der, tire um print desta janela (ou mande o arquivo procurar.log) para o Arthur.")
         raise SystemExit(1)
     if not sys.stdin or not sys.stdin.isatty():
         raise SystemExit("Confira se a câmera está ligada (fonte 12V) e com o cabo no roteador, e se este computador está na "
@@ -775,9 +1275,149 @@ def procurar(cfg, ip_camera="", senha_extra=""):
     if p:
         pediu_senha(p)
     anotar("A câmera está na rede, mas nenhuma porta dela mandou o vídeo para o computador:\n" + "\n".join(relatorio) +
-           "\nGuardei esses aparelhos: da próxima vez não precisa tirar da tomada.\n"
-           "Tire um print desta janela (ou mande o arquivo procurar.log) para o Arthur.")
+           "\nGuardei esses aparelhos: da próxima vez não precisa tirar da tomada.\n" + PLANO_B +
+           "\nSe não der, tire um print desta janela (ou mande o arquivo procurar.log) para o Arthur.")
     raise SystemExit(1)
+
+
+# ---------- Usar a janela do CMS e marcar a área dos carros ----------
+
+def usar_tela(cfg, titulo=""):
+    """Passa a ler as placas na janela do CMS of EseeCloud (a câmera aparecendo nele)."""
+    import cv2
+    titulo = (titulo or TITULO_CMS).strip()
+    if not windows():
+        raise SystemExit("Ler a tela só funciona no Windows.")
+    preparar_tela(acordado=False)
+    img, erro = capturar_tela(titulo)
+    if img is None:
+        raise SystemExit(erro)
+    url = "tela:" + titulo
+    if cfg.get("camera") != url:
+        cfg["area"] = []  # imagem nova: a área marcada antes não vale mais
+    cfg["camera"] = url
+    janelas = achar_janelas(titulo)
+    programa = programa_da_janela(janelas[0][0]) if janelas else ""
+    if programa:
+        cfg["cms_programa"] = programa  # para abrir o CMS sozinho se ele for fechado
+    salvar_config(cfg)
+    foto = PASTA / "foto-camera.jpg"
+    cv2.imwrite(str(foto), img)
+    print(f'Pronto! O leitor vai ler as placas na janela "{titulo}" ({img.shape[1]}x{img.shape[0]}).')
+    print(f"Tirei uma foto do que ele está vendo: {foto}")
+    print("Deixe o CMS aberto com o vídeo da câmera (pode ficar atrás de outras janelas, só não minimize).")
+    print("Agora abra o marcar-area.bat e mostre com o mouse onde os carros passam.")
+    return url
+
+
+def area_do_retangulo(x1, y1, x2, y2, largura, altura):
+    """Retângulo em pixels da imagem mostrada para frações [esquerda, topo, direita, baixo]."""
+    x1, x2 = sorted((max(0, min(x1, largura)), max(0, min(x2, largura))))
+    y1, y2 = sorted((max(0, min(y1, altura)), max(0, min(y2, altura))))
+    return [round(x1 / largura, 4), round(y1 / altura, 4), round(x2 / largura, 4), round(y2 / altura, 4)]
+
+
+def desenhar_area(img, area):
+    """A imagem com o resto escurecido e um retângulo verde em volta da área."""
+    import cv2
+    img = img.copy()
+    if area and len(area) == 4:
+        h, w = img.shape[:2]
+        x1, y1, x2, y2 = (int(round(v * t)) for v, t in zip(area, (w, h, w, h)))
+        escuro = (img * 0.4).astype(img.dtype)
+        escuro[y1:y2, x1:x2] = img[y1:y2, x1:x2]
+        img = escuro
+        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 220, 0), max(2, w // 400))
+    return img
+
+
+def marcar_area(cfg):
+    """Mostra a imagem da câmera para marcar com o mouse onde os carros passam. Guarda em "area"."""
+    import base64
+    import cv2
+    if not cfg.get("camera"):
+        raise SystemExit("Ainda não sei de onde vem a imagem da câmera. Rode o procurar-camera.bat (ou o usar-cms.bat) primeiro.")
+    print("Pegando uma imagem da câmera...")
+    preparar_tela(acordado=False)
+    img, erro = imagem_e_erro(cfg["camera"], 60)
+    if img is None:
+        raise SystemExit("Não consegui pegar a imagem da câmera. " + erro)
+    import tkinter as tk
+    h, w = img.shape[:2]
+    raiz = tk.Tk()
+    raiz.title("Marcar onde os carros passam - Blin Car")
+    escala = min(1.0, (raiz.winfo_screenwidth() - 60) / w, (raiz.winfo_screenheight() - 240) / h)
+    pw, ph = max(1, int(w * escala)), max(1, int(h * escala))
+    mostrar = cv2.resize(img, (pw, ph), interpolation=cv2.INTER_AREA) if escala < 1 else img
+    foto = tk.PhotoImage(data=base64.b64encode(cv2.imencode(".png", mostrar)[1].tobytes()).decode("ascii"))
+    tk.Label(raiz, font=("Segoe UI", 11), justify="left", wraplength=max(420, pw),
+             text="Arraste o mouse fazendo um retângulo em volta do lugar por onde os carros passam, com folga "
+                  "(a placa tem que caber inteira, do carro chegando até ele parar). Depois clique em Salvar."
+             ).pack(padx=10, pady=(8, 4), anchor="w")
+    tela = tk.Canvas(raiz, width=pw, height=ph, cursor="crosshair", highlightthickness=0)
+    tela.pack(padx=10)
+    tela.create_image(0, 0, image=foto, anchor="nw")
+    barra = tk.Frame(raiz)
+    barra.pack(fill="x", padx=10, pady=8)
+    aviso = tk.Label(barra, text="", fg="#b00000", font=("Segoe UI", 10))
+    aviso.pack(side="left")
+    estado = {"inicio": None, "area": list(cfg.get("area") or []), "resultado": None}
+
+    def desenhar(area):
+        tela.delete("ret")
+        if area:
+            tela.create_rectangle(area[0] * pw, area[1] * ph, area[2] * pw, area[3] * ph, outline="#00e000", width=3, tags="ret")
+
+    def apertou(e):
+        estado["inicio"] = (e.x, e.y)
+
+    def arrastou(e):
+        if estado["inicio"]:
+            desenhar(area_do_retangulo(*estado["inicio"], e.x, e.y, pw, ph))
+
+    def soltou(e):
+        if not estado["inicio"]:
+            return
+        area = area_do_retangulo(*estado["inicio"], e.x, e.y, pw, ph)
+        estado["inicio"] = None
+        if area[2] - area[0] < 0.03 or area[3] - area[1] < 0.03:
+            aviso.config(text="Ficou pequeno demais. Arraste de novo, com mais folga.")
+            desenhar(estado["area"])
+            return
+        estado["area"] = area
+        aviso.config(text="")
+        salvar.config(state="normal")
+        desenhar(area)
+
+    def fim(area):
+        estado["resultado"] = area
+        raiz.destroy()
+
+    tela.bind("<ButtonPress-1>", apertou)
+    tela.bind("<B1-Motion>", arrastou)
+    tela.bind("<ButtonRelease-1>", soltou)
+    fonte = ("Segoe UI", 11)
+    tk.Button(barra, text="Cancelar", font=fonte, command=raiz.destroy).pack(side="right", padx=4)
+    tk.Button(barra, text="Usar a imagem toda", font=fonte, command=lambda: fim([])).pack(side="right", padx=4)
+    salvar = tk.Button(barra, text="Salvar", font=fonte + ("bold",), command=lambda: fim(estado["area"]),
+                       state="normal" if estado["area"] else "disabled")
+    salvar.pack(side="right", padx=4)
+    desenhar(estado["area"])
+    raiz.mainloop()
+    if estado["resultado"] is None:
+        print("Cancelado: nada mudou.")
+        return None
+    cfg["area"] = estado["resultado"]
+    salvar_config(cfg)
+    previa = PASTA / "area-marcada.jpg"
+    cv2.imwrite(str(previa), desenhar_area(img, cfg["area"]))
+    if cfg["area"]:
+        lw, lh = round((cfg["area"][2] - cfg["area"][0]) * w), round((cfg["area"][3] - cfg["area"][1]) * h)
+        print(f"Área salva ({lw}x{lh} pixels). O leitor só vai olhar essa parte da imagem.")
+    else:
+        print("Pronto: o leitor vai olhar a imagem toda.")
+    print(f"Foto com a área marcada: {previa}")
+    return cfg["area"]
 
 
 # ---------- Verificar ----------
@@ -788,11 +1428,14 @@ def verificar(cfg):
     print("Configuração:", "OK" if not falta else "falta " + " e ".join(falta))
     ok &= not falta
     if cfg.get("camera"):
-        img = pega_imagem(cfg["camera"])
-        print("Câmera:", f"OK ({img.shape[1]}x{img.shape[0]})" if img is not None else "não abriu")
+        img, erro = imagem_e_erro(cfg["camera"])
+        de = " (janela do CMS)" if str(cfg["camera"]).startswith("tela:") else ""
+        print("Câmera:", f"OK{de} ({img.shape[1]}x{img.shape[0]})" if img is not None else f"não abriu{de}. {erro}")
         ok &= img is not None
+        if img is not None and not cfg.get("area"):
+            print("Área dos carros: não marcada (o marcar-area.bat ajuda a ler placas pequenas)")
     else:
-        print("Câmera: ainda não procurada (rode o procurar-camera.bat)")
+        print("Câmera: ainda não procurada (rode o procurar-camera.bat ou o usar-cms.bat)")
         ok = False
     if not falta:
         try:
@@ -813,6 +1456,9 @@ def main(args=None):
     p.add_argument("--testar", metavar="ARQUIVO", help="lê as placas de uma foto ou vídeo")
     p.add_argument("--preparar", action="store_true", help="baixa os arquivos da leitura de placas")
     p.add_argument("--verificar", action="store_true", help="confere configuração, câmera e planilha")
+    p.add_argument("--tela", nargs="?", const=TITULO_CMS, metavar="TÍTULO",
+                   help=f'lê as placas na janela do CMS (padrão: "{TITULO_CMS}")')
+    p.add_argument("--area", action="store_true", help="marca com o mouse onde os carros passam")
     p.add_argument("--escondido", action="store_true", help="sem janela (início com o Windows)")
     a = p.parse_args(args)
     cfg = ler_config()
@@ -829,6 +1475,12 @@ def main(args=None):
         return 0
     if a.verificar:
         return 0 if verificar(cfg) else 1
+    if a.tela is not None:
+        usar_tela(cfg, a.tela)
+        return 0
+    if a.area:
+        marcar_area(cfg)
+        return 0
     configurar_log(console=not a.escondido)
     try:
         rodar(cfg)
