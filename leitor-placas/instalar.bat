@@ -42,17 +42,15 @@ echo Pronto: na tomada ele nao dorme, e fechar a tampa nao desliga.
 :depoisenergia
 
 echo.
-if not exist "config-blincar.json" if not exist "%USERPROFILE%\Downloads\config-blincar.json" (
-  echo Falta o arquivo config-blincar.json.
-  echo No painel da Blin Car: aba Recebidos, botao Camera, "Ligar a camera".
-  echo Ele vai para a pasta Downloads. Depois abra o procurar-camera.bat.
-  echo.
-  pause
-  exit /b 0
-)
 echo Procurando a camera na rede...
 call "%~dp0procurar-camera.bat"
 echo.
+if not exist "config-blincar.json" if not exist "%USERPROFILE%\Downloads\config-blincar*.json" (
+  echo Falta baixar a configuracao no painel da Blin Car:
+  echo aba Recebidos, botao Camera, "Ligar a camera". Ela vai para a pasta Downloads
+  echo e o leitor pega de la sozinho.
+  echo.
+)
 echo Tudo instalado. Para ligar o leitor agora, abra o iniciar.bat.
 echo Nas proximas vezes ele liga sozinho quando o Windows ligar.
 pause

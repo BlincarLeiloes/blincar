@@ -46,8 +46,10 @@ testar-foto.bat      arraste uma foto ou vídeo de um carro em cima dele: mostra
                      as placas que ele consegue ler (bom para escolher o lugar
                      da câmera)
 parar.bat            desliga o leitor
-config-blincar.json  endereço da planilha, chave e câmera (não mande para
-                     ninguém: quem tiver a chave consegue mandar placas)
+config-blincar.json  endereço da planilha, chave e câmera. Não precisa mexer:
+                     o leitor pega sozinho o que o painel baixou na pasta
+                     Downloads. Não mande para ninguém (quem tiver a chave
+                     consegue mandar placas).
 fotos\               foto de cada carro que passou, por dia (apaga sozinho
                      depois de 30 dias)
 leitor.log           o que ele fez; mande para o Arthur se algo der errado

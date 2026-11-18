@@ -87,19 +87,36 @@ def pasta_downloads():
     return Path(os.environ.get("USERPROFILE") or Path.home()) / "Downloads"
 
 
+def config_baixada():
+    """O config-blincar.json mais novo que o painel baixou (o navegador pode chamar de "config-blincar (1).json")."""
+    try:
+        arqs = sorted(pasta_downloads().glob("config-blincar*.json"), key=lambda a: a.stat().st_mtime, reverse=True)
+    except OSError:
+        return {}
+    for arq in arqs:
+        try:
+            dados = json.loads(arq.read_text(encoding="utf-8-sig"))
+        except Exception:
+            continue
+        if dados.get("chave") and dados.get("planilha"):
+            return dados
+    return {}
+
+
 def ler_config():
-    """config-blincar.json da pasta do leitor. Se não tiver, pega o que o painel baixou na pasta Downloads."""
-    if not ARQ_CONFIG.exists():
-        baixado = pasta_downloads() / "config-blincar.json"
-        if baixado.exists():
-            shutil.copy(baixado, ARQ_CONFIG)
-            print(f"Copiei a configuração de {baixado}.")
+    """config-blincar.json da pasta do leitor, com o endereço da planilha e a chave do que o painel baixou por último
+    (na pasta Downloads). Não precisa mexer em nenhum dos dois arquivos."""
     cfg = dict(PADRAO)
     if ARQ_CONFIG.exists():
         try:
             cfg.update(json.loads(ARQ_CONFIG.read_text(encoding="utf-8-sig")))
         except Exception as e:
-            raise SystemExit(f"O arquivo {ARQ_CONFIG.name} está com defeito ({e}). Baixe de novo no painel: Recebidos > Câmera.")
+            raise SystemExit(f"O arquivo {ARQ_CONFIG.name} está com defeito ({e}). Apague ele e baixe de novo no painel: Recebidos > Câmera.")
+    baixada = config_baixada()
+    if baixada and (baixada["chave"] != cfg.get("chave") or baixada["planilha"] != cfg.get("planilha")):
+        cfg.update(planilha=baixada["planilha"], chave=baixada["chave"])
+        salvar_config(cfg)
+        print("Peguei a configuração que o painel baixou (pasta Downloads).")
     return cfg
 
 
