@@ -263,7 +263,7 @@ RESPOSTAS_LOGIN = {}  # "ip:porta" -> o começo da resposta da câmera ao login 
 class Bubble:
     """Lê o vídeo "bubble" e devolve as imagens como o OpenCV (umas 8 por segundo, sempre a mais nova)."""
 
-    LOGIN, VIDEO, ABRIR, CHEIA = 0x00, 0x01, 0x0A, 0x08
+    LOGIN, VIDEO, ABRIR, ABRIR_CANAL, CHEIA = 0x00, 0x01, 0x0A, 0x04, 0x08
 
     def __init__(self, url, tempo=6.0, conectar=True):
         u = urllib.parse.urlsplit(url)
@@ -353,6 +353,11 @@ class Bubble:
         self.dec = av.CodecContext.create("hevc" if h265 else "h264", "r")
         # Pede o vídeo (esse pedaço é em little-endian mesmo): canal, imagem, ligado, reservado.
         self._mandar(self.ABRIR, 0x0E16C2DF, struct.pack("<4I", self.canal, self.fluxo, 1, 0))
+        if self.fluxo == 0:
+            # Firmwares mais antigos só entendem o pedido antigo (canal, ligado). Vai separado para a câmera
+            # ler um de cada vez; quem entende os dois só abre a mesma imagem de novo.
+            time.sleep(0.3)
+            self._mandar(self.ABRIR_CANAL, 0x0E16C2DF, bytes([self.canal & 0xFF, 1]))
 
     def isOpened(self):
         return self.sock is not None and not self.morto
@@ -382,9 +387,13 @@ class Bubble:
                     return True, quadros[-1].to_ndarray(format="bgr24")
         except (OSError, ErroCamera) as e:
             self.erro = str(e) if isinstance(e, ErroCamera) else "A câmera parou de mandar imagem."
-            if self.login_duvidoso and not self.viu_video and "não aceita mais ninguém" not in self.erro:
-                self.senha_errada = True
-                self.erro = SENHA_ERRADA
+            sem_resposta = isinstance(e, OSError) or "fechou a conexão" in self.erro
+            if not self.viu_video and sem_resposta:
+                if self.login_duvidoso:
+                    self.senha_errada = True
+                    self.erro = SENHA_ERRADA
+                else:
+                    self.erro = "A câmera aceitou a senha, mas não mandou o vídeo."
             self.morto = True
             return False, None
 
