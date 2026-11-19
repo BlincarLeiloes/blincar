@@ -1,0 +1,8 @@
+# Leitor de placas: arquivos que só existem no computador da oficina
+leitor-placas/*.log
+leitor-placas/config-blincar.json
+leitor-placas/fila.jsonl
+leitor-placas/fotos/
+leitor-placas/*.jpg
+leitor-placas/.venv/
+__pycache__/
