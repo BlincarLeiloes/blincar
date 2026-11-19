@@ -7,15 +7,12 @@ echo    Leitor de placas da Blin Car - instalacao
 echo ==================================================
 echo.
 
-rem Python 3.10 a 3.13 (a leitura de placas ainda nao funciona em versao mais nova).
+rem Python 3.10 a 3.14: pelo "py", pelo "python" ou na pasta onde o instalador do site coloca.
 set "PY="
-for %%v in (3.12 3.13 3.11 3.10) do (
-  if not defined PY ( py -%%v -c "1" >nul 2>nul && set "PY=py -%%v" )
-)
-if not defined PY (
-  python -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,13) else 1)" >nul 2>nul && set "PY=python"
-)
+call :acharpython
 if not defined PY goto sempython
+
+:tempython
 
 echo [1/5] Preparando o Python desta pasta...
 if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto erro
@@ -58,17 +55,44 @@ echo Nas proximas vezes ele liga sozinho quando o Windows ligar.
 pause
 exit /b 0
 
-:sempython
-echo O Python (programa que o leitor usa) nao esta instalado. Vou instalar agora...
-winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements
-if errorlevel 1 (
-  echo.
-  echo Nao consegui instalar sozinho. Vou abrir o site do Python:
-  echo baixe o "Python 3.12" para Windows e, na instalacao, marque "Add python.exe to PATH".
-  start "" "https://www.python.org/downloads/windows/"
+:acharpython
+rem O novo py (Python install manager) pode perguntar se instala a versao: o echo n responde que nao.
+for %%v in (3.12 3.13 3.11 3.10 3.14) do (
+  if not defined PY ( echo n| py -%%v -c "1" >nul 2>nul && set "PY=py -%%v" )
 )
+if not defined PY (
+  python -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,14) else 1)" >nul 2>nul && set "PY=python"
+)
+for %%d in (Python312 Python313 Python311 Python310 Python314) do (
+  if not defined PY if exist "%LOCALAPPDATA%\Programs\Python\%%d\python.exe" set PY="%LOCALAPPDATA%\Programs\Python\%%d\python.exe"
+  if not defined PY if exist "%ProgramFiles%\%%d\python.exe" set PY="%ProgramFiles%\%%d\python.exe"
+)
+exit /b 0
+
+:sempython
+echo O Python (programa que o leitor usa) nao esta instalado.
+echo Vou baixar do site oficial e instalar sozinho (uns 30 MB, 1 ou 2 minutos)...
+set "INST=%TEMP%\python-blincar.exe"
+del "%INST%" >nul 2>nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12'; Invoke-WebRequest -UseBasicParsing -Uri 'https://www.python.org/ftp/python/3.14.10/python-3.14.10-amd64.exe' -OutFile $env:TEMP\python-blincar.exe"
+if exist "%INST%" (
+  echo Instalando o Python...
+  start "" /wait "%INST%" /quiet InstallAllUsers=0 InstallLauncherAllUsers=0 PrependPath=1 Include_launcher=1 Include_test=0
+  del "%INST%" >nul 2>nul
+)
+call :acharpython
+if defined PY (
+  echo Python instalado.
+  goto tempython
+)
+winget install -e --id Python.Python.3.13 --accept-package-agreements --accept-source-agreements >nul 2>nul
+call :acharpython
+if defined PY goto tempython
 echo.
-echo Quando o Python terminar de instalar, feche esta janela e abra o instalar.bat de novo.
+echo Nao consegui instalar sozinho. Vou abrir o site do Python:
+echo baixe o "Windows installer (64-bit)" do Python 3.14 (ou 3.13) e, na instalacao,
+echo marque "Add python.exe to PATH". Depois abra o instalar.bat de novo.
+start "" "https://www.python.org/downloads/windows/"
 pause
 exit /b 1
 
