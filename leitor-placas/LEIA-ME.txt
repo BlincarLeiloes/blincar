@@ -30,7 +30,7 @@ Fica ligado no computador da oficina, olhando a câmera. Tem dois jeitos
 Se o computador estiver desligado, nada se perde no painel: vocês marcam à mão,
 como sempre. Sem internet, ele guarda as leituras e manda quando voltar.
 
-Câmera ao vivo: no painel (aba Recebidos > "Ao vivo") dá para ver a câmera de
+Câmera ao vivo: no painel (aba Câmera) dá para ver a câmera ao vivo de
 qualquer lugar, com a senha do painel. O leitor manda o vídeo direto deste
 computador para o celular; se a rede do celular não deixar, manda uma imagem a
 cada segundo pela planilha. Só manda enquanto alguém está olhando. Para isso
@@ -41,7 +41,7 @@ clique em "Permitir": é o vídeo ao vivo.
 
 Instalar (uma vez)
 ------------------
-1) No painel da Blin Car: aba Recebidos > botão "Câmera" > "Ligar a câmera".
+1) No painel da Blin Car: aba Câmera > "Ligar a câmera".
    Baixa o arquivo config-blincar.json (vai para a pasta Downloads).
 2) No mesmo lugar, "Baixar o leitor de placas". Clique com o botão direito no
    leitor-placas.zip > "Extrair tudo..." e escolha uma pasta que não vai ser
@@ -159,16 +159,16 @@ Problemas
   celular (IP Pro) e espere 1 minuto.
 - "A janela do CMS está minimizada" / "Não achei a janela": só no plano B.
   Abra o CMS com o vídeo da câmera e não minimize.
-- "A planilha não aceitou a chave": no painel, Recebidos > Câmera >
+- "A planilha não aceitou a chave": no painel, aba Câmera >
   "Baixar a configuração de novo" e troque o config-blincar.json desta pasta.
-- No painel (Recebidos > Câmera) aparece se o leitor está ligado e vendo a
+- No painel (aba Câmera) aparece se o leitor está ligado e vendo a
   câmera, e as últimas placas lidas.
 
 Atualizar o leitor
 ------------------
 (Na versão 1.3, a do "Ao vivo", precisa abrir o instalar.bat de novo: ele
 instala a parte do vídeo ao vivo.)
-1) Baixe o leitor-placas.zip de novo no painel (Recebidos > Câmera).
+1) Baixe o leitor-placas.zip de novo no painel (aba Câmera).
 2) Botão direito no zip > Propriedades > marque "Desbloquear" > OK.
 3) Extraia por cima da pasta do leitor (substituir os arquivos). O
    config-blincar.json e as fotos continuam.

@@ -187,8 +187,10 @@ tr:last-child td{border-bottom:0}
 
 /* Abas */
 .abas{border-bottom:1px solid var(--line)}
-.abas-in{max-width:1120px;margin:0 auto;display:flex;gap:6px}
-.aba{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:600 1rem/1 var(--body);padding:14px 10px 11px;cursor:pointer}
+.abas-in{max-width:1120px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.abas-in::-webkit-scrollbar{display:none}
+.aba{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:600 1rem/1 var(--body);padding:14px 10px 11px;cursor:pointer;white-space:nowrap;flex:none}
+@media (max-width:519px){.abas-in{gap:0}.aba{padding:14px 8px 11px;font-size:.9375rem}}
 .aba:hover{color:var(--fg)}
 .aba[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--red)}
 .aba:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
@@ -519,7 +521,13 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 @media (max-width:600px){.dlg{width:100%;max-width:100%;margin:auto 0 0;border-radius:18px 18px 0 0;max-height:92dvh;padding-bottom:env(safe-area-inset-bottom,0px)}}
 .dlg-corpo{padding:18px;display:grid;gap:12px}
 .dlg-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.av-tela{position:relative;background:#000;border-radius:12px;aspect-ratio:16/9;overflow:hidden;display:grid;place-items:center;margin:12px 0}
+.av-tela{position:relative;background:#000;border-radius:12px;aspect-ratio:16/9;overflow:hidden;display:grid;place-items:center;margin:4px 0;cursor:zoom-in}
+.av-cab h2{margin:0;font-size:1.0625rem}
+.av-cab .sub{margin:4px 0 0}
+.av-tela:fullscreen,.av-tela.av-cheia{border-radius:0;aspect-ratio:auto;width:100%;height:100%;margin:0;cursor:zoom-out}
+.av-tela.av-cheia{position:fixed;inset:0;z-index:1000;width:100vw;height:100dvh}
+.av-sair{position:absolute;top:12px;right:12px;z-index:2;border:0;border-radius:999px;padding:10px 16px;font:600 .9375rem/1 var(--body);
+  background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
 .av-tela video,.av-tela img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .av-vazio{margin:0;padding:16px;color:#c9c7c2;font-size:.9375rem;text-align:center}
 .dlg-topo > div{display:grid;gap:2px}
@@ -570,6 +578,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     <button type="button" class="aba" role="tab" data-aba="agenda" aria-controls="agenda" aria-selected="false">Agenda</button>
     <button type="button" class="aba" role="tab" data-aba="clientes" aria-controls="clientes" aria-selected="false">Clientes</button>
     <button type="button" class="aba" role="tab" data-aba="recebidos" aria-controls="recebidos" aria-selected="false">Recebidos</button>
+    <button type="button" class="aba" role="tab" data-aba="camera" aria-controls="camera" aria-selected="false">Câmera</button>
   </div>
 </nav>
 
@@ -824,6 +833,33 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
     </section>
   </section>
 
+  <section class="painel" id="camera" hidden>
+    <div class="topo-painel">
+      <div>
+        <p class="eyebrow">Oficina · Blin Car</p>
+        <h1>Câmera</h1>
+      </div>
+    </div>
+    <section class="bloco av-bloco" aria-labelledby="avTitulo">
+      <div class="av-cab">
+        <h2 id="avTitulo">Ao vivo</h2>
+        <p class="sub" id="avSituacao" role="status">Conectando na câmera…</p>
+      </div>
+      <div class="av-tela" id="avTela">
+        <video id="avVideo" playsinline autoplay muted hidden></video>
+        <img id="avFoto" alt="Imagem da câmera da oficina" hidden>
+        <p class="av-vazio" id="avVazio">Esperando a primeira imagem…</p>
+        <button type="button" class="av-sair" id="avSair" hidden>Sair da tela cheia</button>
+      </div>
+      <div class="ag-acoes">
+        <button type="button" class="btn btn-red" id="avCheia">Tela cheia</button>
+        <button type="button" class="btn btn-line" id="avLigar">Pausar</button>
+      </div>
+      <p class="nota">A imagem vem do computador da oficina (o leitor de placas precisa estar ligado). Primeiro tenta o vídeo ao vivo, direto do computador para este aparelho; se a rede não deixar, mostra uma imagem a cada segundo. Só passa enquanto esta aba está aberta: no 4G gasta uns 3 MB por minuto. Nada é gravado.</p>
+    </section>
+    <section class="bloco" id="camCorpo" aria-labelledby="camTitulo"></section>
+  </section>
+
   <section class="painel" id="recebidos" hidden>
     <div class="topo-painel">
       <div>
@@ -833,8 +869,6 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
       <div class="filtros">
         <button type="button" class="mini" id="rcAtualizar">Atualizar</button>
         <button type="button" class="mini mini-icone" data-abrir-wa aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1.2-.5-2.3-1.6-2.8-2.8l.9-1-1-2z"/></svg>WhatsApp</button>
-        <button type="button" class="mini mini-icone" data-abrir-cam aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13.2" r="3.3"/></svg>Câmera</button>
-        <button type="button" class="mini mini-icone" data-abrir-aovivo aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>Ao vivo</button>
       </div>
     </div>
     <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp.</p>
@@ -864,24 +898,6 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
   <div class="dlg-corpo" id="pagCorpo"></div>
 </dialog>
 
-<dialog class="dlg dlg-largo" id="dlgCam" aria-labelledby="camTitulo">
-  <div class="dlg-corpo" id="camCorpo"></div>
-</dialog>
-
-<dialog class="dlg dlg-largo" id="dlgAoVivo" aria-labelledby="avTitulo">
-  <div class="dlg-corpo">
-    <div class="dlg-topo">
-      <div><h2 id="avTitulo">Câmera ao vivo</h2><p class="sub" id="avSituacao" role="status">Conectando na câmera…</p></div>
-      <button type="button" class="mini" data-av="fechar">Fechar</button>
-    </div>
-    <div class="av-tela">
-      <video id="avVideo" playsinline autoplay muted hidden></video>
-      <img id="avFoto" alt="Imagem da câmera da oficina" hidden>
-      <p class="av-vazio" id="avVazio">Esperando a primeira imagem…</p>
-    </div>
-    <p class="nota">A imagem vem do computador da oficina (o leitor de placas precisa estar ligado). Primeiro tenta o vídeo ao vivo, direto do computador para este aparelho; se a rede não deixar, mostra uma imagem a cada segundo. No 4G gasta uns 3 MB por minuto: feche quando terminar. Nada é gravado.</p>
-  </div>
-</dialog>
 
 <dialog class="dlg dlg-largo" id="dlgWa" aria-labelledby="waTitulo">
   <div class="dlg-corpo" id="waCorpo"></div>
@@ -1132,6 +1148,10 @@ function mostrarPainel(jaCarregado) {
 }
 
 function sair(msg) {
+  if (abaAtual === "camera") {
+    telaCheia(false);
+    pararAoVivo();
+  }
   senha = "";
   exemploLigado = false;
   dados = null;
@@ -1515,10 +1535,11 @@ document.addEventListener("click", e => {
 
 let abaAtual = "painel";
 
-const ABAS = ["painel", "agenda", "clientes", "recebidos"];
-const HASH_ABA = { painel: "#metricas", agenda: "#agenda", clientes: "#clientes", recebidos: "#recebidos" };
+const ABAS = ["painel", "agenda", "clientes", "recebidos", "camera"];
+const HASH_ABA = { painel: "#metricas", agenda: "#agenda", clientes: "#clientes", recebidos: "#recebidos", camera: "#camera" };
 
 function abrirAba(nome) {
+  const antes = abaAtual;
   abaAtual = ABAS.indexOf(nome) !== -1 ? nome : "painel";
   document.querySelectorAll("[data-aba]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === abaAtual)));
   ABAS.forEach(a => { $("#" + a).hidden = abaAtual !== a; });
@@ -1529,6 +1550,15 @@ function abrirAba(nome) {
   // Clientes e Recebidos buscam de novo a cada vez: mudam com a agenda e com o WhatsApp.
   if (abaAtual === "clientes") clCarregar();
   if (abaAtual === "recebidos") rcCarregar();
+  // Câmera: o ao vivo só passa com a aba aberta (gasta internet).
+  if (antes === "camera" && abaAtual !== "camera") {
+    telaCheia(false);
+    pararAoVivo();
+  }
+  if (abaAtual === "camera") {
+    abrirCamera();
+    if (!VIVO.ativo) abrirAoVivo();
+  }
 }
 
 document.querySelectorAll("[data-aba]").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
@@ -4226,7 +4256,7 @@ function rcDesenhar() {
       ? (cam.leitor.modo === "mao"
         ? "Câmera ligada: mostrem a placa na mão para a câmera. Carro que não chegou fica recebido; carro que já está aqui ganha a pergunta \"Está pronto?\"."
         : "Câmera do portão ligada: a chegada e a saída dos carros da agenda são marcadas sozinhas.")
-      : cam.online ? "O leitor de placas está ligado, mas não consegue ver a câmera. Toque em \"Câmera\" para ver o que houve."
+      : cam.online ? "O leitor de placas está ligado, mas não consegue ver a câmera. Veja o que houve na aba Câmera."
       : "O leitor de placas está desligado: a chegada e a saída não estão sendo marcadas sozinhas. Marquem aqui no painel.";
   }
   desenharFora(d);
@@ -4276,7 +4306,7 @@ $("#rcFora").addEventListener("click", e => {
   if (b.dataset.fora === "agendar") return agendarDaCamera(f);
   const sempre = b.dataset.fora === "nao_avisar";
   return rcAcao("agenda_camera_fora", { placa: f.placa, opcao: b.dataset.fora },
-    sempre ? `Pronto: a placa ${f.placa} não avisa mais. Para voltar a avisar, toque em "Câmera".` : `Placa ${f.placa} ignorada.`);
+    sempre ? `Pronto: a placa ${f.placa} não avisa mais. Para voltar a avisar: aba Câmera.` : `Placa ${f.placa} ignorada.`);
 });
 
 // Abre o agendamento de hoje com a placa, sinal R$ 0 e "sinal pago": ao salvar, o carro já entra como recebido.
@@ -4654,7 +4684,6 @@ async function abrirCamera() {
   CAM.erro = "";
   CAM.aviso = "";
   CAM.trocar = false;
-  if (!$("#dlgCam").open) $("#dlgCam").showModal();
   await camPedir("agenda_camera");
 }
 
@@ -4702,10 +4731,10 @@ function situacaoLeitor(d) {
 
 function desenharCamera() {
   const d = CAM.dados;
-  const corpo = [el("div", { class: "dlg-topo" },
-    el("div", {}, el("h2", { id: "camTitulo" }, "Câmera do portão"),
-      el("p", { class: "sub" }, "O leitor de placas, no computador da oficina, olha a câmera do portão. Carro da agenda que chega fica \"Carro recebido\" sozinho; quando ele sai, vocês recebem um e-mail e confirmam a entrega aqui na aba Recebidos.")),
-    el("button", { type: "button", class: "mini", "data-cam": "fechar" }, "Fechar"))];
+  const corpo = [el("div", {},
+    el("h2", { id: "camTitulo" }, "Leitor de placas"),
+    el("p", { class: "sub" }, "O leitor de placas, no computador da oficina, olha a câmera. Carro da agenda que chega fica \"Carro recebido\" sozinho; " +
+      "o que precisa de vocês aparece na aba Recebidos."))];
   if (!d) {
     corpo.push(CAM.erro ? el("p", { class: "err", role: "alert" }, CAM.erro) : el("p", { class: "nota" }, "Conferindo a câmera…"));
     return $("#camCorpo").replaceChildren(...corpo);
@@ -4753,13 +4782,10 @@ function desenharCamera() {
   $("#camCorpo").replaceChildren(...corpo);
 }
 
-document.querySelectorAll("[data-abrir-cam]").forEach(b => b.addEventListener("click", abrirCamera));
-$("#dlgCam").addEventListener("click", e => {
-  if (e.target === $("#dlgCam")) return $("#dlgCam").close();
+$("#camCorpo").addEventListener("click", e => {
   const b = e.target.closest("[data-cam]");
   if (!b) return;
   const acao = b.dataset.cam;
-  if (acao === "fechar") return $("#dlgCam").close();
   if (acao === "ligar") return camPedir("agenda_camera_ligar");
   if (acao === "atualizar") {
     CAM.aviso = "";
@@ -4776,7 +4802,6 @@ $("#dlgCam").addEventListener("click", e => {
     return camPedir("agenda_camera_fora", { placa: b.dataset.placa, opcao: "avisar" });
   }
 });
-$("#dlgCam").addEventListener("close", () => { if (RC.dados) rcCarregar(); });
 
 /* ---------- Câmera ao vivo ----------
    Pede para ver a cada segundo (assim o leitor sabe que alguém está olhando). Primeiro tenta o vídeo direto (WebRTC): o
@@ -4796,9 +4821,8 @@ function telaAV() {
 }
 
 async function abrirAoVivo() {
-  const dlg = $("#dlgAoVivo");
-  if (!dlg.open) dlg.showModal();
   pararAoVivo(false);
+  $("#avLigar").textContent = "Pausar";
   Object.assign(VIVO, { ativo: true, sessao: [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join(""),
     n: 0, inicio: Date.now(), video: false, foto: false, oferta: "", ultimaResposta: Date.now() });
   $("#avVazio").textContent = "Esperando a primeira imagem…";
@@ -4878,7 +4902,7 @@ async function pedirAV() {
     if (VIVO.pc && !VIVO.video && Date.now() - VIVO.inicio > 30000) desistirVideo();
     const desligado = !d.leitorOnline && !VIVO.foto && Date.now() - VIVO.inicio > 12000;
     if (desligado) $("#avVazio").textContent = "Sem imagem: o computador da oficina está desligado, sem internet ou o leitor de placas está fechado.";
-    situacaoAV(!d.ligada ? "A câmera ainda não foi ligada no painel (toque em \"Câmera\")."
+    situacaoAV(!d.ligada ? "A câmera ainda não foi ligada: toque em \"Ligar a câmera\", aqui embaixo."
       : VIVO.video ? "Ao vivo (vídeo direto do computador da oficina)."
       : desligado ? "O leitor de placas não está respondendo."
       : VIVO.foto ? (VIVO.pc ? "Uma imagem a cada segundo. Tentando o vídeo ao vivo…" : "Uma imagem a cada segundo (o vídeo direto não conectou nesta rede).")
@@ -4893,6 +4917,7 @@ function pararAoVivo(avisar = true) {
   const sessao = VIVO.sessao;
   const estava = VIVO.ativo;
   VIVO.ativo = false;
+  $("#avLigar").textContent = "Ver ao vivo";
   clearTimeout(VIVO.timer);
   clearInterval(VIVO.exemplo);
   desistirVideo();
@@ -4924,14 +4949,56 @@ function aoVivoExemplo() {
   situacaoAV("Exemplo: no painel de verdade aparece a câmera da oficina, ao vivo.");
 }
 
-document.querySelectorAll("[data-abrir-aovivo]").forEach(b => b.addEventListener("click", abrirAoVivo));
-$("#dlgAoVivo").addEventListener("click", e => {
-  if (e.target === $("#dlgAoVivo") || e.target.closest('[data-av="fechar"]')) $("#dlgAoVivo").close();
+$("#avLigar").addEventListener("click", () => {
+  if (VIVO.ativo) {
+    pararAoVivo();
+    situacaoAV("Pausado. Toque em \"Ver ao vivo\" para ver de novo.");
+  } else abrirAoVivo();
 });
-$("#dlgAoVivo").addEventListener("close", () => pararAoVivo());
+
+// Tela cheia: a do navegador quando dá; no iPhone, o vídeo em tela cheia ou a imagem ocupando a tela toda.
+const emTelaCheia = () => document.fullscreenElement === $("#avTela") || document.webkitFullscreenElement === $("#avTela") ||
+  $("#avTela").classList.contains("av-cheia");
+
+function telaCheia(entrar) {
+  const t = $("#avTela");
+  if (!entrar) {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    t.classList.remove("av-cheia");
+    return marcarTelaCheia();
+  }
+  if (!VIVO.ativo) abrirAoVivo();
+  const pedir = t.requestFullscreen || t.webkitRequestFullscreen;
+  const imitar = () => { t.classList.add("av-cheia"); marcarTelaCheia(); };
+  if (pedir) {
+    try {
+      const p = pedir.call(t);
+      if (p && p.then) p.then(() => { marcarTelaCheia(); try { screen.orientation.lock("landscape").catch(() => {}); } catch {} }, imitar);
+    } catch {
+      imitar();
+    }
+  } else if (VIVO.video && $("#avVideo").webkitEnterFullscreen) {
+    $("#avVideo").webkitEnterFullscreen();
+  } else imitar();
+}
+
+function marcarTelaCheia() {
+  const cheia = emTelaCheia();
+  $("#avSair").hidden = !cheia;
+  $("#avCheia").textContent = cheia ? "Sair da tela cheia" : "Tela cheia";
+}
+
+$("#avCheia").addEventListener("click", () => telaCheia(!emTelaCheia()));
+$("#avSair").addEventListener("click", e => { e.stopPropagation(); telaCheia(false); });
+$("#avTela").addEventListener("dblclick", () => telaCheia(!emTelaCheia()));
+document.addEventListener("fullscreenchange", marcarTelaCheia);
+document.addEventListener("webkitfullscreenchange", marcarTelaCheia);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#avTela").classList.contains("av-cheia")) telaCheia(false); });
+
 // Voltou para o painel depois de um tempo (celular bloqueado): começa de novo.
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && VIVO.ativo && !exemploLigado && Date.now() - VIVO.ultimaResposta > 25000) abrirAoVivo();
+  if (!document.hidden && VIVO.ativo && abaAtual === "camera" && !exemploLigado && Date.now() - VIVO.ultimaResposta > 25000) abrirAoVivo();
 });
 
 const WA = { dados: null, erro: "", ocupado: false };

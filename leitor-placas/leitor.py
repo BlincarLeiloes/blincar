@@ -132,7 +132,7 @@ def ler_config():
         try:
             cfg.update(json.loads(ARQ_CONFIG.read_text(encoding="utf-8-sig")))
         except Exception as e:
-            raise SystemExit(f"O arquivo {ARQ_CONFIG.name} está com defeito ({e}). Apague ele e baixe de novo no painel: Recebidos > Câmera.")
+            raise SystemExit(f"O arquivo {ARQ_CONFIG.name} está com defeito ({e}). Apague ele e baixe de novo no painel: aba Câmera.")
     baixada = config_baixada()
     if baixada and (baixada["chave"] != cfg.get("chave") or baixada["planilha"] != cfg.get("planilha")):
         cfg.update(planilha=baixada["planilha"], chave=baixada["chave"])
@@ -204,7 +204,7 @@ class Envio(threading.Thread):
             return False
         if r.get("ok") is False and r.get("erro") == "chave":
             if not self.chave_errada:
-                log.info("A planilha não aceitou a chave. No painel, Recebidos > Câmera > \"Baixar a configuração de novo\" e troque o config-blincar.json.")
+                log.info("A planilha não aceitou a chave. No painel, aba Câmera > \"Baixar a configuração de novo\" e troque o config-blincar.json.")
             self.chave_errada = True
             return True
         self.chave_errada = False
@@ -227,7 +227,7 @@ class Envio(threading.Thread):
                     r = enviar(self.cfg, {"acao": "camera_ping", "camera": self.estado["camera_ok"], "erro": self.estado["camera_erro"],
                                           "modo": self.cfg.get("contar", "mao")})
                     if r.get("ok") is False and r.get("erro") == "chave":
-                        log.info("A planilha não aceitou a chave. Baixe a configuração de novo no painel (Recebidos > Câmera).")
+                        log.info("A planilha não aceitou a chave. Baixe a configuração de novo no painel (aba Câmera).")
                 except Exception as e:
                     log.info(f"Sem conexão com a planilha ({e}).")
             if agora - ultima_fila >= self.cfg["segundos_fila"]:
@@ -1051,7 +1051,7 @@ def apitar():
 def rodar(cfg):
     falta = faltando(cfg)
     if falta:
-        raise SystemExit("Falta " + " e ".join(falta) + ". No painel: Recebidos > Câmera > \"Ligar a câmera\" baixa o config-blincar.json. "
+        raise SystemExit("Falta " + " e ".join(falta) + ". No painel: aba Câmera > \"Ligar a câmera\" baixa o config-blincar.json. "
                          "Coloque ele nesta pasta (ou deixe na pasta Downloads).")
     if not cfg.get("camera"):
         raise SystemExit("Ainda não sei o endereço da câmera. Rode o procurar-camera.bat primeiro "

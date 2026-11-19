@@ -47,7 +47,7 @@ call "%~dp0procurar-camera.bat"
 echo.
 if not exist "config-blincar.json" if not exist "%USERPROFILE%\Downloads\config-blincar*.json" (
   echo Falta baixar a configuracao no painel da Blin Car:
-  echo aba Recebidos, botao Camera, "Ligar a camera". Ela vai para a pasta Downloads
+  echo aba Camera, "Ligar a camera". Ela vai para a pasta Downloads
   echo e o leitor pega de la sozinho.
   echo.
 )
