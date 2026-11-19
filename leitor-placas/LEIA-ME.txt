@@ -49,8 +49,8 @@ Instalar (uma vez)
 3) A câmera: fonte 12V dela e cabo de rede no roteador. O computador precisa
    estar na internet desse mesmo roteador (cabo ou Wi-Fi).
 4) Abra o instalar.bat (dois cliques). Ele:
-   - instala o Python sozinho, se faltar (aceita do 3.10 ao 3.14; se já tiver
-     um instalado, usa ele);
+   - instala o Python sozinho, se faltar (precisa ser o de 64 bits, do 3.10 ao
+     3.14; se já tiver um assim, usa ele; o de 32 bits não serve);
    - instala a leitura de placas (alguns minutos, precisa de internet);
    - faz o leitor ligar junto com o Windows;
    - pergunta se pode deixar o computador sem dormir na tomada (diga S);

@@ -7,7 +7,15 @@ echo    Leitor de placas da Blin Car - instalacao
 echo ==================================================
 echo.
 
-rem Python 3.10 a 3.14: pelo "py", pelo "python" ou na pasta onde o instalador do site coloca.
+if /i "%PROCESSOR_ARCHITECTURE%"=="x86" if not defined PROCESSOR_ARCHITEW6432 (
+  echo Este Windows e de 32 bits. O leitor de placas precisa de Windows 64 bits.
+  pause
+  exit /b 1
+)
+
+rem Python de 64 bits, do 3.10 ao 3.14 (a leitura de placas nao existe para Python de 32 bits):
+rem pelo "py", pelo "python" ou na pasta onde o instalador do site coloca.
+set "CONF=import sys; sys.exit(0 if sys.maxsize > 2**32 and (3,10) <= sys.version_info[:2] <= (3,14) else 1)"
 set "PY="
 call :acharpython
 if not defined PY goto sempython
@@ -15,6 +23,10 @@ if not defined PY goto sempython
 :tempython
 
 echo [1/5] Preparando o Python desta pasta...
+rem Pasta .venv feita com um Python errado (32 bits ou versao que nao serve): apaga e faz de novo.
+if exist ".venv\Scripts\python.exe" (
+  ".venv\Scripts\python.exe" -c "%CONF%" >nul 2>nul || rmdir /s /q ".venv"
+)
 if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto erro
 
 echo [2/5] Instalando a leitura de placas (pode levar alguns minutos)...
@@ -58,20 +70,20 @@ exit /b 0
 :acharpython
 rem O novo py (Python install manager) pode perguntar se instala a versao: o echo n responde que nao.
 for %%v in (3.12 3.13 3.11 3.10 3.14) do (
-  if not defined PY ( echo n| py -%%v -c "1" >nul 2>nul && set "PY=py -%%v" )
+  if not defined PY ( echo n| py -%%v -c "%CONF%" >nul 2>nul && set "PY=py -%%v" )
 )
 if not defined PY (
-  python -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,14) else 1)" >nul 2>nul && set "PY=python"
+  python -c "%CONF%" >nul 2>nul && set "PY=python"
 )
 for %%d in (Python312 Python313 Python311 Python310 Python314) do (
-  if not defined PY if exist "%LOCALAPPDATA%\Programs\Python\%%d\python.exe" set PY="%LOCALAPPDATA%\Programs\Python\%%d\python.exe"
-  if not defined PY if exist "%ProgramFiles%\%%d\python.exe" set PY="%ProgramFiles%\%%d\python.exe"
+  if not defined PY if exist "%LOCALAPPDATA%\Programs\Python\%%d\python.exe" "%LOCALAPPDATA%\Programs\Python\%%d\python.exe" -c "%CONF%" >nul 2>nul && set PY="%LOCALAPPDATA%\Programs\Python\%%d\python.exe"
+  if not defined PY if exist "%ProgramFiles%\%%d\python.exe" "%ProgramFiles%\%%d\python.exe" -c "%CONF%" >nul 2>nul && set PY="%ProgramFiles%\%%d\python.exe"
 )
 exit /b 0
 
 :sempython
-echo O Python (programa que o leitor usa) nao esta instalado.
-echo Vou baixar do site oficial e instalar sozinho (uns 30 MB, 1 ou 2 minutos)...
+echo Nao achei o Python de 64 bits (programa que o leitor usa). O de 32 bits nao serve.
+echo Vou baixar o certo do site oficial e instalar sozinho (uns 30 MB, 1 ou 2 minutos)...
 set "INST=%TEMP%\python-blincar.exe"
 del "%INST%" >nul 2>nul
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12'; Invoke-WebRequest -UseBasicParsing -Uri 'https://www.python.org/ftp/python/3.14.10/python-3.14.10-amd64.exe' -OutFile $env:TEMP\python-blincar.exe"
@@ -90,7 +102,7 @@ call :acharpython
 if defined PY goto tempython
 echo.
 echo Nao consegui instalar sozinho. Vou abrir o site do Python:
-echo baixe o "Windows installer (64-bit)" do Python 3.14 (ou 3.13) e, na instalacao,
+echo baixe o "Windows installer (64-bit)" do Python 3.14 (ou 3.13), NAO o de 32-bit, e na instalacao
 echo marque "Add python.exe to PATH". Depois abra o instalar.bat de novo.
 start "" "https://www.python.org/downloads/windows/"
 pause
