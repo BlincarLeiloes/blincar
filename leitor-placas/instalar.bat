@@ -32,6 +32,9 @@ if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto erro
 echo [2/5] Instalando a leitura de placas (pode levar alguns minutos)...
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -q --upgrade pip
 ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt || goto erro
+rem A leitura de placas (onnxruntime) precisa do Microsoft Visual C++. Computador que nunca teve: instala.
+".venv\Scripts\python.exe" -c "import onnxruntime" >nul 2>nul || call :vcredist
+".venv\Scripts\python.exe" -c "import onnxruntime" >nul 2>nul || goto semvc
 
 echo [3/5] Baixando os arquivos da leitura de placas...
 ".venv\Scripts\python.exe" leitor.py --preparar || goto erro
@@ -105,6 +108,26 @@ echo Nao consegui instalar sozinho. Vou abrir o site do Python:
 echo baixe o "Windows installer (64-bit)" do Python 3.14 (ou 3.13), NAO o de 32-bit, e na instalacao
 echo marque "Add python.exe to PATH". Depois abra o instalar.bat de novo.
 start "" "https://www.python.org/downloads/windows/"
+pause
+exit /b 1
+
+:vcredist
+echo.
+echo Falta uma peca do Windows: o Microsoft Visual C++. Vou baixar e instalar.
+echo Se o Windows perguntar se pode fazer alteracoes, clique em Sim.
+set "VC=%TEMP%\vc_redist.x64.exe"
+del "%VC%" >nul 2>nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12'; Invoke-WebRequest -UseBasicParsing -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile $env:TEMP\vc_redist.x64.exe"
+if exist "%VC%" start "" /wait "%VC%" /install /passive /norestart
+del "%VC%" >nul 2>nul
+exit /b 0
+
+:semvc
+echo.
+echo Nao consegui instalar o Microsoft Visual C++ sozinho. Vou abrir o link da Microsoft:
+echo baixe, instale e depois abra o instalar.bat de novo.
+echo https://aka.ms/vs/17/release/vc_redist.x64.exe
+start "" "https://aka.ms/vs/17/release/vc_redist.x64.exe"
 pause
 exit /b 1
 

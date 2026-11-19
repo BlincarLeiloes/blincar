@@ -51,6 +51,8 @@ Instalar (uma vez)
 4) Abra o instalar.bat (dois cliques). Ele:
    - instala o Python sozinho, se faltar (precisa ser o de 64 bits, do 3.10 ao
      3.14; se já tiver um assim, usa ele; o de 32 bits não serve);
+   - instala o Microsoft Visual C++ (peça do Windows que a leitura de placas
+     usa), se faltar: se o Windows perguntar, clique em Sim;
    - instala a leitura de placas (alguns minutos, precisa de internet);
    - faz o leitor ligar junto com o Windows;
    - pergunta se pode deixar o computador sem dormir na tomada (diga S);
