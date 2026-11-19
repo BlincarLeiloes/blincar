@@ -15,7 +15,10 @@ Uso (os arquivos .bat da pasta fazem isso):
   python leitor.py --modo        escolhe o que conta: placa mostrada na mão ou carros entrando e saindo
 """
 import argparse
+import asyncio
+import base64
 import concurrent.futures
+import fractions
 import json
 import logging
 import logging.handlers
@@ -37,7 +40,7 @@ from pathlib import Path
 
 import placas
 
-VERSAO = "1.2"
+VERSAO = "1.3"
 PASTA = Path(__file__).resolve().parent
 ARQ_CONFIG = PASTA / "config-blincar.json"
 ARQ_FILA = PASTA / "fila.jsonl"
@@ -66,6 +69,9 @@ PADRAO = {
     "ponto": [],
     "placa_na_mao": 0.05,
     "segundos_mao": 2,
+    # Câmera ao vivo no painel: vídeo direto (WebRTC) e, se não der, uma imagem atrás da outra pela planilha.
+    "ao_vivo": True,
+    "stun": ["stun:stun.l.google.com:19302"],
     "dias_guardar_fotos": 30,
     "minutos_ping": 5,
     "segundos_fila": 60,
@@ -395,7 +401,7 @@ class Bubble:
                     quadros = self.dec.decode(av.Packet(p[6:]))
                 except av.error.FFmpegError:
                     continue
-                if quadros and time.time() - self.entregue >= 0.12:
+                if quadros and time.time() - self.entregue >= 0.08:
                     self.entregue = time.time()
                     return True, quadros[-1].to_ndarray(format="bgr24")
         except (OSError, ErroCamera) as e:
@@ -729,6 +735,162 @@ class Camera(threading.Thread):
         self.estado.update(camera_ok=False, camera_erro=msg)
 
 
+# ---------- Câmera ao vivo no painel ----------
+
+def reduzir(img, largura=640):
+    """A imagem com essa largura (e altura par, que o vídeo exige)."""
+    import cv2
+    h, w = img.shape[:2]
+    if w <= largura and w % 2 == 0 and h % 2 == 0:
+        return img
+    nw = min(largura, w) // 2 * 2
+    nh = max(2, int(round(h * nw / w / 2)) * 2)
+    return cv2.resize(img, (nw, nh), interpolation=cv2.INTER_AREA)
+
+
+def foto_ao_vivo(img, maximo=90000):
+    """JPEG em base64 que cabe no cache da planilha (diminui a qualidade se precisar)."""
+    import cv2
+    img = reduzir(img, 640)
+    for qualidade in (70, 55, 40, 30):
+        ok, jpg = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, qualidade])
+        if ok:
+            b64 = base64.b64encode(jpg.tobytes()).decode("ascii")
+            if len(b64) <= maximo:
+                return b64
+    return ""
+
+
+def trilha_camera(pegar, fps=12, largura=640):
+    """O vídeo que vai para o painel (WebRTC): a imagem mais nova da câmera, fps vezes por segundo."""
+    import av
+    import numpy as np
+    from aiortc import VideoStreamTrack
+
+    class Trilha(VideoStreamTrack):
+        async def recv(self):
+            if not hasattr(self, "_inicio"):
+                self._inicio, self._pts = time.time(), 0
+            else:
+                self._pts += int(90000 / fps)
+                espera = self._inicio + self._pts / 90000 - time.time()
+                if espera > 0:
+                    await asyncio.sleep(espera)
+            img = pegar()
+            img = reduzir(img, largura) if img is not None else np.zeros((360, 640, 3), np.uint8)
+            quadro = av.VideoFrame.from_ndarray(img, format="bgr24")
+            quadro.pts, quadro.time_base = self._pts, fractions.Fraction(1, 90000)
+            return quadro
+    return Trilha()
+
+
+class AoVivo(threading.Thread):
+    """Enquanto alguém olha a câmera no painel: responde o pedido de vídeo direto (WebRTC: o vídeo vai do computador para
+    o celular sem passar pela planilha) e, para quem ainda não está no vídeo, manda uma imagem atrás da outra pela planilha.
+    Sem ninguém olhando, só pergunta a cada 4 segundos (de dia e de noite: dá para olhar a oficina de casa)."""
+
+    def __init__(self, cfg, pegar):
+        super().__init__(daemon=True)
+        self.cfg, self.pegar = cfg, pegar
+        self.parar = threading.Event()
+        self.n = 0
+        self.conexoes, self.ligadas = {}, set()
+        self.loop = None
+        self.sem_webrtc = False
+
+    def run(self):
+        respostas, sessoes, ver, falhas = [], [], False, 0
+        while not self.parar.is_set():
+            corpo = {"acao": "camera_ao_vivo"}
+            if ver and not (sessoes and all(s in self.ligadas for s in sessoes)):
+                img = self.pegar()
+                foto = foto_ao_vivo(img) if img is not None else ""
+                if foto:
+                    self.n += 1
+                    corpo.update(foto=foto, fotoN=self.n)
+            if respostas:
+                corpo["respostas"] = respostas
+            try:
+                r = enviar(self.cfg, corpo, tempo=20)
+                respostas, falhas = [], 0
+            except Exception:
+                falhas += 1
+                self.parar.wait(min(60, 5 * falhas))
+                continue
+            if not r.get("ok"):
+                self.parar.wait(60)
+                continue
+            ver, sessoes = bool(r.get("ver")), list(r.get("sessoes") or [])
+            self._fechar_menos(sessoes)
+            for o in r.get("ofertas") or []:
+                sdp = self._responder(str(o.get("sessao", "")), str(o.get("sdp", "")))
+                if sdp:
+                    respostas.append({"sessao": o["sessao"], "sdp": sdp})
+            if respostas:
+                continue
+            if ver:
+                self.parar.wait(0.25)
+            else:
+                self.parar.wait(4)
+        self._fechar_menos([])
+
+    def _no_loop(self, coro, tempo=30):
+        return asyncio.run_coroutine_threadsafe(coro, self.loop).result(timeout=tempo)
+
+    def _responder(self, sessao, oferta):
+        if self.loop is None:
+            import importlib.util
+            if importlib.util.find_spec("aiortc") is None:
+                if not self.sem_webrtc:
+                    log.info("Vídeo ao vivo direto: falta uma parte do leitor (aiortc). Rode o instalar.bat de novo. Por enquanto vão só imagens.")
+                self.sem_webrtc = True
+                return None
+            self.loop = asyncio.new_event_loop()
+            threading.Thread(target=self.loop.run_forever, daemon=True).start()
+        try:
+            return self._no_loop(self._responder_async(sessao, oferta))
+        except Exception as e:
+            log.info(f"Vídeo ao vivo direto: não deu para responder o painel ({e}). Vão as imagens.")
+            return None
+
+    async def _responder_async(self, sessao, oferta):
+        from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
+        velha = self.conexoes.pop(sessao, None)
+        if velha:
+            await velha.close()
+        pc = RTCPeerConnection(RTCConfiguration(iceServers=[RTCIceServer(urls=u) for u in (self.cfg.get("stun") or [])]))
+        self.conexoes[sessao] = pc
+
+        @pc.on("connectionstatechange")
+        async def mudou():
+            if pc.connectionState == "connected":
+                self.ligadas.add(sessao)
+                log.info("Vídeo ao vivo conectado direto com o painel.")
+            elif pc.connectionState in ("failed", "closed"):
+                self.ligadas.discard(sessao)
+                if self.conexoes.get(sessao) is pc:
+                    del self.conexoes[sessao]
+                if pc.connectionState == "failed":
+                    log.info("Vídeo ao vivo direto não conectou (a rede do celular não deixou). Vão as imagens.")
+                    await pc.close()
+
+        await pc.setRemoteDescription(RTCSessionDescription(sdp=oferta, type="offer"))
+        pc.addTrack(trilha_camera(self.pegar))
+        await pc.setLocalDescription(await pc.createAnswer())
+        return pc.localDescription.sdp
+
+    def _fechar_menos(self, sessoes):
+        """Fecha o vídeo de quem não está mais olhando."""
+        for s in [s for s in list(self.conexoes) if s not in sessoes]:
+            pc = self.conexoes.pop(s, None)
+            self.ligadas.discard(s)
+            if pc is not None and self.loop is not None:
+                try:
+                    self._no_loop(pc.close(), 10)
+                except Exception:
+                    pass
+
+
 # ---------- Leitura das placas ----------
 
 def carregar_alpr(cfg):
@@ -902,12 +1064,17 @@ def rodar(cfg):
         raise SystemExit("O leitor já está ligado neste computador.")
 
     log.info(f"Leitor de placas Blin Car {VERSAO} ligando...")
-    alpr = carregar_alpr(cfg)
     estado = {"camera_ok": False, "camera_erro": "Conectando na câmera..."}
     envio = Envio(cfg, estado)
     envio.start()
     cam = Camera(cfg["camera"], estado)
     cam.start()
+    atual = {"cam": cam}
+    # O ao vivo já funciona enquanto a leitura de placas carrega (leva uns segundos).
+    aovivo = AoVivo(cfg, lambda: atual["cam"].ultimo()[0]) if cfg.get("ao_vivo", True) else None
+    if aovivo:
+        aovivo.start()
+    alpr = carregar_alpr(cfg)
     mov = Movimento()
     passagens = placas.Passagens(pausa=cfg["segundos_fim_passagem"], min_leituras=cfg["min_leituras"],
                                  so_andando=bool(cfg.get("so_carro_andando", True)))
@@ -944,6 +1111,7 @@ def rodar(cfg):
                     cam.parar.set()
                     cam = Camera(cfg["camera"], estado)
                     cam.start()
+                    atual["cam"] = cam
             quadro, quando = cam.ultimo()
             if quadro is not None and quando != ultimo_quadro:
                 ultimo_quadro = quando
@@ -1012,6 +1180,8 @@ def rodar(cfg):
     finally:
         cam.parar.set()
         envio.parar.set()
+        if aovivo:
+            aovivo.parar.set()
 
 
 # ---------- Testar uma foto ou vídeo ----------

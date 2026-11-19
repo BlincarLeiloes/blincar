@@ -519,6 +519,9 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 @media (max-width:600px){.dlg{width:100%;max-width:100%;margin:auto 0 0;border-radius:18px 18px 0 0;max-height:92dvh;padding-bottom:env(safe-area-inset-bottom,0px)}}
 .dlg-corpo{padding:18px;display:grid;gap:12px}
 .dlg-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.av-tela{position:relative;background:#000;border-radius:12px;aspect-ratio:16/9;overflow:hidden;display:grid;place-items:center;margin:12px 0}
+.av-tela video,.av-tela img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.av-vazio{margin:0;padding:16px;color:#c9c7c2;font-size:.9375rem;text-align:center}
 .dlg-topo > div{display:grid;gap:2px}
 .dlg h2{margin:0}
 .dlg h3{margin:0;font-size:1rem}
@@ -831,6 +834,7 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
         <button type="button" class="mini" id="rcAtualizar">Atualizar</button>
         <button type="button" class="mini mini-icone" data-abrir-wa aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 20.5l1.3-4.2A8.5 8.5 0 1 1 8 19.4z"/><path d="M9 8.5c0 3 2.5 6.5 6.5 6.5l1-1.6-2-1-1 .9c-1.2-.5-2.3-1.6-2.8-2.8l.9-1-1-2z"/></svg>WhatsApp</button>
         <button type="button" class="mini mini-icone" data-abrir-cam aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13.2" r="3.3"/></svg>Câmera</button>
+        <button type="button" class="mini mini-icone" data-abrir-aovivo aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13" height="12" rx="2"/><path d="M15.5 10.5l6-3.5v10l-6-3.5z"/></svg>Ao vivo</button>
       </div>
     </div>
     <p class="nota">Os carros marcados como "Carro recebido" e ainda não entregues. Daqui vocês avisam o cliente que o carro está pronto, pelo WhatsApp.</p>
@@ -862,6 +866,21 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 
 <dialog class="dlg dlg-largo" id="dlgCam" aria-labelledby="camTitulo">
   <div class="dlg-corpo" id="camCorpo"></div>
+</dialog>
+
+<dialog class="dlg dlg-largo" id="dlgAoVivo" aria-labelledby="avTitulo">
+  <div class="dlg-corpo">
+    <div class="dlg-topo">
+      <div><h2 id="avTitulo">Câmera ao vivo</h2><p class="sub" id="avSituacao" role="status">Conectando na câmera…</p></div>
+      <button type="button" class="mini" data-av="fechar">Fechar</button>
+    </div>
+    <div class="av-tela">
+      <video id="avVideo" playsinline autoplay muted hidden></video>
+      <img id="avFoto" alt="Imagem da câmera da oficina" hidden>
+      <p class="av-vazio" id="avVazio">Esperando a primeira imagem…</p>
+    </div>
+    <p class="nota">A imagem vem do computador da oficina (o leitor de placas precisa estar ligado). Primeiro tenta o vídeo ao vivo, direto do computador para este aparelho; se a rede não deixar, mostra uma imagem a cada segundo. No 4G gasta uns 3 MB por minuto: feche quando terminar. Nada é gravado.</p>
+  </div>
 </dialog>
 
 <dialog class="dlg dlg-largo" id="dlgWa" aria-labelledby="waTitulo">
@@ -4758,6 +4777,162 @@ $("#dlgCam").addEventListener("click", e => {
   }
 });
 $("#dlgCam").addEventListener("close", () => { if (RC.dados) rcCarregar(); });
+
+/* ---------- Câmera ao vivo ----------
+   Pede para ver a cada segundo (assim o leitor sabe que alguém está olhando). Primeiro tenta o vídeo direto (WebRTC): o
+   navegador manda o pedido pela planilha, o leitor responde, e o vídeo vai do computador da oficina direto para cá. Enquanto
+   isso (ou se a rede não deixar), mostra as imagens que o leitor manda pela planilha. */
+
+const VIVO = { ativo: false, sessao: "", pc: null, oferta: "", timer: 0, n: 0, inicio: 0, video: false, foto: false, ultimaResposta: 0, exemplo: 0 };
+
+function situacaoAV(texto) {
+  $("#avSituacao").textContent = texto;
+}
+
+function telaAV() {
+  $("#avVideo").hidden = !VIVO.video;
+  $("#avFoto").hidden = VIVO.video || !VIVO.foto;
+  $("#avVazio").hidden = VIVO.video || VIVO.foto;
+}
+
+async function abrirAoVivo() {
+  const dlg = $("#dlgAoVivo");
+  if (!dlg.open) dlg.showModal();
+  pararAoVivo(false);
+  Object.assign(VIVO, { ativo: true, sessao: [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join(""),
+    n: 0, inicio: Date.now(), video: false, foto: false, oferta: "", ultimaResposta: Date.now() });
+  $("#avVazio").textContent = "Esperando a primeira imagem…";
+  telaAV();
+  situacaoAV("Conectando na câmera…");
+  if (exemploLigado) return aoVivoExemplo();
+  try {
+    VIVO.oferta = await ofertaVideo();
+  } catch {
+    desistirVideo();
+  }
+  if (VIVO.ativo) pedirAV();
+}
+
+// O pedido de vídeo do navegador (com os caminhos de rede que ele achou em até 2,5 segundos).
+async function ofertaVideo() {
+  if (!window.RTCPeerConnection) return "";
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+  VIVO.pc = pc;
+  pc.addTransceiver("video", { direction: "recvonly" });
+  pc.ontrack = e => {
+    const v = $("#avVideo");
+    v.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
+    v.play().catch(() => {});
+  };
+  pc.onconnectionstatechange = () => { if (VIVO.pc === pc && pc.connectionState === "failed") desistirVideo(); };
+  await pc.setLocalDescription(await pc.createOffer());
+  await new Promise(pronto => {
+    if (pc.iceGatheringState === "complete") return pronto();
+    const t = setTimeout(pronto, 2500);
+    pc.addEventListener("icegatheringstatechange", () => { if (pc.iceGatheringState === "complete") { clearTimeout(t); pronto(); } });
+  });
+  return pc.localDescription.sdp;
+}
+
+function desistirVideo() {
+  if (VIVO.pc) {
+    try { VIVO.pc.close(); } catch {}
+  }
+  VIVO.pc = null;
+  VIVO.video = false;
+  $("#avVideo").srcObject = null;
+  telaAV();
+}
+
+$("#avVideo").addEventListener("playing", () => {
+  if (!VIVO.ativo || !VIVO.pc) return;
+  VIVO.video = true;
+  telaAV();
+  situacaoAV("Ao vivo (vídeo direto do computador da oficina).");
+});
+
+async function pedirAV() {
+  if (!VIVO.ativo) return;
+  clearTimeout(VIVO.timer);
+  const esperandoResposta = VIVO.pc && VIVO.pc.signalingState === "have-local-offer";
+  let d = null;
+  try {
+    d = await agendaPedir("agenda_camera_ao_vivo", { sessao: VIVO.sessao, n: VIVO.n, ...(esperandoResposta && VIVO.oferta ? { oferta: VIVO.oferta } : {}) });
+  } catch {
+    situacaoAV("Sem internet agora. Tentando de novo…");
+  }
+  if (!VIVO.ativo) return;
+  if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
+  if (d && d.ok) {
+    VIVO.ultimaResposta = Date.now();
+    if (d.foto) {
+      VIVO.n = d.n;
+      $("#avFoto").src = "data:image/jpeg;base64," + d.foto;
+      VIVO.foto = true;
+      telaAV();
+    }
+    if (d.resposta && VIVO.pc && VIVO.pc.signalingState === "have-local-offer") {
+      VIVO.pc.setRemoteDescription({ type: "answer", sdp: d.resposta }).catch(desistirVideo);
+    }
+    // Sem vídeo em 30 segundos: fica com as imagens.
+    if (VIVO.pc && !VIVO.video && Date.now() - VIVO.inicio > 30000) desistirVideo();
+    const desligado = !d.leitorOnline && !VIVO.foto && Date.now() - VIVO.inicio > 12000;
+    if (desligado) $("#avVazio").textContent = "Sem imagem: o computador da oficina está desligado, sem internet ou o leitor de placas está fechado.";
+    situacaoAV(!d.ligada ? "A câmera ainda não foi ligada no painel (toque em \"Câmera\")."
+      : VIVO.video ? "Ao vivo (vídeo direto do computador da oficina)."
+      : desligado ? "O leitor de placas não está respondendo."
+      : VIVO.foto ? (VIVO.pc ? "Uma imagem a cada segundo. Tentando o vídeo ao vivo…" : "Uma imagem a cada segundo (o vídeo direto não conectou nesta rede).")
+      : "Conectando na câmera… (pode levar uns 10 segundos)");
+  } else if (d) {
+    situacaoAV(d.mensagem || MSG_VERSAO);
+  }
+  VIVO.timer = setTimeout(pedirAV, VIVO.video ? 5000 : 1000);
+}
+
+function pararAoVivo(avisar = true) {
+  const sessao = VIVO.sessao;
+  const estava = VIVO.ativo;
+  VIVO.ativo = false;
+  clearTimeout(VIVO.timer);
+  clearInterval(VIVO.exemplo);
+  desistirVideo();
+  VIVO.foto = false;
+  $("#avFoto").removeAttribute("src");
+  if (avisar && estava && sessao && !exemploLigado) agendaPedir("agenda_camera_ao_vivo", { sessao, parar: true }).catch(() => {});
+}
+
+// No exemplo: uma imagem desenhada, trocando a cada segundo.
+function aoVivoExemplo() {
+  const c = document.createElement("canvas");
+  c.width = 640;
+  c.height = 360;
+  const g = c.getContext("2d");
+  const desenhar = () => {
+    g.fillStyle = "#2d2f33"; g.fillRect(0, 0, 640, 360);
+    g.fillStyle = "#3b3e44"; g.fillRect(0, 230, 640, 130);
+    g.fillStyle = "#8a1c1f"; g.fillRect(180 + (Date.now() / 40) % 60, 170, 240, 110);
+    g.fillStyle = "#f2f0ec"; g.font = "600 22px sans-serif"; g.textAlign = "center";
+    g.fillText("Exemplo: aqui aparece a câmera da oficina", 320, 60);
+    g.font = "16px sans-serif";
+    g.fillText(new Date().toLocaleTimeString("pt-BR"), 320, 90);
+    $("#avFoto").src = c.toDataURL("image/jpeg", 0.7);
+    VIVO.foto = true;
+    telaAV();
+  };
+  desenhar();
+  VIVO.exemplo = setInterval(desenhar, 1000);
+  situacaoAV("Exemplo: no painel de verdade aparece a câmera da oficina, ao vivo.");
+}
+
+document.querySelectorAll("[data-abrir-aovivo]").forEach(b => b.addEventListener("click", abrirAoVivo));
+$("#dlgAoVivo").addEventListener("click", e => {
+  if (e.target === $("#dlgAoVivo") || e.target.closest('[data-av="fechar"]')) $("#dlgAoVivo").close();
+});
+$("#dlgAoVivo").addEventListener("close", () => pararAoVivo());
+// Voltou para o painel depois de um tempo (celular bloqueado): começa de novo.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && VIVO.ativo && !exemploLigado && Date.now() - VIVO.ultimaResposta > 25000) abrirAoVivo();
+});
 
 const WA = { dados: null, erro: "", ocupado: false };
 

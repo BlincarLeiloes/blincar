@@ -30,6 +30,14 @@ Fica ligado no computador da oficina, olhando a câmera. Tem dois jeitos
 Se o computador estiver desligado, nada se perde no painel: vocês marcam à mão,
 como sempre. Sem internet, ele guarda as leituras e manda quando voltar.
 
+Câmera ao vivo: no painel (aba Recebidos > "Ao vivo") dá para ver a câmera de
+qualquer lugar, com a senha do painel. O leitor manda o vídeo direto deste
+computador para o celular; se a rede do celular não deixar, manda uma imagem a
+cada segundo pela planilha. Só manda enquanto alguém está olhando. Para isso
+este computador precisa estar ligado, com o leitor e a internet. Nada é gravado.
+Se o Windows perguntar se o Python pode usar a rede (Firewall do Windows),
+clique em "Permitir": é o vídeo ao vivo.
+
 
 Instalar (uma vez)
 ------------------
@@ -158,6 +166,8 @@ Problemas
 
 Atualizar o leitor
 ------------------
+(Na versão 1.3, a do "Ao vivo", precisa abrir o instalar.bat de novo: ele
+instala a parte do vídeo ao vivo.)
 1) Baixe o leitor-placas.zip de novo no painel (Recebidos > Câmera).
 2) Botão direito no zip > Propriedades > marque "Desbloquear" > OK.
 3) Extraia por cima da pasta do leitor (substituir os arquivos). O
