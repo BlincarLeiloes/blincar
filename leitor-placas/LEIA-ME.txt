@@ -37,6 +37,11 @@ cada segundo pela planilha. Só manda enquanto alguém está olhando. Para isso
 este computador precisa estar ligado, com o leitor e a internet. Nada é gravado.
 Se o Windows perguntar se o Python pode usar a rede (Firewall do Windows),
 clique em "Permitir": é o vídeo ao vivo.
+No painel tem o botão "HD" (imagem maior: gasta umas 3 vezes mais internet e
+exige mais deste computador). Se o vídeo direto travar, o painel volta sozinho
+para as imagens e tenta o vídeo de novo depois. A aba Câmera mostra quantas
+imagens por segundo chegam da câmera: se avisar que está devagar, feche outros
+programas deste computador.
 
 
 Instalar (uma vez)

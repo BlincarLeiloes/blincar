@@ -40,7 +40,7 @@ from pathlib import Path
 
 import placas
 
-VERSAO = "1.3"
+VERSAO = "1.4"
 PASTA = Path(__file__).resolve().parent
 ARQ_CONFIG = PASTA / "config-blincar.json"
 ARQ_FILA = PASTA / "fila.jsonl"
@@ -225,7 +225,7 @@ class Envio(threading.Thread):
                 camera_avisada = self.estado["camera_ok"]
                 try:
                     r = enviar(self.cfg, {"acao": "camera_ping", "camera": self.estado["camera_ok"], "erro": self.estado["camera_erro"],
-                                          "modo": self.cfg.get("contar", "mao")})
+                                          "modo": self.cfg.get("contar", "mao"), "fps": self.estado.get("fps", 0)})
                     if r.get("ok") is False and r.get("erro") == "chave":
                         log.info("A planilha não aceitou a chave. Baixe a configuração de novo no painel (aba Câmera).")
                 except Exception as e:
@@ -690,6 +690,7 @@ class Camera(threading.Thread):
         self.quadro = None
         self.quando = 0.0
         self.parar = threading.Event()
+        self.contagem, self.desde = 0, time.time()
 
     def ultimo(self):
         with self.trava:
@@ -723,6 +724,10 @@ class Camera(threading.Thread):
                     time.sleep(ritmo)
                 with self.trava:
                     self.quadro, self.quando = quadro, time.time()
+                self.contagem += 1
+                if self.quando - self.desde >= 10:
+                    self.estado["fps"] = round(self.contagem / (self.quando - self.desde), 1)
+                    self.contagem, self.desde = 0, self.quando
                 if not self.estado["camera_ok"]:
                     log.info("Câmera conectada.")
                     self.estado.update(camera_ok=True, camera_erro="")
@@ -748,10 +753,10 @@ def reduzir(img, largura=640):
     return cv2.resize(img, (nw, nh), interpolation=cv2.INTER_AREA)
 
 
-def foto_ao_vivo(img, maximo=90000):
-    """JPEG em base64 que cabe no cache da planilha (diminui a qualidade se precisar)."""
+def foto_ao_vivo(img, maximo=90000, largura=640):
+    """JPEG em base64 que cabe no cache da planilha (diminui a qualidade se precisar). HD: largura 1280 e até 185 KB."""
     import cv2
-    img = reduzir(img, 640)
+    img = reduzir(img, largura)
     for qualidade in (70, 55, 40, 30):
         ok, jpg = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, qualidade])
         if ok:
@@ -769,6 +774,7 @@ def trilha_camera(pegar, fps=12, largura=640):
 
     class Trilha(VideoStreamTrack):
         async def recv(self):
+            lg = largura() if callable(largura) else largura
             if not hasattr(self, "_inicio"):
                 self._inicio, self._pts = time.time(), 0
             else:
@@ -777,7 +783,7 @@ def trilha_camera(pegar, fps=12, largura=640):
                 if espera > 0:
                     await asyncio.sleep(espera)
             img = pegar()
-            img = reduzir(img, largura) if img is not None else np.zeros((360, 640, 3), np.uint8)
+            img = reduzir(img, lg) if img is not None else np.zeros((360, 640, 3), np.uint8)
             quadro = av.VideoFrame.from_ndarray(img, format="bgr24")
             quadro.pts, quadro.time_base = self._pts, fractions.Fraction(1, 90000)
             return quadro
@@ -790,24 +796,51 @@ class AoVivo(threading.Thread):
     Sem ninguém olhando, só pergunta a cada 4 segundos (de dia e de noite: dá para olhar a oficina de casa)."""
 
     def __init__(self, cfg, pegar):
+        """pegar(): (imagem mais nova da câmera, hora em que ela chegou)."""
         super().__init__(daemon=True)
         self.cfg, self.pegar = cfg, pegar
         self.parar = threading.Event()
         self.n = 0
+        self.trava_n = threading.Lock()
         self.conexoes, self.ligadas = {}, set()
         self.loop = None
         self.sem_webrtc = False
+        # Quem está olhando sem o vídeo direto precisa de imagens. A planilha demora ~1 segundo para responder cada uma:
+        # um segundo envio, ao mesmo tempo, dobra as imagens por segundo.
+        self.mandar_fotos = False
+        # HD: alguém no painel ligou o botão HD (imagem de 1280 em vez de 640).
+        self.hd = False
+        threading.Thread(target=self._segundo_envio, daemon=True).start()
+
+    def _com_foto(self, corpo):
+        img, quando = self.pegar()
+        foto = (foto_ao_vivo(img, 185000, 1280) if self.hd else foto_ao_vivo(img)) if img is not None else ""
+        if foto:
+            with self.trava_n:
+                self.n += 1
+                n = self.n
+            corpo.update(foto=foto, fotoN=n, fotoHora=datetime.fromtimestamp(quando or time.time()).strftime("%H:%M:%S"),
+                         fotoAtraso=round(max(0.0, time.time() - quando), 1) if quando else 0)
+        return corpo
+
+    def _segundo_envio(self):
+        while not self.parar.is_set():
+            if not self.mandar_fotos:
+                self.parar.wait(0.3)
+                continue
+            try:
+                r = enviar(self.cfg, self._com_foto({"acao": "camera_ao_vivo"}), tempo=20)
+                self.mandar_fotos = bool(r.get("ok") and r.get("ver") and r.get("fotos", True))
+                self.hd = bool(r.get("hd"))
+            except Exception:
+                self.parar.wait(3)
 
     def run(self):
         respostas, sessoes, ver, falhas = [], [], False, 0
         while not self.parar.is_set():
             corpo = {"acao": "camera_ao_vivo"}
-            if ver and not (sessoes and all(s in self.ligadas for s in sessoes)):
-                img = self.pegar()
-                foto = foto_ao_vivo(img) if img is not None else ""
-                if foto:
-                    self.n += 1
-                    corpo.update(foto=foto, fotoN=self.n)
+            if self.mandar_fotos:
+                self._com_foto(corpo)
             if respostas:
                 corpo["respostas"] = respostas
             try:
@@ -818,9 +851,13 @@ class AoVivo(threading.Thread):
                 self.parar.wait(min(60, 5 * falhas))
                 continue
             if not r.get("ok"):
+                self.mandar_fotos = False
                 self.parar.wait(60)
                 continue
             ver, sessoes = bool(r.get("ver")), list(r.get("sessoes") or [])
+            # O painel é quem sabe se o vídeo direto está passando de verdade (às vezes conecta e trava).
+            self.mandar_fotos = ver and bool(r.get("fotos", not (sessoes and all(s in self.ligadas for s in sessoes))))
+            self.hd = bool(r.get("hd"))
             self._fechar_menos(sessoes)
             for o in r.get("ofertas") or []:
                 sdp = self._responder(str(o.get("sessao", "")), str(o.get("sdp", "")))
@@ -832,6 +869,7 @@ class AoVivo(threading.Thread):
                 self.parar.wait(0.25)
             else:
                 self.parar.wait(4)
+        self.mandar_fotos = False
         self._fechar_menos([])
 
     def _no_loop(self, coro, tempo=30):
@@ -875,7 +913,7 @@ class AoVivo(threading.Thread):
                     await pc.close()
 
         await pc.setRemoteDescription(RTCSessionDescription(sdp=oferta, type="offer"))
-        pc.addTrack(trilha_camera(self.pegar))
+        pc.addTrack(trilha_camera(lambda: self.pegar()[0], largura=lambda: 1280 if self.hd else 640))
         await pc.setLocalDescription(await pc.createAnswer())
         return pc.localDescription.sdp
 
@@ -1071,7 +1109,7 @@ def rodar(cfg):
     cam.start()
     atual = {"cam": cam}
     # O ao vivo já funciona enquanto a leitura de placas carrega (leva uns segundos).
-    aovivo = AoVivo(cfg, lambda: atual["cam"].ultimo()[0]) if cfg.get("ao_vivo", True) else None
+    aovivo = AoVivo(cfg, lambda: atual["cam"].ultimo()) if cfg.get("ao_vivo", True) else None
     if aovivo:
         aovivo.start()
     alpr = carregar_alpr(cfg)

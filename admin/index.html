@@ -526,6 +526,8 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
 .av-cab .sub{margin:4px 0 0}
 .av-tela:fullscreen,.av-tela.av-cheia{border-radius:0;aspect-ratio:auto;width:100%;height:100%;margin:0;cursor:zoom-out}
 .av-tela.av-cheia{position:fixed;inset:0;z-index:1000;width:100vw;height:100dvh}
+.av-hora{position:absolute;left:10px;bottom:10px;z-index:2;background:rgba(0,0,0,.6);color:#fff;border-radius:8px;padding:4px 8px;
+  font:600 .8125rem/1.2 var(--body);font-variant-numeric:tabular-nums}
 .av-sair{position:absolute;top:12px;right:12px;z-index:2;border:0;border-radius:999px;padding:10px 16px;font:600 .9375rem/1 var(--body);
   background:rgba(0,0,0,.6);color:#fff;cursor:pointer}
 .av-tela video,.av-tela img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
@@ -849,13 +851,15 @@ body.salvando .ag-acoes button,body.salvando [data-agendar],body.salvando #fSalv
         <video id="avVideo" playsinline autoplay muted hidden></video>
         <img id="avFoto" alt="Imagem da câmera da oficina" hidden>
         <p class="av-vazio" id="avVazio">Esperando a primeira imagem…</p>
+        <span class="av-hora" id="avHora" hidden></span>
         <button type="button" class="av-sair" id="avSair" hidden>Sair da tela cheia</button>
       </div>
       <div class="ag-acoes">
         <button type="button" class="btn btn-red" id="avCheia">Tela cheia</button>
         <button type="button" class="btn btn-line" id="avLigar">Pausar</button>
+        <button type="button" class="btn btn-line" id="avHd" aria-pressed="false">HD: desligado</button>
       </div>
-      <p class="nota">A imagem vem do computador da oficina (o leitor de placas precisa estar ligado). Primeiro tenta o vídeo ao vivo, direto do computador para este aparelho; se a rede não deixar, mostra uma imagem a cada segundo. Só passa enquanto esta aba está aberta: no 4G gasta uns 3 MB por minuto. Nada é gravado.</p>
+      <p class="nota">A imagem vem do computador da oficina (o leitor de placas precisa estar ligado). Primeiro tenta o vídeo ao vivo, direto do computador para este aparelho; se a rede não deixar, mostra uma imagem a cada segundo. Só passa enquanto esta aba está aberta: no 4G gasta uns 3 MB por minuto (com o HD ligado, uns 10). Nada é gravado.</p>
     </section>
     <section class="bloco" id="camCorpo" aria-labelledby="camTitulo"></section>
   </section>
@@ -4724,7 +4728,11 @@ function baixarConfigLeitor(c) {
 function situacaoLeitor(d) {
   const l = d.leitor;
   if (!l) return el("span", { class: "sub" }, "O leitor ainda não deu sinal. Depois de instalar no computador, ele avisa aqui a cada 5 minutos.");
-  if (d.online && l.camera) return el("span", { class: "ok-txt" }, `Ligado e vendo a câmera. Último sinal em ${quandoWA(l.em)}${l.versao ? ` (versão ${l.versao})` : ""}.`);
+  if (d.online && l.camera && l.fps && l.fps < 4) return el("span", { class: "err-txt" }, `Ligado, mas a câmera chega devagar no computador ` +
+    `(${String(l.fps).replace(".", ",")} imagens por segundo; o normal é 8 ou mais): o computador da oficina pode estar lento ou ocupado com outros programas. ` +
+    `Último sinal em ${quandoWA(l.em)}.`);
+  if (d.online && l.camera) return el("span", { class: "ok-txt" }, `Ligado e vendo a câmera. Último sinal em ${quandoWA(l.em)}${l.versao ? ` (versão ${l.versao})` : ""}` +
+    `${l.fps ? `; a câmera manda ${String(l.fps).replace(".", ",")} imagens por segundo` : ""}.`);
   if (d.online) return el("span", { class: "err-txt" }, `O leitor está ligado, mas não consegue ver a câmera${l.erro ? `: ${l.erro}` : "."} Confira se a câmera está ligada e no cabo do roteador.`);
   return el("span", { class: "err-txt" }, `Desligado desde ${quandoWA(l.em)}: o computador está desligado, sem internet ou o leitor foi fechado. Enquanto isso, marquem a chegada e a saída no painel.`);
 }
@@ -4808,7 +4816,28 @@ $("#camCorpo").addEventListener("click", e => {
    navegador manda o pedido pela planilha, o leitor responde, e o vídeo vai do computador da oficina direto para cá. Enquanto
    isso (ou se a rede não deixar), mostra as imagens que o leitor manda pela planilha. */
 
-const VIVO = { ativo: false, sessao: "", pc: null, oferta: "", timer: 0, n: 0, inicio: 0, video: false, foto: false, ultimaResposta: 0, exemplo: 0 };
+const VIVO = { ativo: false, geracao: 0, sessao: "", pc: null, oferta: "", n: 0, fotoT: 0, inicio: 0, inicioVideo: 0, video: false, foto: false,
+  ultimaResposta: 0, exemplo: 0, tentativas: 0, proximaTentativa: 0, travou: false, vigia: 0, ultimoT: -1, tMudou: 0, ofertaConfirmada: Infinity };
+
+const esperarMs = ms => new Promise(r => setTimeout(r, ms));
+
+// HD: a imagem de 1280 em vez de 640 (gasta umas 3 vezes mais internet e exige mais do computador da oficina).
+try { VIVO.hd = localStorage.getItem("blincar:hd") === "1"; } catch { VIVO.hd = false; }
+function marcarHd() {
+  $("#avHd").setAttribute("aria-pressed", String(VIVO.hd));
+  $("#avHd").textContent = VIVO.hd ? "HD: ligado" : "HD: desligado";
+  $("#avHd").className = VIVO.hd ? "btn btn-red" : "btn btn-line";
+}
+marcarHd();
+$("#avHd").addEventListener("click", () => {
+  VIVO.hd = !VIVO.hd;
+  try { localStorage.setItem("blincar:hd", VIVO.hd ? "1" : "0"); } catch {}
+  marcarHd();
+  if (VIVO.ativo && !exemploLigado) {
+    situacaoAV(VIVO.hd ? "HD ligado: a imagem melhora em alguns segundos." : "HD desligado: imagem menor, gasta menos internet.");
+    pedirAV();
+  }
+});
 
 function situacaoAV(texto) {
   $("#avSituacao").textContent = texto;
@@ -4818,23 +4847,52 @@ function telaAV() {
   $("#avVideo").hidden = !VIVO.video;
   $("#avFoto").hidden = VIVO.video || !VIVO.foto;
   $("#avVazio").hidden = VIVO.video || VIVO.foto;
+  $("#avHora").hidden = VIVO.video || !VIVO.foto || !$("#avHora").textContent;
 }
 
 async function abrirAoVivo() {
   pararAoVivo(false);
   $("#avLigar").textContent = "Pausar";
-  Object.assign(VIVO, { ativo: true, sessao: [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join(""),
-    n: 0, inicio: Date.now(), video: false, foto: false, oferta: "", ultimaResposta: Date.now() });
+  Object.assign(VIVO, { ativo: true, geracao: VIVO.geracao + 1, sessao: [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, "0")).join(""),
+    n: 0, fotoT: 0, inicio: Date.now(), video: false, foto: false, oferta: "", ultimaResposta: Date.now(), tentativas: 0, proximaTentativa: 0, travou: false });
   $("#avVazio").textContent = "Esperando a primeira imagem…";
+  $("#avHora").textContent = "";
   telaAV();
   situacaoAV("Conectando na câmera…");
   if (exemploLigado) return aoVivoExemplo();
+  await tentarVideo();
+  if (!VIVO.ativo) return;
+  // Dois pedidos ao mesmo tempo: a planilha leva ~1 segundo para responder cada um.
+  const g = VIVO.geracao;
+  cicloAV(g, 0);
+  cicloAV(g, 600);
+}
+
+async function cicloAV(geracao, atraso) {
+  if (atraso) await esperarMs(atraso);
+  while (VIVO.ativo && VIVO.geracao === geracao) {
+    // Com o vídeo direto passando, um pedido a cada 4 segundos basta (só para o leitor saber que tem gente olhando).
+    if (atraso && VIVO.video) {
+      await esperarMs(1000);
+      continue;
+    }
+    await pedirAV();
+    await esperarMs(VIVO.video ? 4000 : 250);
+  }
+}
+
+// Vídeo direto: um pedido novo (até 3 vezes; depois de travar ou não conectar, tenta de novo em 45 segundos).
+async function tentarVideo() {
+  VIVO.tentativas++;
+  VIVO.inicioVideo = Date.now();
+  // Resposta só vale para o pedido novo (a da tentativa anterior não serve).
+  VIVO.oferta = "";
+  VIVO.ofertaConfirmada = Infinity;
   try {
     VIVO.oferta = await ofertaVideo();
   } catch {
     desistirVideo();
   }
-  if (VIVO.ativo) pedirAV();
 }
 
 // O pedido de vídeo do navegador (com os caminhos de rede que ele achou em até 2,5 segundos).
@@ -4848,7 +4906,9 @@ async function ofertaVideo() {
     v.srcObject = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
     v.play().catch(() => {});
   };
-  pc.onconnectionstatechange = () => { if (VIVO.pc === pc && pc.connectionState === "failed") desistirVideo(); };
+  pc.onconnectionstatechange = () => {
+    if (VIVO.pc === pc && (pc.connectionState === "failed" || pc.connectionState === "disconnected")) videoTravou();
+  };
   await pc.setLocalDescription(await pc.createOffer());
   await new Promise(pronto => {
     if (pc.iceGatheringState === "complete") return pronto();
@@ -4864,65 +4924,108 @@ function desistirVideo() {
   }
   VIVO.pc = null;
   VIVO.video = false;
+  clearInterval(VIVO.vigia);
   $("#avVideo").srcObject = null;
+  if (VIVO.ativo && VIVO.tentativas < 3) VIVO.proximaTentativa = Date.now() + 45000;
   telaAV();
 }
 
+function videoTravou() {
+  if (!VIVO.ativo) return;
+  VIVO.travou = VIVO.video || VIVO.travou;
+  desistirVideo();
+  // Já pede de novo, dizendo que está sem vídeo: o leitor volta a mandar imagens.
+  pedirAV();
+}
+
+// Vigia: o vídeo parado por 4 segundos (com a tela ligada) é vídeo travado.
+function vigiarVideo() {
+  clearInterval(VIVO.vigia);
+  VIVO.ultimoT = -1;
+  VIVO.tMudou = Date.now();
+  VIVO.vigia = setInterval(() => {
+    if (!VIVO.video) return clearInterval(VIVO.vigia);
+    const t = $("#avVideo").currentTime;
+    if (document.hidden || t !== VIVO.ultimoT) {
+      VIVO.ultimoT = t;
+      VIVO.tMudou = Date.now();
+      return;
+    }
+    if (Date.now() - VIVO.tMudou > 4000) videoTravou();
+  }, 1000);
+}
+
 $("#avVideo").addEventListener("playing", () => {
-  if (!VIVO.ativo || !VIVO.pc) return;
+  if (!VIVO.ativo || !VIVO.pc || VIVO.video) return;
   VIVO.video = true;
+  VIVO.travou = false;
   telaAV();
+  vigiarVideo();
   situacaoAV("Ao vivo (vídeo direto do computador da oficina).");
 });
 
 async function pedirAV() {
   if (!VIVO.ativo) return;
-  clearTimeout(VIVO.timer);
-  const esperandoResposta = VIVO.pc && VIVO.pc.signalingState === "have-local-offer";
+  const g = VIVO.geracao;
+  const inicioPedido = Date.now();
+  const oferta = VIVO.pc && VIVO.pc.signalingState === "have-local-offer" ? VIVO.oferta : "";
   let d = null;
   try {
-    d = await agendaPedir("agenda_camera_ao_vivo", { sessao: VIVO.sessao, n: VIVO.n, ...(esperandoResposta && VIVO.oferta ? { oferta: VIVO.oferta } : {}) });
+    d = await agendaPedir("agenda_camera_ao_vivo", { sessao: VIVO.sessao, n: VIVO.n, video: VIVO.video, hd: !!VIVO.hd, ...(oferta ? { oferta } : {}) });
   } catch {
     situacaoAV("Sem internet agora. Tentando de novo…");
   }
-  if (!VIVO.ativo) return;
+  if (!VIVO.ativo || VIVO.geracao !== g) return;
   if (d && d.erro === "senha") return sair("A senha mudou. Entre de novo.");
   if (d && d.ok) {
     VIVO.ultimaResposta = Date.now();
-    if (d.foto) {
+    // Os dois pedidos podem voltar fora de ordem: só troca por uma imagem mais nova.
+    if (d.foto && Number(d.fotoT || 0) >= VIVO.fotoT) {
       VIVO.n = d.n;
+      VIVO.fotoT = Number(d.fotoT || 0);
       $("#avFoto").src = "data:image/jpeg;base64," + d.foto;
+      $("#avHora").textContent = d.fotoHora || "";
       VIVO.foto = true;
       telaAV();
     }
-    if (d.resposta && VIVO.pc && VIVO.pc.signalingState === "have-local-offer") {
+    // A planilha recebeu este pedido de vídeo: só valem as respostas de consultas feitas depois disso.
+    if (oferta && oferta === VIVO.oferta && VIVO.ofertaConfirmada === Infinity) VIVO.ofertaConfirmada = Date.now();
+    if (d.resposta && VIVO.pc && VIVO.pc.signalingState === "have-local-offer" && inicioPedido >= VIVO.ofertaConfirmada) {
       VIVO.pc.setRemoteDescription({ type: "answer", sdp: d.resposta }).catch(desistirVideo);
     }
-    // Sem vídeo em 30 segundos: fica com as imagens.
-    if (VIVO.pc && !VIVO.video && Date.now() - VIVO.inicio > 30000) desistirVideo();
+    // Sem vídeo em 30 segundos: fica com as imagens e tenta de novo daqui a pouco.
+    if (VIVO.pc && !VIVO.video && Date.now() - VIVO.inicioVideo > 30000) desistirVideo();
+    if (!VIVO.pc && !VIVO.video && VIVO.proximaTentativa && Date.now() >= VIVO.proximaTentativa && VIVO.tentativas < 3) {
+      VIVO.proximaTentativa = 0;
+      tentarVideo();
+    }
     const desligado = !d.leitorOnline && !VIVO.foto && Date.now() - VIVO.inicio > 12000;
+    const atrasada = VIVO.foto && d.fotoIdade != null && d.fotoIdade > 8;
     if (desligado) $("#avVazio").textContent = "Sem imagem: o computador da oficina está desligado, sem internet ou o leitor de placas está fechado.";
     situacaoAV(!d.ligada ? "A câmera ainda não foi ligada: toque em \"Ligar a câmera\", aqui embaixo."
       : VIVO.video ? "Ao vivo (vídeo direto do computador da oficina)."
       : desligado ? "O leitor de placas não está respondendo."
-      : VIVO.foto ? (VIVO.pc ? "Uma imagem a cada segundo. Tentando o vídeo ao vivo…" : "Uma imagem a cada segundo (o vídeo direto não conectou nesta rede).")
+      : atrasada ? `A imagem está chegando atrasada (de uns ${d.fotoIdade} segundos atrás): a internet da oficina ou o computador de lá está lento.`
+      : VIVO.foto ? (VIVO.travou ? "O vídeo direto travou: mostrando imagens (umas duas por segundo) enquanto isso."
+        : VIVO.pc ? "Imagens ao vivo. Tentando o vídeo direto…" : "Imagens ao vivo (o vídeo direto não conectou nesta rede).")
       : "Conectando na câmera… (pode levar uns 10 segundos)");
   } else if (d) {
     situacaoAV(d.mensagem || MSG_VERSAO);
   }
-  VIVO.timer = setTimeout(pedirAV, VIVO.video ? 5000 : 1000);
 }
 
 function pararAoVivo(avisar = true) {
   const sessao = VIVO.sessao;
   const estava = VIVO.ativo;
   VIVO.ativo = false;
+  VIVO.geracao++;
   $("#avLigar").textContent = "Ver ao vivo";
-  clearTimeout(VIVO.timer);
   clearInterval(VIVO.exemplo);
   desistirVideo();
   VIVO.foto = false;
   $("#avFoto").removeAttribute("src");
+  $("#avHora").textContent = "";
+  telaAV();
   if (avisar && estava && sessao && !exemploLigado) agendaPedir("agenda_camera_ao_vivo", { sessao, parar: true }).catch(() => {});
 }
 
